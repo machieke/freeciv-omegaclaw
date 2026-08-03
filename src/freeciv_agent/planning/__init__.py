@@ -249,6 +249,12 @@ from .fdas_scalar_baseline_candidate_readout import (
     FdasScalarBaselineCandidateReadout,
     FdasScalarBaselineCandidateReadoutEvaluator,
 )
+from .fdas_decision_safe_candidate_filter import (
+    DECISION_SAFE_CANDIDATE_FILTER_IDENTITY,
+    FdasDecisionSafeCandidateFilter,
+    FdasDecisionSafeCandidateFilterReadout,
+    build_decision_safe_candidate_filter,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -432,11 +438,15 @@ __all__ = [
     "FdasDecisionSafeCandidateReadout",
     "FdasDecisionSafeCandidateReadoutConfig",
     "FdasDecisionSafeCandidateReadoutEvaluator",
+    "DECISION_SAFE_CANDIDATE_FILTER_IDENTITY",
+    "FdasDecisionSafeCandidateFilter",
+    "FdasDecisionSafeCandidateFilterReadout",
     "FdasScalarBaselineCandidateReadout",
     "FdasScalarBaselineCandidateReadoutEvaluator",
     "FdasGroundedCandidateValue",
     "SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY",
     "SCALAR_BASELINE_CONTROL_SEMANTICS",
+    "build_decision_safe_candidate_filter",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",

@@ -885,3 +885,15 @@ candidates for observation while excluding them from the decision-safe scalar
 baseline and calibrated recall surface with explicit reasons. See
 `fdas-pr66-scalar-baseline-grounding-diagnostic.md` and
 `fdas-pr66-scalar-baseline-grounding-diagnostic.json`.
+
+PR67 implements the required safety boundary before the candidate union.
+Every original choice remains in the observational store, while a distinct
+revision-bound event records exact blocker sets, bounded-validator status, and
+support for each input. Only eligible operations reach scalar top-1 or
+calibrated recall; `protected-source-garrison` remains excluded, and an empty
+safe surface emits no union. Union events are causally bound to their filter,
+and all filter/readout authority is false. Eighty-seven focused planner,
+runtime, config, and audit tests pass. Fresh seed `109031` is preregistered to
+require an observed source-garrison exclusion, a safe candidate-specific union,
+and a fully grounded safe scalar control; see
+`fdas-pr67-safe-filtered-scalar-readout-preregistration.md`.

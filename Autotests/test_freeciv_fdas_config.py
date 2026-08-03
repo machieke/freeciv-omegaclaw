@@ -196,6 +196,37 @@ def test_scalar_baseline_readout_profile_has_distinct_control_semantics():
     assert diagnostic["truth_mutated"] is False
 
 
+def test_safe_filtered_scalar_readout_profile_preserves_observation_surface():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_safe_filtered_scalar_readout_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest["decision_safe_candidate_filter_diagnostic"]
+
+    assert config.enabled is True
+    assert manifest["capabilities"][
+        "decision_safe_candidate_filter"] == "shadow-live"
+    assert manifest["capabilities"][
+        "scalar_baseline_candidate_readout"] == "shadow-live"
+    assert diagnostic == {
+        "action_selection_changed": False,
+        "calibrated_union_input_filtered": True,
+        "candidate_surface_preserved": True,
+        "exact_bounded_validators_required": True,
+        "policy_authority": False,
+        "readout_authority": False,
+        "truth_mutated": False,
+    }
+
+
 def test_checked_observation_execution_profile_requires_authoritative_return():
     with open(os.path.join(
             REPO, "profile",

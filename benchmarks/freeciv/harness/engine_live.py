@@ -66,6 +66,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasDecisionSafeCandidateReadoutConfig,
                                     FdasDecisionSafeCandidateReadoutEvaluator,
                                     FdasScalarBaselineCandidateReadoutEvaluator,
+                                    build_decision_safe_candidate_filter,
                                     FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
@@ -2793,6 +2794,13 @@ async def _play(run_dir, manifest, context):
             and fdas_scalar_baseline_candidate_readout):
         raise RuntimeError(
             "FDAS candidate readout control semantics are mutually exclusive")
+    candidate_filter_capability = fdas_manifest["capabilities"].get(
+        "decision_safe_candidate_filter")
+    candidate_filter_diagnostic = fdas_manifest.get(
+        "decision_safe_candidate_filter_diagnostic")
+    fdas_decision_safe_candidate_filter = bool(
+        candidate_filter_capability is not None
+        or candidate_filter_diagnostic is not None)
     probe_union_capability = fdas_manifest["capabilities"].get(
         "probe_candidate_reachability")
     probe_union_diagnostic = fdas_manifest.get(
@@ -3332,6 +3340,27 @@ async def _play(run_dir, manifest, context):
         fdas_scalar_baseline_readout_evaluator = (
             FdasScalarBaselineCandidateReadoutEvaluator(
                 scalar_baseline_config))
+    if fdas_decision_safe_candidate_filter:
+        expected_candidate_filter = {
+            "action_selection_changed": False,
+            "calibrated_union_input_filtered": True,
+            "candidate_surface_preserved": True,
+            "exact_bounded_validators_required": True,
+            "policy_authority": False,
+            "readout_authority": False,
+            "truth_mutated": False,
+        }
+        if candidate_filter_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS decision-safe candidate filter requires shadow-live")
+        if candidate_filter_diagnostic != expected_candidate_filter:
+            raise RuntimeError(
+                "FDAS decision-safe candidate filter declaration differs")
+        if (not fdas_grounded_transition_candidate_union
+                or not fdas_scalar_baseline_candidate_readout):
+            raise RuntimeError(
+                "FDAS decision-safe candidate filter requires the grounded "
+                "transition scalar-baseline readout")
     if fdas_probe_candidate_reachability:
         expected_probe_union_keys = {
             "action_selection_changed",
@@ -3850,6 +3879,12 @@ async def _play(run_dir, manifest, context):
         "fdas_scalar_baseline_candidate_readout_shadow_preferences": 0,
         "fdas_scalar_baseline_candidate_readout_grounded_alternatives": 0,
         "fdas_scalar_baseline_candidate_readout_interval_overlaps": 0,
+        "fdas_decision_safe_candidate_filter_evaluations": 0,
+        "fdas_decision_safe_candidate_filter_inputs": 0,
+        "fdas_decision_safe_candidate_filter_eligible": 0,
+        "fdas_decision_safe_candidate_filter_excluded": 0,
+        "fdas_decision_safe_candidate_filter_empty_surfaces": 0,
+        "fdas_decision_safe_candidate_filter_source_garrison_exclusions": 0,
         "fdas_probe_candidate_union_evaluations": 0,
         "fdas_probe_candidate_union_readouts": 0,
         "fdas_probe_candidate_union_members": 0,
@@ -6005,17 +6040,92 @@ async def _play(run_dir, manifest, context):
                                     surface_queries[
                                         candidate.operation.operation_id] = (
                                             surface_query)
-                                if fdas_candidate_calibration_model is not None:
+                                readout_surface_candidates = surface_candidates
+                                if fdas_decision_safe_candidate_filter:
+                                    candidate_filter = (
+                                        build_decision_safe_candidate_filter(
+                                            surface_candidates,
+                                            snapshot,
+                                            choice_revision,
+                                            fdas_shadow.goals))
+                                    eligible_filter_ids = frozenset(
+                                        candidate_filter
+                                        .eligible_operation_ids)
+                                    readout_surface_candidates = tuple(
+                                        value for value in surface_candidates
+                                        if value.operation.operation_id
+                                        in eligible_filter_ids)
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_evaluations"] += 1
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_inputs"] += len(
+                                            candidate_filter.readouts)
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_eligible"] += len(
+                                            candidate_filter
+                                            .eligible_operation_ids)
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_excluded"] += len(
+                                            candidate_filter
+                                            .excluded_operation_ids)
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_empty_surfaces"] += int(
+                                            not readout_surface_candidates)
+                                    decision_stats[
+                                        "fdas_decision_safe_candidate_"
+                                        "filter_source_garrison_"
+                                        "exclusions"] += sum(
+                                            value.reason
+                                            == "candidate-has-"
+                                            "noncontractual-blockers"
+                                            and "protected-source-garrison"
+                                            in next(
+                                                candidate.blockers
+                                                for candidate in
+                                                surface_candidates
+                                                if candidate.operation
+                                                .operation_id
+                                                == value.operation_id)
+                                            for value in
+                                            candidate_filter.readouts)
+                                    candidate_filter_event = (
+                                        fdas_runtime
+                                        .emit_decision_safe_candidate_filter(
+                                            writer,
+                                            snapshot,
+                                            candidate_filter,
+                                            caused_by=(parent,)))
+                                    if candidate_filter_event is not None:
+                                        parent = candidate_filter_event[
+                                            "event_id"]
+                                if (fdas_candidate_calibration_model is not None
+                                        and readout_surface_candidates
+                                        and any(score_by_id[
+                                            value.operation.operation_id]
+                                            .admissible for value in
+                                            readout_surface_candidates)):
                                     surface_scores = tuple(
                                         score_by_id[
                                             candidate.operation.operation_id]
-                                        for candidate in surface_candidates)
+                                        for candidate in
+                                        readout_surface_candidates)
+                                    readout_surface_queries = dict(
+                                        (candidate.operation.operation_id,
+                                         surface_queries[
+                                             candidate.operation.operation_id])
+                                        for candidate in
+                                        readout_surface_candidates)
                                     calibrated_union = (
                                         build_calibrated_candidate_union(
                                             fdas_candidate_calibration_model,
-                                            surface_candidates,
+                                            readout_surface_candidates,
                                             surface_scores,
-                                            surface_queries,
+                                            readout_surface_queries,
                                             snapshot.snapshot_id,
                                             choice_revision.revision_id,
                                             scalar_top_k=(
@@ -6160,7 +6270,7 @@ async def _play(run_dir, manifest, context):
                                                 snapshot,
                                                 choice_revision,
                                                 fdas_shadow,
-                                                surface_candidates,
+                                                readout_surface_candidates,
                                                 calibrated_union))
                                         decision_stats[
                                             "fdas_scalar_baseline_candidate_"
@@ -7905,6 +8015,21 @@ async def _play(run_dir, manifest, context):
         ("fdas_scalar_baseline_candidate_readout_interval_overlaps",
          decision_stats[
              "fdas_scalar_baseline_candidate_readout_interval_overlaps"]),
+        ("fdas_decision_safe_candidate_filter_evaluations",
+         decision_stats["fdas_decision_safe_candidate_filter_evaluations"]),
+        ("fdas_decision_safe_candidate_filter_inputs",
+         decision_stats["fdas_decision_safe_candidate_filter_inputs"]),
+        ("fdas_decision_safe_candidate_filter_eligible",
+         decision_stats["fdas_decision_safe_candidate_filter_eligible"]),
+        ("fdas_decision_safe_candidate_filter_excluded",
+         decision_stats["fdas_decision_safe_candidate_filter_excluded"]),
+        ("fdas_decision_safe_candidate_filter_empty_surfaces",
+         decision_stats[
+             "fdas_decision_safe_candidate_filter_empty_surfaces"]),
+        ("fdas_decision_safe_candidate_filter_source_garrison_exclusions",
+         decision_stats[
+             "fdas_decision_safe_candidate_filter_"
+             "source_garrison_exclusions"]),
         ("fdas_probe_candidate_union_evaluations",
          decision_stats["fdas_probe_candidate_union_evaluations"]),
         ("fdas_probe_candidate_union_readouts",
@@ -8548,6 +8673,25 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_scalar_baseline_candidate_readout_"
                     "interval_overlaps"]),
+            "fdas_decision_safe_candidate_filter_evaluations": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_evaluations"]),
+            "fdas_decision_safe_candidate_filter_inputs": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_inputs"]),
+            "fdas_decision_safe_candidate_filter_eligible": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_eligible"]),
+            "fdas_decision_safe_candidate_filter_excluded": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_excluded"]),
+            "fdas_decision_safe_candidate_filter_empty_surfaces": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_empty_surfaces"]),
+            "fdas_decision_safe_candidate_filter_source_garrison_exclusions": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_filter_"
+                    "source_garrison_exclusions"]),
             "fdas_probe_candidate_union_evaluations": (
                 decision_stats["fdas_probe_candidate_union_evaluations"]),
             "fdas_probe_candidate_union_readouts": (
@@ -9053,6 +9197,25 @@ async def _play(run_dir, manifest, context):
         "fdas_scalar_baseline_candidate_readout_interval_overlaps": (
             decision_stats[
                 "fdas_scalar_baseline_candidate_readout_interval_overlaps"]),
+        "fdas_decision_safe_candidate_filter_evaluations": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_evaluations"]),
+        "fdas_decision_safe_candidate_filter_inputs": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_inputs"]),
+        "fdas_decision_safe_candidate_filter_eligible": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_eligible"]),
+        "fdas_decision_safe_candidate_filter_excluded": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_excluded"]),
+        "fdas_decision_safe_candidate_filter_empty_surfaces": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_empty_surfaces"]),
+        "fdas_decision_safe_candidate_filter_source_garrison_exclusions": (
+            decision_stats[
+                "fdas_decision_safe_candidate_filter_"
+                "source_garrison_exclusions"]),
         "fdas_probe_candidate_union_evaluations": (
             decision_stats["fdas_probe_candidate_union_evaluations"]),
         "fdas_probe_candidate_union_readouts": (

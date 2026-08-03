@@ -17,6 +17,7 @@ from freeciv_agent.planning import (
     FdasDecisionSafeCandidateReadoutConfig,
     FdasDecisionSafeCandidateReadoutEvaluator,
     FdasScalarBaselineCandidateReadoutEvaluator,
+    build_decision_safe_candidate_filter,
     FdasPathPersistenceCandidateUnion,
     FdasPathPersistenceMember,
     FdasPathPersistenceReadout,
@@ -703,3 +704,39 @@ def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):
         "control-bounded-validator-"
         "current-native-reinforcement-route-unavailable")
     assert not readout.shadow_preference
+
+
+def test_decision_safe_filter_excludes_source_garrison_but_preserves_surface(
+        ir):
+    case = list(_decision_safe_case(ir))
+    baseline = next(
+        value for value in case[4]
+        if value.operation.operation_id
+        == case[6].baseline_selected_operation_id)
+    unsafe = replace(
+        baseline,
+        blockers=tuple(sorted(set(
+            baseline.blockers + ("protected-source-garrison",)))),
+        candidate_hash=structural_hash([
+            baseline.candidate_hash, "protected-source-garrison",
+        ]))
+    candidates = tuple(
+        unsafe if value == baseline else value for value in case[4])
+
+    filtered = build_decision_safe_candidate_filter(
+        candidates, case[0], case[1], case[2].goals)
+
+    assert len(filtered.readouts) == len(candidates) == 2
+    assert unsafe.operation.operation_id in filtered.excluded_operation_ids
+    assert len(filtered.eligible_operation_ids) == 1
+    rejected = next(
+        value for value in filtered.readouts
+        if value.operation_id == unsafe.operation.operation_id)
+    assert rejected.reason == "candidate-has-noncontractual-blockers"
+    assert "protected-source-garrison" in rejected.blockers
+    assert filtered.to_dict()["candidate_surface_preserved"] is True
+    assert filtered.to_dict()["calibrated_union_input_filtered"] is True
+    assert filtered.to_dict()["action_selection_changed"] is False
+    assert filtered.to_dict()["policy_authority"] is False
+    assert filtered.to_dict()["readout_authority"] is False
+    assert filtered.to_dict()["truth_mutated"] is False
