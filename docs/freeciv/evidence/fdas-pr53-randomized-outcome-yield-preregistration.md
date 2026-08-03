@@ -1,6 +1,6 @@
 # PR53 fresh-seed randomized outcome-yield preregistration
 
-Status: preregistered; execution not started
+Status: rejected before gameplay
 
 Implementation commit: `caf9010bfdb67a0cb0acb37ad165b7fd75153559`
 
@@ -99,3 +99,16 @@ outcome collection design must be improved before a causal value cohort is
 economically defensible.
 
 No result from PR53, favorable or unfavorable, changes these criteria.
+
+## Frozen outcome
+
+PR53 produced no gameplay, assignment, or outcome data. All 12 worker jobs
+failed the common pre-runtime check in 4.8 seconds with
+`RuntimeError: engine-live requires FREECIV_RULESET_ROOT`. The failed artifact
+is preserved at the frozen output path with 12 infrastructure failures and
+zero completed games.
+
+Because no engine connection, game state, eligible action pair, assignment, or
+outcome was observed, these seeds remain unseen by the intervention. PR53b is
+separately preregistered to repeat the exact design with the omitted local
+runtime bindings supplied; it does not overwrite or resume PR53.
