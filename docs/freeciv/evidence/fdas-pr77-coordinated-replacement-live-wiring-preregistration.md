@@ -62,7 +62,7 @@ python3 scripts/freeciv/run_harness.py \
   --out artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v1 \
   --config profile/freeciv_harness_fdas_pr77_replacement_live_wiring_160_turn.yaml \
   --backend engine-live --workers 1 --base-port 6001 \
-  --condition e_full_loop --main-only --limit-seeds 1 --no-resume
+  --condition e_full_loop --main-only --seed-offset 43 --limit-seeds 1 --no-resume
 
 GAME_DIR=artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v1/games/main/e_full_loop/109459-00
 PYTHONPATH=src:benchmarks \
