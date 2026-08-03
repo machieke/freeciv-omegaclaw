@@ -785,3 +785,16 @@ thresholds, predictive thresholds, endpoint rules, and scalar controller. All
 30 seeds are new and disjoint from PR59–PR61, including PR60 reserves. No model
 is loaded into live readout during collection. See
 `fdas-pr63-candidate-transition-calibration-confirmation-preregistration.md`.
+
+PR63 passes the fresh audit-2.0 confirmation from clean commit `bd6fe7b`. All
+30 games completed without failure, resume, or rejected action. The cohort
+supplied 70 selected move outcomes, 26 lineages across 12 games, and 742
+diverse multi-move sets. The frozen model achieved 100% coverage, 84.6%
+candidate-specific predictions, Brier `0.222`, log loss `0.655`, calibration
+error `0.027`, and a game-clustered Brier-improvement interval of
+`[-0.0049, +0.0332]`; every preregistered mechanics, yield, and predictive gate
+passed. This establishes held-out selected-action calibration and permits only
+a separate default-off shadow readout-yield experiment. It does not establish
+censored counterfactual value, ranking quality, gameplay, score, or win rate.
+See `fdas-pr63-candidate-transition-calibration-confirmation.md` and
+`fdas-pr63-candidate-transition-calibration-confirmation.json`.
