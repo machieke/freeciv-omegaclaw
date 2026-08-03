@@ -59,7 +59,7 @@
     "maximum_interval_width": 0.55,
     "policy_authority": false,
     "readout_authority": false,
-    "scalar_top_k": 3,
+    "scalar_top_k": 1,
     "truth_mutated": false
   },
   "defense_candidate_choice_surface_diagnostic": {

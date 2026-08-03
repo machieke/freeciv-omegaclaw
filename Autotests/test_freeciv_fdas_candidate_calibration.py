@@ -273,6 +273,8 @@ def test_calibrated_union_enlarges_recall_without_changing_scalar_winner():
         maximum_interval_width=0.1)
     assert conservative.operation_ids == ("fortify-a",)
     assert conservative.calibrated_added_operation_ids == ()
+    assert conservative.abstained_operation_ids == (
+        "fortify-a", "move-a", "fortify-b", "move-b")
 
 
 def test_calibrated_union_keeps_abstained_action_only_if_scalar_protected():

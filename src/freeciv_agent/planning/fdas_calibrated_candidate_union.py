@@ -114,7 +114,12 @@ class FdasCalibratedCandidateMember:
             raise ValueError("calibrated union member requires operation")
         reasons = tuple(sorted(str(value) for value in self.reasons))
         if (not reasons or any(not value for value in reasons)
-                or len(reasons) != len(set(reasons))):
+                or len(reasons) != len(set(reasons))
+                or set(reasons) - {
+                    "calibrated-transition-recall",
+                    "scalar-top-k",
+                    "scalar-winner",
+                }):
             raise ValueError("calibrated union reasons are invalid")
         object.__setattr__(self, "reasons", reasons)
 
@@ -175,13 +180,64 @@ class FdasCalibratedCandidateUnion:
                 or set(member_ids) - set(readout_ids)
                 or self.baseline_selected_operation_id not in member_ids):
             raise ValueError("calibrated union membership is inconsistent")
+        readout_by_id = dict(
+            (value.operation_id, value) for value in self.readouts)
+        member_by_id = dict(
+            (value.operation_id, value) for value in self.members)
+        if (tuple(sorted(
+                    member_ids,
+                    key=lambda value: readout_by_id[value].baseline_rank))
+                != member_ids
+                or readout_by_id[
+                    self.baseline_selected_operation_id].baseline_rank != 1
+                or "scalar-winner" not in member_by_id[
+                    self.baseline_selected_operation_id].reasons):
+            raise ValueError("calibrated union scalar ordering differs")
+        scalar_ids = tuple(
+            value.operation_id for value in self.readouts
+            if value.baseline_rank <= self.scalar_top_k)
+        if (set(scalar_ids) - set(member_ids)
+                or any("scalar-top-k" not in member_by_id[value].reasons
+                       for value in scalar_ids)
+                or any(
+                    "scalar-top-k" in value.reasons
+                    and readout_by_id[value.operation_id].baseline_rank
+                    > self.scalar_top_k
+                    for value in self.members)):
+            raise ValueError("calibrated union scalar protection differs")
         additions = tuple(self.calibrated_added_operation_ids)
         abstained = tuple(self.abstained_operation_ids)
+        calibrated_members = tuple(
+            value.operation_id for value in self.members
+            if "calibrated-transition-recall" in value.reasons)
+        expected_additions = tuple(
+            value for value in calibrated_members
+            if readout_by_id[value].baseline_rank > self.scalar_top_k)
+        expected_abstained = tuple(
+            value.operation_id for value in self.readouts
+            if not value.eligible_for_calibrated_recall)
         if (len(additions) != len(set(additions))
                 or set(additions) - set(member_ids)
                 or len(abstained) != len(set(abstained))
-                or set(abstained) - set(readout_ids)):
+                or set(abstained) - set(readout_ids)
+                or additions != expected_additions
+                or abstained != expected_abstained
+                or any(not readout_by_id[value]
+                       .eligible_for_calibrated_recall
+                       for value in calibrated_members)):
             raise ValueError("calibrated union diagnostics are inconsistent")
+        calibrated_action_counts = {}
+        for operation_id in calibrated_members:
+            operation_type = readout_by_id[operation_id].operation_type
+            calibrated_action_counts[operation_type] = (
+                calibrated_action_counts.get(operation_type, 0) + 1)
+        if (any(value > self.calibrated_per_action
+                for value in calibrated_action_counts.values())
+                or len(self.members) > min(
+                    self.scalar_top_k, len(self.readouts)) + (
+                        len(DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
+                        * self.calibrated_per_action)):
+            raise ValueError("calibrated union recall bound differs")
         semantic = self._semantic()
         if self.result_hash != structural_hash(semantic):
             raise ValueError("calibrated union result hash differs")
@@ -329,7 +385,7 @@ def build_calibrated_candidate_union(
         value, tuple(reasons[value])) for value in ordered)
     abstained = tuple(
         value.operation_id for value in readouts
-        if value.prediction_status == "abstained")
+        if not value.eligible_for_calibrated_recall)
     semantic = {
         "abstained_operation_ids": list(abstained),
         "action_selection_changed": False,
