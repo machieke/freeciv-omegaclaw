@@ -341,3 +341,13 @@ outcomes with 6/2 contrast. Three move rows were labeled, but they correctly
 collapse to one observed actor/route lineage. The audit now requires observed
 lineages as well as raw rows, so this engineering smoke remains ineligible for
 discovery. See `fdas-pr37-action-family-route-smoke.md`.
+
+PR38 passed a stricter preregistered four-seed independent-yield gate from one
+clean commit. Across 78,700 valid events it produced 25 observed selected
+outcomes with 19/6 contrast, 109 multi-candidate sets, 15 mixed-action sets,
+two independent observed move lineages, and 17 fortification lineages. Every
+mechanical, source, censorship, non-authority, stratum, contrast, and lineage
+gate passed. This permits a fresh, action-stratified, lineage-clustered
+calibration discovery design; PR38 remains excluded from fitting and does not
+establish calibration, ranking, gameplay, score, or win rate. See
+`fdas-pr38-action-family-yield.md`.
