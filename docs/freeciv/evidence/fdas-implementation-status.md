@@ -1036,3 +1036,15 @@ the same estimate and interval, including ten with strict grounded Pareto
 improvement. The next bottleneck is therefore comparative uncertainty and
 decision-safe tie readout, not recall or unit semantics. See
 `fdas-pr74-ruleset-defensive-opportunity.md` and its JSON report.
+
+PR75 versions a separately manifest-gated readout `1.2` for the strongest cheap
+comparator exposed by PR74: exact calibrated estimate/interval/lineage/backoff
+equivalence plus full grounded noninferiority and at least one strict grounded
+Pareto improvement. Interval-separated candidates retain precedence; missing
+provenance, any inferior dimension, or a pure tie still abstains. A clean
+known-opportunity run on seed `109433` passes the full parent safety audit and
+produces 13 non-authorizing equivalence-Pareto preferences from 47 grounded
+alternatives, while 34 overlaps continue to abstain. This confirms live
+mechanics only; unseen-seed preference yield and outcome value remain open.
+See `fdas-pr75-calibrated-equivalence-pareto-confirmation.md` and its JSON
+report.
