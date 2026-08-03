@@ -54,7 +54,7 @@ def audit(run_root, expected_seed, expected_source_commit):
     readouts = 0
     grounded_candidates = 0
     cross_type_comparisons = 0
-    cross_type_capability_noninferior = 0
+    cross_type_defensive_capability_checks_passed = 0
     identities = set()
     for event_path in sorted(glob.glob(os.path.join(
             os.path.abspath(run_root), "games", "main", "e_full_loop", "*",
@@ -94,12 +94,12 @@ def audit(run_root, expected_seed, expected_source_commit):
                                 control.get("defensive_capability"), dict)
                             and isinstance(
                                 candidate.get("defensive_capability"), dict)):
-                        cross_type_capability_noninferior += 1
+                        cross_type_defensive_capability_checks_passed += 1
     gates = {
         "additions_only_recall_observed": target_gates[
             "additions_only_recall_observed"],
-        "cross_type_capability_noninferiority_observed": (
-            cross_type_capability_noninferior > 0),
+        "cross_type_defensive_capability_checks_passed": (
+            cross_type_defensive_capability_checks_passed > 0),
         "cross_type_grounded_comparison_observed": cross_type_comparisons > 0,
         "grounded_same_target_alternative_observed": target_gates[
             "grounded_same_target_alternative_observed"],
@@ -117,8 +117,8 @@ def audit(run_root, expected_seed, expected_source_commit):
             "comparison only; reused seed is not independent evidence and "
             "establishes no ranking, outcome, gameplay, score, or win-rate "
             "claim"),
-        "cross_type_capability_noninferior": (
-            cross_type_capability_noninferior),
+        "cross_type_defensive_capability_checks_passed": (
+            cross_type_defensive_capability_checks_passed),
         "cross_type_comparisons": cross_type_comparisons,
         "expected_seed": expected_seed,
         "gates": gates,

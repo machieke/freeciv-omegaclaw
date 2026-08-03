@@ -1009,3 +1009,17 @@ its passed route/unit checks before the interval gate; an overlapping candidate
 also emits exact grounded failures when present. Eligibility, interval
 thresholds, selection, and authority are unchanged. This makes the next
 ruleset-capability correction attributable without weakening uncertainty.
+
+PR73 implements and live-confirms that ruleset-capability correction. Readout
+`1.1` is separately manifest-gated and replaces exact unit-name equality with
+exact unit class and defensive-effect signature plus componentwise ruleset
+defense, maximum-hit-point, and firepower noninferiority. Missing or ambiguous
+profiles abstain; all route, current-unit, interval, target, filter, and
+authority gates remain unchanged. A clean 160-turn known-opportunity run on
+seed `109229` passed all eight audit gates and exercised one Alpine
+Troops/Riflemen comparison. The five defensive checks passed, while the
+Riflemen alternative's worse route and overlapping interval correctly retained
+abstention. Because the seed was previously observed and the scalar roles
+reversed relative to PR71, this is integration evidence only. An unseen-seed
+opportunity and interval-separation cohort remains the next scientific gate.
+See `fdas-pr73-ruleset-defensive-readout-confirmation.md` and its JSON report.
