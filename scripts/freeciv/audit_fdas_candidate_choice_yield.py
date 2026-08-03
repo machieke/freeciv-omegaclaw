@@ -33,6 +33,16 @@ from freeciv_agent.planning import (  # noqa: E402
 
 PILOT_ID = "fdas_candidate_choice_yield_pilot_v1"
 EXPECTED_SEEDS = (104743, 104759, 104761)
+DEFAULT_PROGRESSION_THRESHOLDS = {
+    "actor_context_signatures": 3,
+    "mixed_operation_type_choice_sets": 3,
+    "multi_candidate_choice_sets": 3,
+    "observed_each_outcome": 2,
+    "observed_operation_type_lineages": 2,
+    "observed_selected_outcomes": 12,
+    "selected_each_operation_type": 2,
+    "selected_operation_type_lineages": 2,
+}
 
 
 def _load_json(path):
@@ -83,7 +93,7 @@ def _choice_actor_id(choice):
 
 
 def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
-          require_surface_strata=False):
+          require_surface_strata=False, progression_thresholds=None):
     run_root = os.path.abspath(run_root)
     expected_seeds = tuple(int(value) for value in expected_seeds)
     if (not expected_seeds
@@ -91,6 +101,17 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
         raise ValueError("yield audit requires unique expected seeds")
     if not isinstance(pilot_id, str) or not pilot_id:
         raise ValueError("yield audit requires pilot identity")
+    thresholds = dict(DEFAULT_PROGRESSION_THRESHOLDS)
+    if progression_thresholds is not None:
+        unknown = set(progression_thresholds).difference(thresholds)
+        if unknown:
+            raise ValueError(
+                "unknown yield thresholds: {}".format(
+                    ",".join(sorted(unknown))))
+        thresholds.update(progression_thresholds)
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 1
+           for value in thresholds.values()):
+        raise ValueError("yield thresholds must be positive integers")
     game_dirs = tuple(sorted(glob.glob(os.path.join(
         run_root, "games", "main", "e_full_loop", "*"))))
     rows = []
@@ -250,27 +271,36 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
     }
     progression_gates = {
         "actor_context_signature_yield": (
-            yield_measures["actor_context_signatures"] >= 3),
+            yield_measures["actor_context_signatures"]
+            >= thresholds["actor_context_signatures"]),
         "multi_candidate_yield": (
-            yield_measures["multi_candidate_choice_sets"] >= 3),
+            yield_measures["multi_candidate_choice_sets"]
+            >= thresholds["multi_candidate_choice_sets"]),
         "observed_selected_outcome_yield": (
-            yield_measures["observed_selected_outcomes"] >= 12),
+            yield_measures["observed_selected_outcomes"]
+            >= thresholds["observed_selected_outcomes"]),
         "outcome_contrast_yield": (
-            yield_measures["observed_positive_selected_outcomes"] >= 2
-            and yield_measures["observed_negative_selected_outcomes"] >= 2),
+            yield_measures["observed_positive_selected_outcomes"]
+            >= thresholds["observed_each_outcome"]
+            and yield_measures["observed_negative_selected_outcomes"]
+            >= thresholds["observed_each_outcome"]),
     }
     if require_surface_strata:
         progression_gates.update({
             "mixed_action_strata_yield": (
-                yield_measures["mixed_operation_type_choice_sets"] >= 3),
+                yield_measures["mixed_operation_type_choice_sets"]
+                >= thresholds["mixed_operation_type_choice_sets"]),
             "selected_action_strata_yield": all(
-                selected_operation_type_counts.get(value, 0) >= 2
+                selected_operation_type_counts.get(value, 0)
+                >= thresholds["selected_each_operation_type"]
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
             "selected_action_strata_lineage_yield": all(
-                len(selected_operation_type_lineages.get(value, ())) >= 2
+                len(selected_operation_type_lineages.get(value, ()))
+                >= thresholds["selected_operation_type_lineages"]
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
             "observed_action_strata_lineage_yield": all(
-                len(observed_operation_type_lineages.get(value, ())) >= 2
+                len(observed_operation_type_lineages.get(value, ()))
+                >= thresholds["observed_operation_type_lineages"]
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
         })
     semantic = {
@@ -286,6 +316,7 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
         "pilot_id": pilot_id,
         "progression_gate_passed": all(progression_gates.values()),
         "progression_gates": progression_gates,
+        "progression_thresholds": thresholds,
         "schema_version": "fdas-candidate-choice-yield-audit/1.0",
         "yield_measures": yield_measures,
     }
@@ -302,14 +333,40 @@ def main(argv=None):
         help="repeat for each preregistered seed; defaults to PR34")
     parser.add_argument("--pilot-id", default=PILOT_ID)
     parser.add_argument("--require-surface-strata", action="store_true")
+    parser.add_argument("--minimum-actor-context-signatures", type=int)
+    parser.add_argument("--minimum-mixed-operation-type-sets", type=int)
+    parser.add_argument("--minimum-multi-candidate-sets", type=int)
+    parser.add_argument("--minimum-observed-each-outcome", type=int)
+    parser.add_argument("--minimum-observed-operation-type-lineages", type=int)
+    parser.add_argument("--minimum-observed-selected-outcomes", type=int)
+    parser.add_argument("--minimum-selected-each-operation-type", type=int)
+    parser.add_argument("--minimum-selected-operation-type-lineages", type=int)
     args = parser.parse_args(argv)
+    threshold_args = {
+        "actor_context_signatures": args.minimum_actor_context_signatures,
+        "mixed_operation_type_choice_sets": (
+            args.minimum_mixed_operation_type_sets),
+        "multi_candidate_choice_sets": args.minimum_multi_candidate_sets,
+        "observed_each_outcome": args.minimum_observed_each_outcome,
+        "observed_operation_type_lineages": (
+            args.minimum_observed_operation_type_lineages),
+        "observed_selected_outcomes": (
+            args.minimum_observed_selected_outcomes),
+        "selected_each_operation_type": (
+            args.minimum_selected_each_operation_type),
+        "selected_operation_type_lineages": (
+            args.minimum_selected_operation_type_lineages),
+    }
     report = audit(
         args.run_root,
         expected_seeds=(
             tuple(args.expected_seed)
             if args.expected_seed else EXPECTED_SEEDS),
         pilot_id=args.pilot_id,
-        require_surface_strata=args.require_surface_strata)
+        require_surface_strata=args.require_surface_strata,
+        progression_thresholds=dict(
+            (key, value) for key, value in threshold_args.items()
+            if value is not None))
     payload = canonical_json_bytes(report) + b"\n"
     if args.output:
         output = os.path.abspath(args.output)

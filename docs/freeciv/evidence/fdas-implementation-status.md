@@ -330,3 +330,14 @@ relocation in one seed, not broad independent support. The next bounded
 correction is exact selected-action-family sampling plus later
 game/actor/lifecycle grouping. No transition model may be fitted on PR36. See
 `fdas-pr36-defense-choice-surface-yield.md`.
+
+PR37 removes that legacy-category coupling and samples exact selected unit
+move/fortify action families. A fail-closed engineering sequence additionally
+found and fixed ambiguous one-action/multiple-city bindings and made
+multi-turn move attribution use the inclusive authoritative server route ETA.
+On the final clean 160-turn differential, the surface produced 86 opportunity
+sets, 300 choices, 12 selections across both action strata, and eight observed
+outcomes with 6/2 contrast. Three move rows were labeled, but they correctly
+collapse to one observed actor/route lineage. The audit now requires observed
+lineages as well as raw rows, so this engineering smoke remains ineligible for
+discovery. See `fdas-pr37-action-family-route-smoke.md`.
