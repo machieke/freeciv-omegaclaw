@@ -28,9 +28,9 @@ from .impact_types import ImpactCandidate
 
 
 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY = (
-    "fdas-safe-alternative-outcome-collection/1.2")
+    "fdas-safe-alternative-outcome-collection/1.3")
 ALTERNATIVE_OUTCOME_POLICY_VERSION = (
-    "fdas-defense-persistence-randomized-shadow/1.2")
+    "fdas-defense-persistence-randomized-shadow/1.3")
 
 
 def _finite(value, name):
@@ -54,6 +54,8 @@ class FdasAlternativeOutcomeCollectionConfig:
     source_sink_flow_enabled: bool = False
     outcome_update_scope: str = "control-model-only"
     require_same_target_ref: bool = True
+    allowed_active_categories: tuple = (
+        "city_defense", "city_garrison_move")
 
     def __post_init__(self):
         if not isinstance(self.experiment_id, str) or not self.experiment_id:
@@ -93,11 +95,18 @@ class FdasAlternativeOutcomeCollectionConfig:
         if not isinstance(self.require_same_target_ref, bool):
             raise TypeError(
                 "alternative collection target-match gate must be boolean")
+        categories = tuple(sorted(set(self.allowed_active_categories)))
+        if (not categories
+                or set(categories) - {"city_defense", "city_garrison_move"}):
+            raise ValueError(
+                "alternative collection active categories are unsupported")
+        object.__setattr__(self, "allowed_active_categories", categories)
 
     @classmethod
     def from_dict(cls, value):
         expected = {
             "allowed_action_type",
+            "allowed_active_categories",
             "claim_eligible",
             "experiment_id",
             "maximum_priority_regret",
@@ -117,6 +126,7 @@ class FdasAlternativeOutcomeCollectionConfig:
 
     def to_dict(self):
         return {
+            "allowed_active_categories": list(self.allowed_active_categories),
             "allowed_action_type": self.allowed_action_type,
             "claim_eligible": False,
             "experiment_id": self.experiment_id,
@@ -516,7 +526,8 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 checks=("revision-current-inputs",))
         checks.append("revision-current-inputs")
         if (not isinstance(legacy_candidate, ImpactCandidate)
-                or legacy_candidate.category != "city_defense"
+                or legacy_candidate.category
+                not in self.config.allowed_active_categories
                 or legacy_candidate.action.get("action_type")
                 != self.config.allowed_action_type):
             return self._readout(

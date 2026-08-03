@@ -120,6 +120,10 @@
     "assignment_executed": false,
     "claim_eligible": false,
     "config": {
+      "allowed_active_categories": [
+        "city_defense",
+        "city_garrison_move"
+      ],
       "allowed_action_type": "unit_move",
       "claim_eligible": false,
       "experiment_id": "fdas-reinforcement-alternative-outcome-shadow-v1",

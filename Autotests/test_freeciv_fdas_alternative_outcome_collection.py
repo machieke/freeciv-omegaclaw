@@ -293,7 +293,7 @@ def _movement_case(ir):
         snapshot.snapshot_id, revision.revision_id, goals, candidates,
         instantiation, pressure, None, explanation, (), 0.0)
     legacy = ImpactCandidate(
-        baseline.action, "city_defense", 1.0,
+        baseline.action, "city_garrison_move", 1.0,
         "active exact scalar reinforcement")
     union = _persistence_union(
         snapshot, revision, baseline, treatment)

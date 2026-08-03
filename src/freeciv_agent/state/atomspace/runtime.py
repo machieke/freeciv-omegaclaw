@@ -1034,7 +1034,7 @@ class FdasRuntime(object):
             details, caused_by=tuple(caused_by),
             ruleset_digest=self.ruleset_digest,
             component_id="fdas-safe-alternative-outcome-collection",
-            component_version="1.2")
+            component_version="1.3")
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
