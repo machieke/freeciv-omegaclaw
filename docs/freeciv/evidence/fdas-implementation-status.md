@@ -897,3 +897,17 @@ runtime, config, and audit tests pass. Fresh seed `109031` is preregistered to
 require an observed source-garrison exclusion, a safe candidate-specific union,
 and a fully grounded safe scalar control; see
 `fdas-pr67-safe-filtered-scalar-readout-preregistration.md`.
+
+PR67 is mechanically accepted but fails its safe-move and grounded-control
+yield gates. Clean seed `109031` reached turn 161 with no failure, resume,
+rejection, warning, or authority leak. Across 80 filters, all 122 move
+candidates carried `protected-source-garrison` and were excluded; four safe
+fortify candidates formed one-member unions and abstained outside the move
+domain. Thus the filter fixed correctness but the game offered no safe
+reinforcement control or candidate-specific safe union. Using the descriptive
+one-of-three safe-control game rate across PR65–PR67, eight fresh games give
+about 96.1% probability of at least one contributing game under that planning
+assumption. The next gate is a prospectively fixed eight-game opportunity
+cohort, not a seed retry. See
+`fdas-pr67-safe-filtered-scalar-readout-smoke.md` and
+`fdas-pr67-safe-filtered-scalar-readout-smoke.json`.
