@@ -988,3 +988,17 @@ eight-game cohort requires an exact cross-target exclusion, a multi-candidate
 target scope, an additions-only recall, and a genuinely grounded same-target
 alternative, but not a preference. All behavior remains shadow-only. See
 `fdas-pr71-target-scoped-readout-preregistration.md`.
+
+PR71 passes from clean commit `586e248`. All eight games and the complete
+safety-filter -> target-filter -> additions-only-union chain pass. Of 252 safe
+candidates, target scoping excluded 41 cross-scope candidates and admitted 211
+across 210 readouts. One non-singleton scope produced one calibrated addition
+and one fully grounded same-target comparison at seed `109229`, turn 39. The
+Alpine Troops alternative had ETA 1 and route cost 6 versus the Riflemen
+control's ETA 2 and cost 12, but their broad calibrated intervals overlapped,
+so the readout correctly abstained with zero preference or action change. This
+closes comparable-candidate mechanics only. Next, expose grounded
+noninferiority independently of interval separation and replace exact unit-name
+equality only if ruleset-grounded defense capability supports it. See
+`fdas-pr71-target-scoped-readout.md` and
+`fdas-pr71-target-scoped-readout.json`.
