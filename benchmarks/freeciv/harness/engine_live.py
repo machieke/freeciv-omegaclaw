@@ -26,6 +26,7 @@ from freeciv_agent.beliefs import (BeliefKey, BeliefStore, Evidence,
 from freeciv_agent.execution import ExecutionGate, ProposedAction
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
+from freeciv_agent.flow_control import ProbeConfig
 from freeciv_agent.llm import GoalGrader, ProposalParser, SymbolCatalog
 from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
@@ -75,6 +76,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasEpisodeLearningAdapter,
                                     FdasPromotedRuleCandidateImpactShadow,
                                     build_calibrated_candidate_union,
+                                    build_probe_candidate_union,
                                     causal_induction_feature_query,
                                     load_candidate_calibration_confirmation,
                                     load_candidate_calibration_model,
@@ -2739,6 +2741,14 @@ async def _play(run_dir, manifest, context):
     fdas_calibrated_candidate_union = bool(
         calibrated_union_capability is not None
         or calibrated_union_diagnostic is not None)
+    probe_union_capability = fdas_manifest["capabilities"].get(
+        "probe_candidate_reachability")
+    probe_union_diagnostic = fdas_manifest.get(
+        "probe_candidate_reachability_diagnostic")
+    fdas_probe_candidate_reachability = bool(
+        probe_union_capability is not None
+        or probe_union_diagnostic is not None)
+    fdas_probe_config = None
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -3060,6 +3070,59 @@ async def _play(run_dir, manifest, context):
                     "source_store_digests"])):
             raise RuntimeError(
                 "FDAS calibrated candidate confirmation differs or overlaps")
+    if fdas_probe_candidate_reachability:
+        expected_probe_union_keys = {
+            "action_selection_changed",
+            "calibrated_candidate_union_required",
+            "capacity_solver_enabled",
+            "flow_advection_enabled",
+            "maximum_probe_regions",
+            "policy_authority",
+            "probe_config",
+            "probe_per_action",
+            "readout_authority",
+            "scalar_final_score_authority",
+            "truth_mutated",
+        }
+        if probe_union_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS probe candidate reachability requires shadow-live "
+                "manifest")
+        if (not isinstance(probe_union_diagnostic, dict)
+                or set(probe_union_diagnostic) != expected_probe_union_keys):
+            raise RuntimeError(
+                "FDAS probe candidate reachability declaration is incomplete")
+        if any(probe_union_diagnostic[name] is not False for name in (
+                "action_selection_changed", "capacity_solver_enabled",
+                "flow_advection_enabled", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS probe candidate reachability cannot grant authority")
+        if (probe_union_diagnostic[
+                    "calibrated_candidate_union_required"] is not True
+                or probe_union_diagnostic[
+                    "scalar_final_score_authority"] is not True
+                or not fdas_calibrated_candidate_union
+                or fdas_candidate_calibration_model is None):
+            raise RuntimeError(
+                "FDAS probe reachability requires calibrated scalar authority")
+        for name in ("maximum_probe_regions", "probe_per_action"):
+            value = probe_union_diagnostic[name]
+            if (isinstance(value, bool) or not isinstance(value, int)
+                    or value < 1):
+                raise RuntimeError(
+                    "FDAS probe reachability {} is invalid".format(name))
+        try:
+            fdas_probe_config = ProbeConfig(
+                **probe_union_diagnostic["probe_config"])
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "FDAS probe reachability config is invalid: {}".format(
+                    error))
+        if (fdas_probe_config.to_dict()
+                != probe_union_diagnostic["probe_config"]):
+            raise RuntimeError(
+                "FDAS probe reachability config is not canonical")
     if (candidate_impact_capability is not None
             or candidate_impact_diagnostic is not None):
         if candidate_impact_capability != "shadow-live":
@@ -3382,6 +3445,15 @@ async def _play(run_dir, manifest, context):
         "fdas_calibrated_candidate_union_additions": 0,
         "fdas_calibrated_candidate_union_abstentions": 0,
         "fdas_calibrated_candidate_union_selection_changes": 0,
+        "fdas_probe_candidate_union_evaluations": 0,
+        "fdas_probe_candidate_union_readouts": 0,
+        "fdas_probe_candidate_union_members": 0,
+        "fdas_probe_candidate_union_selected": 0,
+        "fdas_probe_candidate_union_additions": 0,
+        "fdas_probe_candidate_union_fallbacks": 0,
+        "fdas_probe_candidate_union_unhealthy": 0,
+        "fdas_probe_candidate_union_incomplete_graphs": 0,
+        "fdas_probe_candidate_union_selection_changes": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5547,6 +5619,68 @@ async def _play(run_dir, manifest, context):
                                     if calibrated_union_event is not None:
                                         parent = calibrated_union_event[
                                             "event_id"]
+                                    if fdas_probe_candidate_reachability:
+                                        probe_union = build_probe_candidate_union(
+                                            calibrated_union,
+                                            surface_candidates,
+                                            snapshot,
+                                            choice_revision.revision_id,
+                                            delayed_outcome_target,
+                                            probe_config=fdas_probe_config,
+                                            maximum_probe_regions=(
+                                                probe_union_diagnostic[
+                                                    "maximum_probe_regions"]),
+                                            probe_per_action=(
+                                                probe_union_diagnostic[
+                                                    "probe_per_action"]))
+                                        probe_union_details = (
+                                            probe_union.to_dict())
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "evaluations"] += 1
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "readouts"] += len(
+                                                probe_union.readouts)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "members"] += len(
+                                                probe_union.members)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "selected"] += len(
+                                                probe_union
+                                                .probe_selected_operation_ids)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "additions"] += len(
+                                                probe_union
+                                                .probe_added_operation_ids)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "fallbacks"] += int(
+                                                probe_union.fallback_required)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "unhealthy"] += int(
+                                                not probe_union.probe_healthy)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "incomplete_graphs"] += int(
+                                                not probe_union.graph_complete)
+                                        decision_stats[
+                                            "fdas_probe_candidate_union_"
+                                            "selection_changes"] += int(
+                                                probe_union_details[
+                                                    "action_selection_changed"])
+                                        probe_union_event = (
+                                            fdas_runtime
+                                            .emit_probe_candidate_union(
+                                                writer, snapshot, probe_union,
+                                                caused_by=(parent,)))
+                                        if probe_union_event is not None:
+                                            parent = probe_union_event[
+                                                "event_id"]
                                 prior_choice_ids = frozenset(
                                     value.choice_set_id for value in
                                     fdas_candidate_choice_store.choice_sets())
@@ -6806,6 +6940,24 @@ async def _play(run_dir, manifest, context):
         ("fdas_calibrated_candidate_union_selection_changes",
          decision_stats[
              "fdas_calibrated_candidate_union_selection_changes"]),
+        ("fdas_probe_candidate_union_evaluations",
+         decision_stats["fdas_probe_candidate_union_evaluations"]),
+        ("fdas_probe_candidate_union_readouts",
+         decision_stats["fdas_probe_candidate_union_readouts"]),
+        ("fdas_probe_candidate_union_members",
+         decision_stats["fdas_probe_candidate_union_members"]),
+        ("fdas_probe_candidate_union_selected",
+         decision_stats["fdas_probe_candidate_union_selected"]),
+        ("fdas_probe_candidate_union_additions",
+         decision_stats["fdas_probe_candidate_union_additions"]),
+        ("fdas_probe_candidate_union_fallbacks",
+         decision_stats["fdas_probe_candidate_union_fallbacks"]),
+        ("fdas_probe_candidate_union_unhealthy",
+         decision_stats["fdas_probe_candidate_union_unhealthy"]),
+        ("fdas_probe_candidate_union_incomplete_graphs",
+         decision_stats["fdas_probe_candidate_union_incomplete_graphs"]),
+        ("fdas_probe_candidate_union_selection_changes",
+         decision_stats["fdas_probe_candidate_union_selection_changes"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -7320,6 +7472,26 @@ async def _play(run_dir, manifest, context):
             "fdas_calibrated_candidate_union_selection_changes": (
                 decision_stats[
                     "fdas_calibrated_candidate_union_selection_changes"]),
+            "fdas_probe_candidate_union_evaluations": (
+                decision_stats["fdas_probe_candidate_union_evaluations"]),
+            "fdas_probe_candidate_union_readouts": (
+                decision_stats["fdas_probe_candidate_union_readouts"]),
+            "fdas_probe_candidate_union_members": (
+                decision_stats["fdas_probe_candidate_union_members"]),
+            "fdas_probe_candidate_union_selected": (
+                decision_stats["fdas_probe_candidate_union_selected"]),
+            "fdas_probe_candidate_union_additions": (
+                decision_stats["fdas_probe_candidate_union_additions"]),
+            "fdas_probe_candidate_union_fallbacks": (
+                decision_stats["fdas_probe_candidate_union_fallbacks"]),
+            "fdas_probe_candidate_union_unhealthy": (
+                decision_stats["fdas_probe_candidate_union_unhealthy"]),
+            "fdas_probe_candidate_union_incomplete_graphs": (
+                decision_stats[
+                    "fdas_probe_candidate_union_incomplete_graphs"]),
+            "fdas_probe_candidate_union_selection_changes": (
+                decision_stats[
+                    "fdas_probe_candidate_union_selection_changes"]),
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -7702,6 +7874,24 @@ async def _play(run_dir, manifest, context):
         "fdas_calibrated_candidate_union_selection_changes": (
             decision_stats[
                 "fdas_calibrated_candidate_union_selection_changes"]),
+        "fdas_probe_candidate_union_evaluations": (
+            decision_stats["fdas_probe_candidate_union_evaluations"]),
+        "fdas_probe_candidate_union_readouts": (
+            decision_stats["fdas_probe_candidate_union_readouts"]),
+        "fdas_probe_candidate_union_members": (
+            decision_stats["fdas_probe_candidate_union_members"]),
+        "fdas_probe_candidate_union_selected": (
+            decision_stats["fdas_probe_candidate_union_selected"]),
+        "fdas_probe_candidate_union_additions": (
+            decision_stats["fdas_probe_candidate_union_additions"]),
+        "fdas_probe_candidate_union_fallbacks": (
+            decision_stats["fdas_probe_candidate_union_fallbacks"]),
+        "fdas_probe_candidate_union_unhealthy": (
+            decision_stats["fdas_probe_candidate_union_unhealthy"]),
+        "fdas_probe_candidate_union_incomplete_graphs": (
+            decision_stats["fdas_probe_candidate_union_incomplete_graphs"]),
+        "fdas_probe_candidate_union_selection_changes": (
+            decision_stats["fdas_probe_candidate_union_selection_changes"]),
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (

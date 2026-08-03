@@ -12,6 +12,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.flow_control import ProbeConfig  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     DEFENSE_CANDIDATE_CHOICE_SURFACE,
     DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
@@ -22,6 +23,7 @@ from freeciv_agent.planning import (  # noqa: E402
     OperationStep,
     ShadowOperationCandidate,
     build_calibrated_candidate_union,
+    build_probe_candidate_union,
     fit_candidate_calibration,
 )
 from freeciv_agent.pressure import (  # noqa: E402
@@ -32,6 +34,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     Operation,
     OperationScore,
 )
+from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
 MOVE = "fdas-shadow:city-garrison-deficit:unit_move"
@@ -293,3 +296,94 @@ def test_calibrated_union_keeps_abstained_action_only_if_scalar_protected():
     assert union.abstained_operation_ids == ("move-only",)
     assert union.calibrated_added_operation_ids == ()
     assert union.readouts[0].eligible_for_calibrated_recall is False
+
+
+def _probe_snapshot(candidates):
+    path = os.path.join(
+        REPO, "benchmarks", "freeciv", "samples", "real_state_turn1.json")
+    with open(path, encoding="utf-8") as stream:
+        snapshot = ProxyStateDTO.parse(
+            "fdas-probe-union", 1, json.load(stream)).to_snapshot()
+    action_keys = tuple(sorted(value.action_key for value in candidates))
+    return replace(
+        snapshot,
+        legal_action_json=action_keys,
+        legal_actions_digest=structural_hash(action_keys),
+        legal_action_kinds=("unit_fortify", "unit_move"))
+
+
+def _probe_union_fixture(config):
+    model = fit_candidate_calibration(
+        _fixture_exports(), "probe-candidate-union-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    candidates = (
+        _candidate("fortify-a", FORTIFY, 102),
+        _candidate("move-a", MOVE, 110),
+        _candidate("fortify-b", FORTIFY, 111),
+        _candidate("move-b", MOVE, 112),
+    )
+    scores = tuple(
+        _score(candidate, priority)
+        for candidate, priority in zip(candidates, (1.0, 0.9, 0.8, 0.7)))
+    queries = dict(
+        (candidate.operation.operation_id,
+         _query(candidate.operation.operation_type, "0-31"))
+        for candidate in candidates)
+    snapshot = _probe_snapshot(candidates)
+    calibrated = build_calibrated_candidate_union(
+        model, candidates, scores, queries, snapshot.snapshot_id,
+        "probe-revision", scalar_top_k=1, calibrated_per_action=1,
+        maximum_interval_width=1.0)
+    return build_probe_candidate_union(
+        calibrated, candidates, snapshot, "probe-revision",
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
+        probe_config=config, maximum_probe_regions=4,
+        probe_per_action=1)
+
+
+def test_probe_union_adds_bounded_recall_without_displacing_scalar_authority():
+    config = ProbeConfig(
+        path_count=128, max_steps=16, reference_fraction=0.25,
+        minimum_path_diversity=0.0)
+
+    union = _probe_union_fixture(config)
+
+    assert union.graph_complete
+    assert union.probe_healthy
+    assert not union.fallback_required
+    assert union.baseline_selected_operation_id == "fortify-a"
+    assert union.base_calibrated_operation_ids == ("fortify-a", "move-a")
+    assert union.operation_ids == (
+        "fortify-a", "move-a", "fortify-b", "move-b")
+    assert union.probe_added_operation_ids == ("fortify-b", "move-b")
+    assert union == _probe_union_fixture(config)
+    details = union.to_dict()
+    assert details["action_selection_changed"] is False
+    assert details["scalar_final_score_authority"] is True
+    assert details["flow_advection_enabled"] is False
+    assert details["capacity_solver_enabled"] is False
+    assert details["policy_authority"] is False
+    assert details["readout_authority"] is False
+    assert details["truth_mutated"] is False
+    assert not any(
+        value["used_in_final_score"]
+        for value in details["signal_ledger"]["uses"]
+        if value["signal_name"] in (
+            "calibrated_transition_estimate", "corrected_bridge_overlap",
+            "corrected_probe_weight", "raw_probe_count"))
+
+
+def test_probe_union_falls_back_to_calibrated_membership_when_unhealthy():
+    # Four direct backward routes cannot satisfy a 10% diversity floor over
+    # 128 draws. This deliberately exercises the sampling-health fallback.
+    union = _probe_union_fixture(ProbeConfig(
+        path_count=128, max_steps=16, reference_fraction=0.25,
+        minimum_path_diversity=0.1))
+
+    assert union.graph_complete
+    assert not union.probe_healthy
+    assert union.fallback_required
+    assert union.fallback_reason == "collapsed_path_diversity"
+    assert union.operation_ids == union.base_calibrated_operation_ids
+    assert union.probe_selected_operation_ids == ()
+    assert union.probe_added_operation_ids == ()

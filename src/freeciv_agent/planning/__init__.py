@@ -189,6 +189,13 @@ from .fdas_calibrated_candidate_union import (
     FdasCalibratedCandidateUnion,
     build_calibrated_candidate_union,
 )
+from .fdas_probe_candidate_reachability import (
+    PROBE_CANDIDATE_REACHABILITY_IDENTITY,
+    FdasProbeCandidateMember,
+    FdasProbeCandidateUnion,
+    FdasProbeReachabilityReadout,
+    build_probe_candidate_union,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
