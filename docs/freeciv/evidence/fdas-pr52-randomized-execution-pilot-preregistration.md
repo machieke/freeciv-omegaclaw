@@ -74,3 +74,12 @@ A larger randomized collection cohort requires a separate frozen design with
 independent assignment seeds, game/actor lineage clustering, minimum effective
 sample size, confidence intervals, and no reuse of PR51/PR52 outcomes.
 
+## Frozen outcome
+
+PR52 was rejected before gameplay. The harness produced zero completed games
+and classified the attempt as an infrastructure failure because its startup
+validator referenced the runtime object before runtime construction. No engine
+action, assignment, or outcome was generated. The failed artifact is preserved
+at `artifacts/freeciv/fdas-randomized-execution-pilot-v1`; the one-line ordering
+defect was corrected in commit `26ae8fd`. PR52 is not resumed or overwritten.
+
