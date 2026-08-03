@@ -911,3 +911,13 @@ assumption. The next gate is a prospectively fixed eight-game opportunity
 cohort, not a seed retry. See
 `fdas-pr67-safe-filtered-scalar-readout-smoke.md` and
 `fdas-pr67-safe-filtered-scalar-readout-smoke.json`.
+
+PR68 prospectively freezes that eight-game opportunity cohort without changing
+the PR67 implementation. Fixed fresh seeds `109037, 109049, 109063, 109073,
+109097, 109103, 109111, 109121` must all pass the full safety-filter audit.
+The cohort must contain a calibrated union addition and at least one genuinely
+grounded protected alternative comparison in at least one game; preference is
+not required. Prior games cannot be pooled, and no seed can be replaced or
+retried. This remains an outcome-free readout-yield gate with no ranking,
+gameplay, score, or win-rate claim. See
+`fdas-pr68-safe-filtered-scalar-readout-opportunity-preregistration.md`.
