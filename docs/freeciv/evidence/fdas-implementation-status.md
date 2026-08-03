@@ -861,3 +861,13 @@ exact predicate behind this PR59-complete/readout-unavailable mismatch so
 opportunity and grounding yield are not confounded. See
 `fdas-pr65-scalar-baseline-readout-smoke.md` and
 `fdas-pr65-scalar-baseline-readout-smoke.json`.
+
+PR66 prospectively separates the scalar-baseline grounding diagnostic without
+changing a safety decision. PR58 retains its historical generic reason; PR65's
+separate evaluator now identifies the exact bounded-validator, deficit-record,
+actor, city, route, revision, ETA, or unit-field predicate before abstaining.
+The model, union, eligibility, non-inferiority, action output, and authority
+surface are unchanged. Fresh seed `109021` is preregistered to require parent
+mechanical acceptance, candidate-specific prediction yield, at least one exact
+failure, and zero generic failures; see
+`fdas-pr66-scalar-baseline-grounding-diagnostic-preregistration.md`.

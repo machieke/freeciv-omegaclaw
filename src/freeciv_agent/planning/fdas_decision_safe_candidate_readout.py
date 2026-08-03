@@ -308,8 +308,8 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
         except ValueError:
             return None
 
-    def _ground(self, candidate, prediction, snapshot, revision, goals,
-                *, eligibility_reason, checks=()):
+    def _ground_exact(self, candidate, prediction, snapshot, revision, goals,
+                      *, eligibility_reason, checks=()):
         if (not isinstance(candidate, ShadowOperationCandidate)
                 or candidate.action.get("action_type")
                 != self.config.allowed_action_type
@@ -328,16 +328,34 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
             validate_bounded_defense_reinforcement_candidate(
                 candidate, snapshot, revision, goals))
         del pressure_route
-        if (reason is not None or source_record is None
-                or actor is None or city is None or route is None
-                or not route.reachable
-                or route.turn != snapshot.turn
-                or route.source_seq > snapshot.identity.source_seq
-                or route.estimated_turns < 1
-                or any(value is None for value in (
-                    actor.hp, actor.moves_left, actor.veteran,
-                    actor.homecity))):
-            return None, "grounded-transition-input-unavailable"
+        if reason is not None:
+            return None, "bounded-validator-" + reason
+        if source_record is None:
+            return None, "deficit-support-record-unavailable"
+        if actor is None:
+            return None, "actor-state-unavailable"
+        if city is None:
+            return None, "target-city-state-unavailable"
+        if route is None:
+            return None, "native-route-unavailable"
+        if not route.reachable:
+            return None, "native-route-unreachable"
+        if route.turn != snapshot.turn:
+            return None, "native-route-turn-mismatch"
+        if route.source_seq > snapshot.identity.source_seq:
+            return None, "native-route-is-future"
+        if route.estimated_turns < 1:
+            return None, "native-route-eta-invalid"
+        missing_fields = tuple(
+            name for name, value in (
+                ("homecity", actor.homecity),
+                ("hp", actor.hp),
+                ("moves-left", actor.moves_left),
+                ("veteran", actor.veteran),
+            ) if value is None)
+        if missing_fields:
+            return None, "actor-fields-unavailable:" + ",".join(
+                missing_fields)
         homecity_relation = (
             "target" if actor.homecity == target_city_id else
             "none" if actor.homecity == 0 else "other")
@@ -362,6 +380,17 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
             eligibility_reason,
             tuple(checks),
         ), None
+
+    def _ground(self, candidate, prediction, snapshot, revision, goals,
+                *, eligibility_reason, checks=()):
+        value, reason = self._ground_exact(
+            candidate, prediction, snapshot, revision, goals,
+            eligibility_reason=eligibility_reason, checks=checks)
+        if value is not None or reason == "unestimated-or-out-of-slice":
+            return value, reason
+        # Preserve PR58's frozen legacy-control reason surface. The separate
+        # scalar-baseline evaluator overrides this wrapper for exact RCA.
+        return None, "grounded-transition-input-unavailable"
 
     def _noninferiority(self, control, alternative):
         checks = {

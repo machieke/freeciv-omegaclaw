@@ -686,3 +686,20 @@ def test_scalar_baseline_readout_abstains_on_interval_overlap(ir):
     assert any(value.endswith(":calibrated-interval-overlap")
                for value in readout.rejected)
     assert not readout.shadow_preference
+
+
+def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):
+    case = list(_decision_safe_case(ir))
+    case[0] = replace(case[0], movement_routes=tuple(
+        replace(value, source_seq=case[0].identity.source_seq + 1)
+        for value in case[0].movement_routes))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert readout.reason == (
+        "control-bounded-validator-"
+        "current-native-reinforcement-route-unavailable")
+    assert not readout.shadow_preference

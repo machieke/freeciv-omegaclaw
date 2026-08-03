@@ -101,6 +101,12 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
         FdasDecisionSafeCandidateReadoutEvaluator):
     """Compare protected candidates only with their scalar top-1 control."""
 
+    def _ground(self, candidate, prediction, snapshot, revision, goals,
+                *, eligibility_reason, checks=()):
+        return self._ground_exact(
+            candidate, prediction, snapshot, revision, goals,
+            eligibility_reason=eligibility_reason, checks=checks)
+
     def _readout(self, status, reason, snapshot, revision, protected_union,
                  baseline_operation_id=None, proposed_operation_id=None,
                  candidates=(), rejected=()):
