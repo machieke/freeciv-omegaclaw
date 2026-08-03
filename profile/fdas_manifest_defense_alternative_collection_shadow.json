@@ -125,6 +125,7 @@
         "city_garrison_move"
       ],
       "allowed_action_type": "unit_move",
+      "alternative_source": "bounded-nearest-score",
       "claim_eligible": false,
       "experiment_id": "fdas-reinforcement-alternative-outcome-shadow-v1",
       "maximum_priority_regret": 0.01,

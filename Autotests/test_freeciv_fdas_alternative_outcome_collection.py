@@ -373,6 +373,23 @@ def test_alternative_collection_preflights_matched_reinforcement_pair(ir):
     assert all(value.source_atom_id for value in readout.arms)
 
 
+def test_bounded_nearest_score_source_does_not_require_scalar_equivalence(ir):
+    case = _movement_case(ir)
+    evaluator = FdasAlternativeOutcomeCollectionEvaluator(
+        FdasAlternativeOutcomeCollectionConfig(
+            "fdas-reinforcement-nearest-score-smoke-v1", 1777,
+            allowed_action_type="unit_move",
+            alternative_source="bounded-nearest-score"))
+
+    readout = evaluator.evaluate(*case)
+
+    assert readout.status == "eligible-shadow"
+    assert readout.config["alternative_source"] == "bounded-nearest-score"
+    assert "bounded-nearest-score-alternative" in readout.checks
+    assert "scalar-active-winner-equivalence" not in readout.checks
+    assert "single-persistence-addition" not in readout.checks
+
+
 def test_alternative_collection_declaration_rejects_authority_leak():
     values = FdasAlternativeOutcomeCollectionConfig(
         "fdas-fortification-outcome-smoke-v1", 1729).to_dict()

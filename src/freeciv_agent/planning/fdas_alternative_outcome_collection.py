@@ -28,9 +28,9 @@ from .impact_types import ImpactCandidate
 
 
 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY = (
-    "fdas-safe-alternative-outcome-collection/1.3")
+    "fdas-safe-alternative-outcome-collection/2.0")
 ALTERNATIVE_OUTCOME_POLICY_VERSION = (
-    "fdas-defense-persistence-randomized-shadow/1.3")
+    "fdas-defense-nearest-score-randomized-shadow/2.0")
 
 
 def _finite(value, name):
@@ -56,6 +56,7 @@ class FdasAlternativeOutcomeCollectionConfig:
     require_same_target_ref: bool = True
     allowed_active_categories: tuple = (
         "city_defense", "city_garrison_move")
+    alternative_source: str = "persistence-only"
 
     def __post_init__(self):
         if not isinstance(self.experiment_id, str) or not self.experiment_id:
@@ -101,12 +102,17 @@ class FdasAlternativeOutcomeCollectionConfig:
             raise ValueError(
                 "alternative collection active categories are unsupported")
         object.__setattr__(self, "allowed_active_categories", categories)
+        if self.alternative_source not in (
+                "bounded-nearest-score", "persistence-only"):
+            raise ValueError(
+                "alternative collection source is unsupported")
 
     @classmethod
     def from_dict(cls, value):
         expected = {
             "allowed_action_type",
             "allowed_active_categories",
+            "alternative_source",
             "claim_eligible",
             "experiment_id",
             "maximum_priority_regret",
@@ -128,6 +134,7 @@ class FdasAlternativeOutcomeCollectionConfig:
         return {
             "allowed_active_categories": list(self.allowed_active_categories),
             "allowed_action_type": self.allowed_action_type,
+            "alternative_source": self.alternative_source,
             "claim_eligible": False,
             "experiment_id": self.experiment_id,
             "maximum_priority_regret": self.maximum_priority_regret,
@@ -535,14 +542,6 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 snapshot, revision, persistence_union,
                 checks=checks + ["active-fortification-slice"])
         checks.append("active-fortification-slice")
-        additions = tuple(
-            persistence_union.persistence_added_operation_ids)
-        if len(additions) != 1:
-            return self._readout(
-                "ineligible", "requires-one-persistence-only-alternative",
-                snapshot, revision, persistence_union,
-                checks=checks + ["single-persistence-addition"])
-        checks.append("single-persistence-addition")
         candidates = tuple(candidates)
         scores = tuple(scores)
         if (any(not isinstance(value, ShadowOperationCandidate)
@@ -563,17 +562,107 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 snapshot, revision, persistence_union,
                 checks=checks + ["active-winner-route-binding"])
         baseline = baseline_matches[0]
-        treatment = candidate_by_id.get(additions[0])
-        if (baseline.operation.operation_id
-                != persistence_union.baseline_selected_operation_id):
+        baseline_score = score_by_id.get(baseline.operation.operation_id)
+        if baseline_score is None or not baseline_score.admissible:
             return self._readout(
-                "ineligible", "active-winner-differs-from-fdas-scalar-winner",
+                "ineligible", "active-winner-score-is-unavailable-or-inadmissible",
                 snapshot, revision, persistence_union,
-                checks=checks + ["scalar-active-winner-equivalence"])
+                checks=checks + ["active-winner-route-binding",
+                                  "admissible-control-score"])
         checks.extend((
             "active-winner-route-binding",
-            "scalar-active-winner-equivalence",
+            "admissible-control-score",
         ))
+        if self.config.alternative_source == "persistence-only":
+            additions = tuple(
+                persistence_union.persistence_added_operation_ids)
+            if len(additions) != 1:
+                return self._readout(
+                    "ineligible", "requires-one-persistence-only-alternative",
+                    snapshot, revision, persistence_union,
+                    checks=checks + ["single-persistence-addition"])
+            if (baseline.operation.operation_id
+                    != persistence_union.baseline_selected_operation_id):
+                return self._readout(
+                    "ineligible",
+                    "active-winner-differs-from-fdas-scalar-winner",
+                    snapshot, revision, persistence_union,
+                    checks=checks + ["single-persistence-addition",
+                                      "scalar-active-winner-equivalence"])
+            treatment = candidate_by_id.get(additions[0])
+            checks.extend((
+                "single-persistence-addition",
+                "scalar-active-winner-equivalence",
+            ))
+        else:
+            def bounded_alternative(value):
+                score = score_by_id.get(value.operation.operation_id)
+                if (value.operation.operation_id
+                        == baseline.operation.operation_id
+                        or value.action_key == baseline.action_key
+                        or value.action.get("action_type")
+                        != self.config.allowed_action_type
+                        or score is None or not score.admissible
+                        or value.operation.operation_type
+                        != baseline.operation.operation_type
+                        or value.operation.target_ref is None
+                        or baseline.operation.target_ref is None
+                        or value.resource_keys == baseline.resource_keys
+                        or set(value.resource_keys).intersection(
+                            baseline.resource_keys)
+                        or (self.config.require_same_target_ref
+                            and value.operation.target_ref
+                            != baseline.operation.target_ref)):
+                    return None
+                priority_regret = (
+                    float(baseline_score.priority)
+                    - float(score.priority))
+                risk_delta = abs(
+                    float(baseline_score.risk_penalty)
+                    - float(score.risk_penalty))
+                if (priority_regret < -1e-12
+                        or priority_regret
+                        > self.config.maximum_priority_regret + 1e-12
+                        or risk_delta
+                        > self.config.maximum_risk_penalty_delta + 1e-12):
+                    return None
+                if self.config.allowed_action_type == "unit_move":
+                    baseline_actor = snapshot.unit(
+                        baseline.action["actor_id"])
+                    alternative_actor = snapshot.unit(
+                        value.action["actor_id"])
+                    if (baseline_actor is None or alternative_actor is None
+                            or baseline_actor.unit_type
+                            != alternative_actor.unit_type
+                            or baseline.action.get("movement_cost")
+                            != value.action.get("movement_cost")):
+                        return None
+                validator = {
+                    "unit_fortify": (
+                        validate_bounded_defense_fortification_candidate),
+                    "unit_move": (
+                        validate_bounded_defense_reinforcement_candidate),
+                }[self.config.allowed_action_type]
+                _route, _source, reason = validator(
+                    value, snapshot, revision, shadow_evaluation.goals)
+                if reason is not None:
+                    return None
+                return (
+                    priority_regret, risk_delta,
+                    value.operation.operation_id, value)
+
+            alternatives = tuple(sorted(
+                (row for row in (
+                    bounded_alternative(value) for value in candidates)
+                 if row is not None),
+                key=lambda value: value[:3]))
+            if not alternatives:
+                return self._readout(
+                    "ineligible", "no-bounded-nearest-score-alternative",
+                    snapshot, revision, persistence_union,
+                    checks=checks + ["bounded-nearest-score-alternative"])
+            treatment = alternatives[0][3]
+            checks.append("bounded-nearest-score-alternative")
         if (treatment is None
                 or treatment.operation.operation_id
                 == baseline.operation.operation_id
@@ -583,10 +672,8 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 snapshot, revision, persistence_union,
                 checks=checks + ["distinct-treatment-route"])
         checks.append("distinct-treatment-route")
-        baseline_score = score_by_id.get(baseline.operation.operation_id)
         treatment_score = score_by_id.get(treatment.operation.operation_id)
-        if (baseline_score is None or treatment_score is None
-                or not baseline_score.admissible
+        if (treatment_score is None
                 or not treatment_score.admissible):
             return self._readout(
                 "ineligible", "alternative-score-is-unavailable-or-inadmissible",
