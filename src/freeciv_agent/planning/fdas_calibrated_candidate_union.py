@@ -18,6 +18,8 @@ from .fdas_candidate_choices import (
 
 CALIBRATED_CANDIDATE_UNION_IDENTITY = (
     "fdas-calibrated-candidate-union/1.0")
+CALIBRATED_ADDITION_UNION_IDENTITY = (
+    "fdas-calibrated-candidate-union/1.1")
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,7 @@ class FdasCalibratedCandidateUnion:
     calibrated_added_operation_ids: tuple
     abstained_operation_ids: tuple
     result_hash: str
+    calibrated_additions_only: bool = False
 
     def __post_init__(self):
         for value, name in (
@@ -164,6 +167,8 @@ class FdasCalibratedCandidateUnion:
             if (isinstance(value, bool) or not isinstance(value, int)
                     or value < 1):
                 raise ValueError("{} must be positive".format(name))
+        if not isinstance(self.calibrated_additions_only, bool):
+            raise TypeError("calibrated additions-only flag must be boolean")
         width = float(self.maximum_interval_width)
         if not math.isfinite(width) or not 0.0 < width <= 1.0:
             raise ValueError("calibrated union interval width is invalid")
@@ -260,7 +265,10 @@ class FdasCalibratedCandidateUnion:
             "calibrated_per_action": self.calibrated_per_action,
             "capacity_solver_enabled": False,
             "flow_advection_enabled": False,
-            "identity": CALIBRATED_CANDIDATE_UNION_IDENTITY,
+            "identity": (
+                CALIBRATED_ADDITION_UNION_IDENTITY
+                if self.calibrated_additions_only
+                else CALIBRATED_CANDIDATE_UNION_IDENTITY),
             "maximum_interval_width": self.maximum_interval_width,
             "members": [value.to_dict() for value in self.members],
             "model_result_hash": self.model_result_hash,
@@ -272,6 +280,8 @@ class FdasCalibratedCandidateUnion:
             "scalar_top_k": self.scalar_top_k,
             "snapshot_id": self.snapshot_id,
             "truth_mutated": False,
+            **({"calibrated_additions_only": True}
+               if self.calibrated_additions_only else {}),
         }
 
     def to_dict(self):
@@ -283,7 +293,7 @@ class FdasCalibratedCandidateUnion:
 def build_calibrated_candidate_union(
         model, candidates, scores, feature_queries, snapshot_id, revision_id,
         scalar_top_k=3, calibrated_per_action=1,
-        maximum_interval_width=0.55):
+        maximum_interval_width=0.55, calibrated_additions_only=False):
     """Enlarge scalar recall only; calibrated values never score or select."""
     if not isinstance(model, (
             FdasCandidateCalibrationModel,
@@ -300,6 +310,8 @@ def build_calibrated_candidate_union(
             or not math.isfinite(float(maximum_interval_width))
             or not 0.0 < float(maximum_interval_width) <= 1.0):
         raise ValueError("calibrated union interval width is invalid")
+    if not isinstance(calibrated_additions_only, bool):
+        raise TypeError("calibrated additions-only flag must be boolean")
     candidates = tuple(candidates)
     scores = tuple(scores)
     if (not candidates or any(
@@ -369,11 +381,14 @@ def build_calibrated_candidate_union(
     for operation_id in scalar_ids[:scalar_top_k]:
         protect(operation_id, "scalar-top-k")
     protect(scalar_ids[0], "scalar-winner")
+    scalar_protected = frozenset(scalar_ids[:scalar_top_k])
     for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES:
         eligible = tuple(sorted(
             (value for value in readouts
              if value.operation_type == operation_type
-             and value.eligible_for_calibrated_recall),
+             and value.eligible_for_calibrated_recall
+             and (not calibrated_additions_only
+                  or value.operation_id not in scalar_protected)),
             key=lambda value: (
                 -value.interval_lower, -value.estimate,
                 value.baseline_rank, value.operation_id)))
@@ -381,7 +396,6 @@ def build_calibrated_candidate_union(
             protect(value.operation_id, "calibrated-transition-recall")
     ordered = tuple(
         value for value in scalar_ids if value in reasons)
-    scalar_protected = frozenset(scalar_ids[:scalar_top_k])
     additions = tuple(
         value for value in ordered
         if ("calibrated-transition-recall" in reasons[value]
@@ -399,7 +413,10 @@ def build_calibrated_candidate_union(
         "calibrated_per_action": calibrated_per_action,
         "capacity_solver_enabled": False,
         "flow_advection_enabled": False,
-        "identity": CALIBRATED_CANDIDATE_UNION_IDENTITY,
+        "identity": (
+            CALIBRATED_ADDITION_UNION_IDENTITY
+            if calibrated_additions_only
+            else CALIBRATED_CANDIDATE_UNION_IDENTITY),
         "maximum_interval_width": float(maximum_interval_width),
         "members": [value.to_dict() for value in members],
         "model_result_hash": model.result_hash,
@@ -411,9 +428,11 @@ def build_calibrated_candidate_union(
         "scalar_top_k": scalar_top_k,
         "snapshot_id": str(snapshot_id),
         "truth_mutated": False,
+        **({"calibrated_additions_only": True}
+           if calibrated_additions_only else {}),
     }
     return FdasCalibratedCandidateUnion(
         str(snapshot_id), str(revision_id), model.result_hash,
         scalar_ids[0], scalar_top_k, calibrated_per_action,
         float(maximum_interval_width), members, tuple(readouts), additions,
-        abstained, structural_hash(semantic))
+        abstained, structural_hash(semantic), calibrated_additions_only)

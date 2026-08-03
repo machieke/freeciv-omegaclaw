@@ -83,7 +83,7 @@ def _completed_endpoint(status):
              or status.get("terminal_player_elimination") is True))
 
 
-def _validate_union(details, payload):
+def _validate_union(details, payload, calibrated_additions_only=False):
     errors = []
     if not isinstance(details, dict):
         return ("details-not-object",), {}
@@ -112,7 +112,13 @@ def _validate_union(details, payload):
         errors.append("shadow-authority-differs")
     if details.get("scalar_final_score_authority") is not True:
         errors.append("scalar-authority-differs")
-    if (details.get("identity") != "fdas-calibrated-candidate-union/1.0"
+    expected_identity = (
+        "fdas-calibrated-candidate-union/1.1"
+        if calibrated_additions_only
+        else "fdas-calibrated-candidate-union/1.0")
+    if (details.get("identity") != expected_identity
+            or details.get("calibrated_additions_only")
+            is not (True if calibrated_additions_only else None)
             or details.get("scalar_top_k") != 1
             or details.get("calibrated_per_action") != 1
             or details.get("maximum_interval_width") != 0.55):

@@ -1068,6 +1068,36 @@ class FdasRuntime(object):
             component_id="fdas-decision-safe-candidate-filter",
             component_version="1.0")
 
+    def emit_target_scoped_candidate_filter(
+            self, writer, snapshot, candidate_filter, caused_by=()):
+        """Emit exact scalar-target scoping without action authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or candidate_filter.snapshot_id != snapshot.snapshot_id
+                or candidate_filter.revision_id != revision.revision_id):
+            raise RuntimeError(
+                "FDAS target-scoped candidate filter is not revision-current")
+        details = candidate_filter.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS target-scoped candidate filter grants authority")
+        if (details.get("candidate_surface_preserved") is not True
+                or details.get("calibrated_union_input_filtered") is not True):
+            raise RuntimeError(
+                "FDAS target-scoped candidate filter semantics differ")
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-target-scoped-candidate-filter",
+            component_version="1.0")
+
     def emit_probe_candidate_union(
             self, writer, snapshot, candidate_union, caused_by=()):
         """Emit corrected-probe membership without ranking authority."""

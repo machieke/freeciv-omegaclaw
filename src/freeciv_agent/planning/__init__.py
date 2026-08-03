@@ -206,6 +206,7 @@ from .fdas_candidate_calibration_validation import (
     load_candidate_calibration_model,
 )
 from .fdas_calibrated_candidate_union import (
+    CALIBRATED_ADDITION_UNION_IDENTITY,
     CALIBRATED_CANDIDATE_UNION_IDENTITY,
     FdasCalibratedCandidateMember,
     FdasCalibratedCandidateReadout,
@@ -254,6 +255,12 @@ from .fdas_decision_safe_candidate_filter import (
     FdasDecisionSafeCandidateFilter,
     FdasDecisionSafeCandidateFilterReadout,
     build_decision_safe_candidate_filter,
+)
+from .fdas_target_scoped_candidate_filter import (
+    TARGET_SCOPED_CANDIDATE_FILTER_IDENTITY,
+    FdasTargetScopedCandidateFilter,
+    FdasTargetScopedCandidateFilterReadout,
+    build_target_scoped_candidate_filter,
 )
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
@@ -417,6 +424,7 @@ __all__ = [
     "evaluate_candidate_calibration",
     "load_candidate_calibration_confirmation",
     "load_candidate_calibration_model",
+    "CALIBRATED_ADDITION_UNION_IDENTITY",
     "CALIBRATED_CANDIDATE_UNION_IDENTITY",
     "FdasCalibratedCandidateMember", "FdasCalibratedCandidateReadout",
     "FdasCalibratedCandidateUnion", "build_calibrated_candidate_union",
@@ -447,6 +455,10 @@ __all__ = [
     "SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY",
     "SCALAR_BASELINE_CONTROL_SEMANTICS",
     "build_decision_safe_candidate_filter",
+    "TARGET_SCOPED_CANDIDATE_FILTER_IDENTITY",
+    "FdasTargetScopedCandidateFilter",
+    "FdasTargetScopedCandidateFilterReadout",
+    "build_target_scoped_candidate_filter",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",

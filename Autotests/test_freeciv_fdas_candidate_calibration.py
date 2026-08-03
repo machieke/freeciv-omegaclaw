@@ -25,6 +25,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasPathPersistenceCandidateController,
     build_calibrated_candidate_union,
     build_probe_candidate_union,
+    build_target_scoped_candidate_filter,
     fit_candidate_calibration,
 )
 from freeciv_agent.pressure import (  # noqa: E402
@@ -281,6 +282,63 @@ def test_calibrated_union_enlarges_recall_without_changing_scalar_winner():
     assert conservative.calibrated_added_operation_ids == ()
     assert conservative.abstained_operation_ids == (
         "fortify-a", "move-a", "fortify-b", "move-b")
+
+
+def test_calibrated_union_can_bound_recall_to_genuine_additions():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "candidate-addition-union-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    candidates = (
+        _candidate("fortify-a", FORTIFY, 7),
+        _candidate("fortify-b", FORTIFY, 8),
+    )
+    scores = tuple(_score(candidate, priority) for candidate, priority in zip(
+        candidates, (1.0, 0.9)))
+    queries = {
+        value.operation.operation_id: _query(
+            value.operation.operation_type, "0-31")
+        for value in candidates}
+
+    union = build_calibrated_candidate_union(
+        model, candidates, scores, queries, "snapshot-test", "revision-test",
+        scalar_top_k=1, calibrated_per_action=1,
+        maximum_interval_width=1.0, calibrated_additions_only=True)
+
+    assert union.operation_ids == ("fortify-a", "fortify-b")
+    assert union.calibrated_added_operation_ids == ("fortify-b",)
+    assert union.calibrated_additions_only is True
+    assert union.to_dict()["identity"] == (
+        "fdas-calibrated-candidate-union/1.1")
+    assert union.to_dict()["calibrated_additions_only"] is True
+
+
+def test_target_scope_preserves_surface_and_exact_scalar_target():
+    baseline = _candidate("move-city-3-a", MOVE, 7)
+    same_target = _candidate("move-city-3-b", MOVE, 8)
+    other_target = _candidate("move-city-4", MOVE, 9)
+    other_target = replace(
+        other_target,
+        operation=replace(other_target.operation, target_ref="city:4"),
+        candidate_hash="candidate-hash-move-city-4-target-4")
+    candidates = (baseline, same_target, other_target)
+    scores = tuple(_score(candidate, priority) for candidate, priority in zip(
+        candidates, (1.0, 0.9, 0.8)))
+
+    scoped = build_target_scoped_candidate_filter(
+        candidates, scores, "snapshot-test", "revision-test")
+
+    assert scoped.baseline_operation_id == "move-city-3-a"
+    assert scoped.baseline_target_ref == "city:3"
+    assert scoped.in_scope_operation_ids == (
+        "move-city-3-a", "move-city-3-b")
+    assert scoped.out_of_scope_operation_ids == ("move-city-4",)
+    excluded = scoped.readouts[2]
+    assert excluded.scope_failures == ("target-ref-mismatch",)
+    assert scoped.to_dict()["candidate_surface_preserved"] is True
+    assert scoped.to_dict()["action_selection_changed"] is False
+    assert scoped.to_dict()["policy_authority"] is False
+    assert scoped.to_dict()["readout_authority"] is False
+    assert scoped.to_dict()["truth_mutated"] is False
 
 
 def test_calibrated_union_keeps_abstained_action_only_if_scalar_protected():

@@ -979,3 +979,12 @@ decision scope. The next correction must keep readout safety intact and make
 protected recall target-conditioned. See
 `fdas-pr70-pr68-pair-scope-sensitivity.md` and
 `fdas-pr70-pr68-pair-scope-sensitivity.json`.
+
+PR71 implements that correction without relaxing readout safety. A distinct
+revision-bound filter preserves the full candidate surface while restricting
+union input to scalar top-1's exact operation type and target. Calibrated union
+`1.1` uses its bounded slot only for additions beyond scalar top-k. The frozen
+eight-game cohort requires an exact cross-target exclusion, a multi-candidate
+target scope, an additions-only recall, and a genuinely grounded same-target
+alternative, but not a preference. All behavior remains shadow-only. See
+`fdas-pr71-target-scoped-readout-preregistration.md`.

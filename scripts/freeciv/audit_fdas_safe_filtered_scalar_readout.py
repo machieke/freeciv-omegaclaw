@@ -32,6 +32,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     DECISION_SAFE_CANDIDATE_FILTER_IDENTITY,
+    TARGET_SCOPED_CANDIDATE_FILTER_IDENTITY,
     FdasCandidateChoiceSetStore,
 )
 
@@ -42,6 +43,9 @@ CONFIG_SOURCE = (
     "profile/dependent_atomspace_defense_choice_surface_shadow.yaml")
 MANIFEST_SOURCE = (
     "profile/fdas_manifest_defense_safe_filtered_scalar_readout_shadow.json")
+TARGET_SCOPED_MANIFEST_SOURCE = (
+    "profile/fdas_manifest_defense_target_scoped_scalar_readout_shadow.json")
+TARGET_FILTER_COMPONENT_ID = "fdas-target-scoped-candidate-filter"
 
 
 def _read_json(path):
@@ -131,7 +135,79 @@ def _validate_filter(details, payload):
     }
 
 
-def audit(run_root, expected_seeds, expected_source_commit):
+def _validate_target_filter(details, payload):
+    errors = []
+    if not isinstance(details, dict):
+        return ("details-not-object",), {}
+    semantic = dict(details)
+    result_hash = semantic.pop("result_hash", None)
+    if result_hash != structural_hash(semantic):
+        errors.append("target-filter-result-hash-differs")
+    if details.get("identity") != TARGET_SCOPED_CANDIDATE_FILTER_IDENTITY:
+        errors.append("target-filter-identity-differs")
+    if any(details.get(name) is not False for name in (
+            "action_selection_changed", "policy_authority",
+            "readout_authority", "truth_mutated")):
+        errors.append("target-filter-shadow-authority-differs")
+    if (details.get("candidate_surface_preserved") is not True
+            or details.get("calibrated_union_input_filtered") is not True
+            or details.get("snapshot_id") != payload.get("snapshot_id")
+            or details.get("revision_id") != payload.get("revision_id")):
+        errors.append("target-filter-boundary-differs")
+    rows = details.get("readouts")
+    in_scope = details.get("in_scope_operation_ids")
+    out_scope = details.get("out_of_scope_operation_ids")
+    if (not isinstance(rows, list) or not rows
+            or any(not isinstance(value, dict) for value in rows)
+            or not isinstance(in_scope, list)
+            or not isinstance(out_scope, list)
+            or details.get("input_candidate_count") != len(rows)):
+        return tuple(errors + ["target-filter-collections-differ"]), {}
+    operation_ids = tuple(value.get("operation_id") for value in rows)
+    expected_in = tuple(value.get("operation_id") for value in rows
+                        if value.get("status") == "in-scope")
+    expected_out = tuple(value.get("operation_id") for value in rows
+                         if value.get("status") == "out-of-scope")
+    if (None in operation_ids or len(operation_ids) != len(set(operation_ids))
+            or tuple(in_scope) != expected_in
+            or tuple(out_scope) != expected_out
+            or set(in_scope).intersection(out_scope)
+            or set(in_scope).union(out_scope) != set(operation_ids)
+            or details.get("baseline_operation_id") not in in_scope):
+        errors.append("target-filter-partition-differs")
+    baseline_type = details.get("baseline_operation_type")
+    baseline_target = details.get("baseline_target_ref")
+    for row in rows:
+        row_semantic = dict(row)
+        row_hash = row_semantic.pop("result_hash", None)
+        if row_hash != structural_hash(row_semantic):
+            errors.append("target-filter-row-hash-differs")
+        failures = row.get("scope_failures")
+        if (not isinstance(failures, list)
+                or failures != sorted(set(failures))
+                or set(failures) - {
+                    "operation-type-mismatch", "target-ref-mismatch"}):
+            errors.append("target-filter-row-failures-differ")
+            continue
+        expected = []
+        if row.get("operation_type") != baseline_type:
+            expected.append("operation-type-mismatch")
+        if row.get("target_ref") != baseline_target:
+            expected.append("target-ref-mismatch")
+        if (failures != sorted(expected)
+                or (row.get("status") == "in-scope") != (not expected)):
+            errors.append("target-filter-row-scope-differs")
+    return tuple(sorted(set(errors))), {
+        "evaluations": 1,
+        "in_scope": len(in_scope),
+        "inputs": len(rows),
+        "out_of_scope": len(out_scope),
+        "singleton_surfaces": int(len(in_scope) == 1),
+    }
+
+
+def audit(run_root, expected_seeds, expected_source_commit,
+          *, target_scoped=False):
     run_root = os.path.abspath(run_root)
     expected_seeds = tuple(int(value) for value in expected_seeds)
     if (not expected_seeds
@@ -165,6 +241,14 @@ def audit(run_root, expected_seeds, expected_source_commit):
         "union_members": 0,
         "union_readouts": 0,
     }
+    if target_scoped:
+        totals.update({
+            "target_filter_evaluations": 0,
+            "target_filter_in_scope": 0,
+            "target_filter_inputs": 0,
+            "target_filter_out_of_scope": 0,
+            "target_filter_singleton_surfaces": 0,
+        })
     games = []
     for game_dir in game_dirs:
         manifest = _read_json(os.path.join(game_dir, "manifest.json"))
@@ -177,6 +261,7 @@ def audit(run_root, expected_seeds, expected_source_commit):
         validation = validate_file(event_path)
         game_totals = dict((name, 0) for name in totals)
         filters_by_event = {}
+        target_filters_by_event = {}
         unions_by_hash = {}
         readout_events = []
         errors = []
@@ -196,8 +281,36 @@ def audit(run_root, expected_seeds, expected_source_commit):
                     for name, value in measures.items():
                         game_totals["filter_" + name] += int(value)
                     filters_by_event[event.get("event_id")] = details
+                elif component == TARGET_FILTER_COMPONENT_ID:
+                    target_errors, measures = _validate_target_filter(
+                        details, payload)
+                    errors.extend(
+                        "{}:{}".format(event.get("event_id"), value)
+                        for value in target_errors)
+                    for name, value in measures.items():
+                        game_totals["target_filter_" + name] += int(value)
+                    parent_ids = tuple(event.get("caused_by", ()))
+                    safety_parent = (
+                        filters_by_event.get(parent_ids[0])
+                        if len(parent_ids) == 1 else None)
+                    target_partition = set(details.get(
+                        "in_scope_operation_ids", ())).union(
+                            details.get("out_of_scope_operation_ids", ()))
+                    if (safety_parent is None
+                            or target_partition != set(safety_parent.get(
+                                "eligible_operation_ids", ()))
+                            or details.get("snapshot_id")
+                            != safety_parent.get("snapshot_id")
+                            or details.get("revision_id")
+                            != safety_parent.get("revision_id")):
+                        errors.append(
+                            "{}:target-filter-safety-parent-differs".format(
+                                event.get("event_id")))
+                    target_filters_by_event[event.get("event_id")] = details
                 elif component == UNION_COMPONENT_ID:
-                    union_errors, measures = _validate_union(details, payload)
+                    union_errors, measures = _validate_union(
+                        details, payload,
+                        calibrated_additions_only=target_scoped)
                     errors.extend(
                         "{}:{}".format(event.get("event_id"), value)
                         for value in union_errors)
@@ -216,15 +329,19 @@ def audit(run_root, expected_seeds, expected_source_commit):
                     for name, value in measures.items():
                         game_totals[mapping[name]] += int(value)
                     parent_ids = tuple(event.get("caused_by", ()))
-                    filter_parent = (
-                        filters_by_event.get(parent_ids[0])
+                    filter_parent = ((
+                        target_filters_by_event.get(parent_ids[0])
+                        if target_scoped else
+                        filters_by_event.get(parent_ids[0]))
                         if len(parent_ids) == 1 else None)
                     union_ids = set(
                         value.get("operation_id")
                         for value in details.get("readouts", ())
                         if isinstance(value, dict))
                     eligible_ids = set(
-                        filter_parent.get("eligible_operation_ids", ()))
+                        filter_parent.get(
+                            "in_scope_operation_ids" if target_scoped
+                            else "eligible_operation_ids", ()))
                     if (filter_parent is None
                             or details.get("snapshot_id")
                             != filter_parent.get("snapshot_id")
@@ -271,7 +388,9 @@ def audit(run_root, expected_seeds, expected_source_commit):
                 validation.valid and not validation.warnings),
             "exact_manifest_and_config": (
                 declaration.get("config_source") == CONFIG_SOURCE
-                and declaration.get("manifest_source") == MANIFEST_SOURCE),
+                and declaration.get("manifest_source") == (
+                    TARGET_SCOPED_MANIFEST_SOURCE
+                    if target_scoped else MANIFEST_SOURCE)),
             "filter_counters_match_status": all(
                 status.get("fdas_decision_safe_candidate_filter_" + suffix)
                 == game_totals["filter_" + name]
@@ -318,6 +437,17 @@ def audit(run_root, expected_seeds, expected_source_commit):
                 and source.get("commit") == expected_source_commit),
             "zero_rejected_actions": status.get("rejected_actions") == 0,
         }
+        if target_scoped:
+            game_gates["target_filter_counters_match_status"] = all(
+                status.get("fdas_target_scoped_candidate_filter_" + suffix)
+                == game_totals["target_filter_" + name]
+                for suffix, name in (
+                    ("evaluations", "evaluations"),
+                    ("inputs", "inputs"),
+                    ("in_scope", "in_scope"),
+                    ("out_of_scope", "out_of_scope"),
+                    ("singleton_surfaces", "singleton_surfaces"),
+                ))
         games.append({
             "errors": errors,
             "event_errors": list(validation.errors),

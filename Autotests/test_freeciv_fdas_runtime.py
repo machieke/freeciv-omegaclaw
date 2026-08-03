@@ -288,6 +288,46 @@ def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
             writer, snapshot, stale)
 
 
+def test_target_scoped_filter_event_is_revision_bound_and_shadow_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "calibrated_union_input_filtered": True,
+        "candidate_surface_preserved": True,
+        "policy_authority": False,
+        "readout_authority": False,
+        "result_hash": "target-filter-result-hash",
+        "truth_mutated": False,
+    }
+    candidate_filter = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "target-filter-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_target_scoped_candidate_filter(
+        writer, snapshot, candidate_filter)
+
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-target-scoped-candidate-filter")
+    assert event["payload"]["details"]["candidate_surface_preserved"] is True
+    assert event["payload"]["details"]["action_selection_changed"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        revision_id="fdas-revision-stale",
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_target_scoped_candidate_filter(
+            writer, snapshot, stale)
+
+
 def test_probe_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

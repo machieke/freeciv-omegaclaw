@@ -227,6 +227,38 @@ def test_safe_filtered_scalar_readout_profile_preserves_observation_surface():
     }
 
 
+def test_target_scoped_readout_profile_is_additions_only_and_shadow_only():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_target_scoped_scalar_readout_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest["target_scoped_candidate_filter_diagnostic"]
+
+    assert config.enabled is True
+    assert manifest["capabilities"][
+        "target_scoped_candidate_filter"] == "shadow-live"
+    assert manifest["grounded_transition_candidate_union_diagnostic"][
+        "calibrated_additions_only"] is True
+    assert diagnostic == {
+        "action_selection_changed": False,
+        "calibrated_additions_only": True,
+        "calibrated_union_input_filtered": True,
+        "candidate_surface_preserved": True,
+        "policy_authority": False,
+        "readout_authority": False,
+        "recall_scope": "scalar-baseline-operation-type-and-target",
+        "truth_mutated": False,
+    }
+
+
 def test_checked_observation_execution_profile_requires_authoritative_return():
     with open(os.path.join(
             REPO, "profile",

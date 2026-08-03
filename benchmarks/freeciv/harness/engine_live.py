@@ -67,6 +67,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasDecisionSafeCandidateReadoutEvaluator,
                                     FdasScalarBaselineCandidateReadoutEvaluator,
                                     build_decision_safe_candidate_filter,
+                                    build_target_scoped_candidate_filter,
                                     FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
@@ -2801,6 +2802,13 @@ async def _play(run_dir, manifest, context):
     fdas_decision_safe_candidate_filter = bool(
         candidate_filter_capability is not None
         or candidate_filter_diagnostic is not None)
+    target_scope_filter_capability = fdas_manifest["capabilities"].get(
+        "target_scoped_candidate_filter")
+    target_scope_filter_diagnostic = fdas_manifest.get(
+        "target_scoped_candidate_filter_diagnostic")
+    fdas_target_scoped_candidate_filter = bool(
+        target_scope_filter_capability is not None
+        or target_scope_filter_diagnostic is not None)
     probe_union_capability = fdas_manifest["capabilities"].get(
         "probe_candidate_reachability")
     probe_union_diagnostic = fdas_manifest.get(
@@ -3168,6 +3176,9 @@ async def _play(run_dir, manifest, context):
             "scalar_top_k",
             "truth_mutated",
         }
+        if fdas_target_scoped_candidate_filter:
+            expected_grounded_transition_union_keys.add(
+                "calibrated_additions_only")
         if grounded_transition_union_capability != "shadow-live":
             raise RuntimeError(
                 "FDAS grounded transition union requires shadow-live manifest")
@@ -3183,6 +3194,11 @@ async def _play(run_dir, manifest, context):
                    "readout_authority", "truth_mutated")):
             raise RuntimeError(
                 "FDAS grounded transition union cannot grant authority")
+        if (fdas_target_scoped_candidate_filter
+                and grounded_transition_union_diagnostic.get(
+                    "calibrated_additions_only") is not True):
+            raise RuntimeError(
+                "FDAS target-scoped union requires additions-only recall")
         for name in ("scalar_top_k", "calibrated_per_action"):
             value = grounded_transition_union_diagnostic[name]
             if (isinstance(value, bool) or not isinstance(value, int)
@@ -3361,6 +3377,28 @@ async def _play(run_dir, manifest, context):
             raise RuntimeError(
                 "FDAS decision-safe candidate filter requires the grounded "
                 "transition scalar-baseline readout")
+    if fdas_target_scoped_candidate_filter:
+        expected_target_scope_filter = {
+            "action_selection_changed": False,
+            "calibrated_additions_only": True,
+            "calibrated_union_input_filtered": True,
+            "candidate_surface_preserved": True,
+            "policy_authority": False,
+            "readout_authority": False,
+            "recall_scope": "scalar-baseline-operation-type-and-target",
+            "truth_mutated": False,
+        }
+        if target_scope_filter_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS target-scoped candidate filter requires shadow-live")
+        if target_scope_filter_diagnostic != expected_target_scope_filter:
+            raise RuntimeError(
+                "FDAS target-scoped candidate filter declaration differs")
+        if (not fdas_decision_safe_candidate_filter
+                or not fdas_grounded_transition_candidate_union
+                or not fdas_scalar_baseline_candidate_readout):
+            raise RuntimeError(
+                "FDAS target scope requires safe scalar transition readout")
     if fdas_probe_candidate_reachability:
         expected_probe_union_keys = {
             "action_selection_changed",
@@ -3885,6 +3923,11 @@ async def _play(run_dir, manifest, context):
         "fdas_decision_safe_candidate_filter_excluded": 0,
         "fdas_decision_safe_candidate_filter_empty_surfaces": 0,
         "fdas_decision_safe_candidate_filter_source_garrison_exclusions": 0,
+        "fdas_target_scoped_candidate_filter_evaluations": 0,
+        "fdas_target_scoped_candidate_filter_inputs": 0,
+        "fdas_target_scoped_candidate_filter_in_scope": 0,
+        "fdas_target_scoped_candidate_filter_out_of_scope": 0,
+        "fdas_target_scoped_candidate_filter_singleton_surfaces": 0,
         "fdas_probe_candidate_union_evaluations": 0,
         "fdas_probe_candidate_union_readouts": 0,
         "fdas_probe_candidate_union_members": 0,
@@ -6103,6 +6146,60 @@ async def _play(run_dir, manifest, context):
                                     if candidate_filter_event is not None:
                                         parent = candidate_filter_event[
                                             "event_id"]
+                                if (fdas_target_scoped_candidate_filter
+                                        and readout_surface_candidates
+                                        and any(score_by_id[
+                                            value.operation.operation_id]
+                                            .admissible for value in
+                                            readout_surface_candidates)):
+                                    target_surface_scores = tuple(
+                                        score_by_id[
+                                            candidate.operation.operation_id]
+                                        for candidate in
+                                        readout_surface_candidates)
+                                    target_filter = (
+                                        build_target_scoped_candidate_filter(
+                                            readout_surface_candidates,
+                                            target_surface_scores,
+                                            snapshot.snapshot_id,
+                                            choice_revision.revision_id))
+                                    target_ids = frozenset(
+                                        target_filter.in_scope_operation_ids)
+                                    readout_surface_candidates = tuple(
+                                        value for value in
+                                        readout_surface_candidates
+                                        if value.operation.operation_id
+                                        in target_ids)
+                                    decision_stats[
+                                        "fdas_target_scoped_candidate_"
+                                        "filter_evaluations"] += 1
+                                    decision_stats[
+                                        "fdas_target_scoped_candidate_"
+                                        "filter_inputs"] += len(
+                                            target_filter.readouts)
+                                    decision_stats[
+                                        "fdas_target_scoped_candidate_"
+                                        "filter_in_scope"] += len(
+                                            target_filter
+                                            .in_scope_operation_ids)
+                                    decision_stats[
+                                        "fdas_target_scoped_candidate_"
+                                        "filter_out_of_scope"] += len(
+                                            target_filter
+                                            .out_of_scope_operation_ids)
+                                    decision_stats[
+                                        "fdas_target_scoped_candidate_"
+                                        "filter_singleton_surfaces"] += int(
+                                            len(target_filter
+                                                .in_scope_operation_ids) == 1)
+                                    target_filter_event = (
+                                        fdas_runtime
+                                        .emit_target_scoped_candidate_filter(
+                                            writer, snapshot, target_filter,
+                                            caused_by=(parent,)))
+                                    if target_filter_event is not None:
+                                        parent = target_filter_event[
+                                            "event_id"]
                                 if (fdas_candidate_calibration_model is not None
                                         and readout_surface_candidates
                                         and any(score_by_id[
@@ -6136,7 +6233,12 @@ async def _play(run_dir, manifest, context):
                                                     "calibrated_per_action"]),
                                             maximum_interval_width=(
                                                 active_candidate_union_diagnostic[
-                                                    "maximum_interval_width"])))
+                                                    "maximum_interval_width"]),
+                                            calibrated_additions_only=(
+                                                active_candidate_union_diagnostic
+                                                .get(
+                                                    "calibrated_additions_only",
+                                                    False))))
                                     calibrated_union_details = (
                                         calibrated_union.to_dict())
                                     decision_stats[
@@ -8030,6 +8132,18 @@ async def _play(run_dir, manifest, context):
          decision_stats[
              "fdas_decision_safe_candidate_filter_"
              "source_garrison_exclusions"]),
+        ("fdas_target_scoped_candidate_filter_evaluations",
+         decision_stats["fdas_target_scoped_candidate_filter_evaluations"]),
+        ("fdas_target_scoped_candidate_filter_inputs",
+         decision_stats["fdas_target_scoped_candidate_filter_inputs"]),
+        ("fdas_target_scoped_candidate_filter_in_scope",
+         decision_stats["fdas_target_scoped_candidate_filter_in_scope"]),
+        ("fdas_target_scoped_candidate_filter_out_of_scope",
+         decision_stats[
+             "fdas_target_scoped_candidate_filter_out_of_scope"]),
+        ("fdas_target_scoped_candidate_filter_singleton_surfaces",
+         decision_stats[
+             "fdas_target_scoped_candidate_filter_singleton_surfaces"]),
         ("fdas_probe_candidate_union_evaluations",
          decision_stats["fdas_probe_candidate_union_evaluations"]),
         ("fdas_probe_candidate_union_readouts",
@@ -8692,6 +8806,22 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_decision_safe_candidate_filter_"
                     "source_garrison_exclusions"]),
+            "fdas_target_scoped_candidate_filter_evaluations": (
+                decision_stats[
+                    "fdas_target_scoped_candidate_filter_evaluations"]),
+            "fdas_target_scoped_candidate_filter_inputs": (
+                decision_stats[
+                    "fdas_target_scoped_candidate_filter_inputs"]),
+            "fdas_target_scoped_candidate_filter_in_scope": (
+                decision_stats[
+                    "fdas_target_scoped_candidate_filter_in_scope"]),
+            "fdas_target_scoped_candidate_filter_out_of_scope": (
+                decision_stats[
+                    "fdas_target_scoped_candidate_filter_out_of_scope"]),
+            "fdas_target_scoped_candidate_filter_singleton_surfaces": (
+                decision_stats[
+                    "fdas_target_scoped_candidate_filter_"
+                    "singleton_surfaces"]),
             "fdas_probe_candidate_union_evaluations": (
                 decision_stats["fdas_probe_candidate_union_evaluations"]),
             "fdas_probe_candidate_union_readouts": (
@@ -9216,6 +9346,21 @@ async def _play(run_dir, manifest, context):
             decision_stats[
                 "fdas_decision_safe_candidate_filter_"
                 "source_garrison_exclusions"]),
+        "fdas_target_scoped_candidate_filter_evaluations": (
+            decision_stats[
+                "fdas_target_scoped_candidate_filter_evaluations"]),
+        "fdas_target_scoped_candidate_filter_inputs": (
+            decision_stats[
+                "fdas_target_scoped_candidate_filter_inputs"]),
+        "fdas_target_scoped_candidate_filter_in_scope": (
+            decision_stats[
+                "fdas_target_scoped_candidate_filter_in_scope"]),
+        "fdas_target_scoped_candidate_filter_out_of_scope": (
+            decision_stats[
+                "fdas_target_scoped_candidate_filter_out_of_scope"]),
+        "fdas_target_scoped_candidate_filter_singleton_surfaces": (
+            decision_stats[
+                "fdas_target_scoped_candidate_filter_singleton_surfaces"]),
         "fdas_probe_candidate_union_evaluations": (
             decision_stats["fdas_probe_candidate_union_evaluations"]),
         "fdas_probe_candidate_union_readouts": (
