@@ -590,3 +590,17 @@ no randomized assignment remains pending. A post-hoc sensitivity audit passes
 the immutable PR55 artifact under this rule, while the preregistered audit 1.4
 failure remains the primary verdict. Future powered work can preregister audit
 1.5 and avoid treating legitimate terminal absorption as missingness.
+
+An outcome-blind power planner now consumes only the passed terminal-aware
+yield material: 12 games, 3 opportunity games, 8 assignments, and 2 arm-bearing
+game clusters per arm. It cannot read positive counts, rates, or the observed
+risk difference, and mutation tests prove outcome-direction invariance. For a
+predeclared material risk difference of `0.35`, two-sided alpha `0.05`, power
+`0.80`, planning ICC `0.25`, 20 game clusters per arm, and a 25% yield safety
+factor, it requires 44 assignments per arm and 168 games. Estimated engine time
+is 13.71 hours, about 3.43 wall hours on four workers at PR55 throughput. A
+separate game-cluster bootstrap discovery analyzer requires the planned counts
+and advances only when its 95% interval lower bound is above zero; even then a
+same-sized held-out confirmation remains mandatory. The frozen power plan is
+`fdas-pr56-candidate-value-power-plan.json`, plan hash
+`ba88a0c89575dfde0bc5ba3a7c4836ab20e6361a31baaea0844acd9f9b4c4d89`.
