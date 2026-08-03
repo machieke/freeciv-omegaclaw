@@ -716,3 +716,16 @@ collapse, abstention, artifact tamper rejection, discovery/confirmation source
 separation, passing aligned holdout, and failing adverse holdout. No model is
 loaded into live readout. See
 `fdas-pr60-candidate-transition-calibration-preregistration.md`.
+
+PR60 discovery passed from clean commit `67c3c0e`. All 12 games reached turn
+161 with zero failures, rejections, or resumes. The feature audit validated
+716 choice sets, 1,520 completely grounded moves, 83 transition signatures,
+343 diverse multi-move sets, and byte-identical PR40 predictions. All frozen
+yield gates passed: 48 selected move outcomes (25 positive, 23 negative)
+collapsed to 17 lineages across six games and 14 selected signatures. The
+fitted 102-bin model estimates all discovery moves, with 970/1,520 using a
+candidate-specific level and 12 distinct prediction triples, but intervals
+remain broad. This remains in-sample and non-authorizing; the untouched
+confirmation cohort is the next gate. See
+`fdas-pr60-candidate-transition-calibration-discovery.md` and
+`fdas-pr60-candidate-transition-calibration-discovery.json`.
