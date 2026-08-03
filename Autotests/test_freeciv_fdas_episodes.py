@@ -449,6 +449,31 @@ def test_immediate_effect_without_relief_closes_as_distinct_terminal_state():
     assert store.pending_for_operation(episode.operation_id) == ()
 
 
+def test_observed_effect_remains_monotonic_when_actor_returns_before_deadline():
+    recorder, store, episode = _begin_episode(
+        operation_id="episode-effect-returned")
+    intermediate = _snapshot(_payload(
+        turn=13, unit_tile=83, unit_x=3, legal_target_x=4), 535)
+    returned = _snapshot(_payload(
+        turn=14, unit_tile=82, unit_x=2, legal_target_x=4), 536)
+
+    effect = recorder.observe(
+        episode.episode_id, intermediate, "fdas-revision-effect")
+    retained = recorder.observe(
+        episode.episode_id, returned, "fdas-revision-returned")
+    terminal = recorder.observe(
+        episode.episode_id, returned, "fdas-revision-returned-closed",
+        observation_window_closed=True)
+
+    assert effect.outcome_status == "immediate-effect-observed"
+    assert retained.outcome_status == "immediate-effect-observed"
+    assert retained.attributed_effects == effect.attributed_effects
+    assert retained.observed_delta["historical_effect_retained"] is True
+    assert terminal.outcome_status == "effect-without-goal-relief"
+    assert terminal.attributed_effects == effect.attributed_effects
+    assert store.pending_for_operation(episode.operation_id) == ()
+
+
 def test_actor_disappearance_is_unattributable_not_goal_relief():
     recorder, _store, episode = _begin_episode(
         operation_id="episode-disappearance")

@@ -834,6 +834,21 @@ class FdasDefenseEpisodeRecorder(object):
                 "observed_turn": after_snapshot.turn,
                 "target_tile": target_tile,
             }
+            if prior.attributed_effects and not relieved:
+                historical = tuple(prior.attributed_effects)
+                historical_hashes = set(
+                    structural_hash(value) for value in historical)
+                current_hashes = set(
+                    structural_hash(value) for value in effects)
+                effects = historical + tuple(
+                    value for value in effects
+                    if structural_hash(value) not in historical_hashes)
+                status = (
+                    "effect-without-goal-relief"
+                    if observation_window_closed else
+                    "immediate-effect-observed")
+                if historical_hashes.difference(current_hashes):
+                    delta["historical_effect_retained"] = True
         prior_delta = dict(prior.observed_delta or {})
         comparable_prior_delta = dict(
             (key, value) for key, value in prior_delta.items()
