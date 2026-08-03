@@ -12,9 +12,14 @@ for path in (SRC, SCRIPTS):
 
 from audit_fdas_scalar_baseline_candidate_readout import (  # noqa: E402
     REQUIRED_NONINFERIORITY_CHECKS,
+    RULESET_DEFENSIVE_NONINFERIORITY_CHECKS,
     _validate_readout,
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.planning import (  # noqa: E402
+    DEFENSIVE_CAPABILITY_IDENTITY,
+    RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+)
 
 
 def _candidate(operation_id, estimate, lower, upper, eligibility_reason,
@@ -52,6 +57,19 @@ def _parent():
         "result_hash": "protected-union-hash",
         "revision_id": "revision-test",
         "snapshot_id": "snapshot-test",
+    }
+
+
+def _capability(rule_id, defense=4.0):
+    return {
+        "defense": defense,
+        "defensive_effect_signature": ["effect-city-defense"],
+        "firepower": 1.0,
+        "identity": DEFENSIVE_CAPABILITY_IDENTITY,
+        "maximum_hitpoints": 20.0,
+        "rule_id": rule_id,
+        "ruleset_digest": "ruleset-digest",
+        "unit_class": "Land",
     }
 
 
@@ -134,3 +152,49 @@ def test_scalar_baseline_audit_rejects_parent_baseline_substitution():
     }, parent)
 
     assert "scalar-baseline-protected-membership-differs" in errors
+
+
+def test_scalar_baseline_audit_accepts_ruleset_defensive_noninferiority():
+    details = _details()
+    details["identity"] = (
+        RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+    details["candidates"][0]["defensive_capability"] = _capability(
+        "unit-riflemen")
+    details["candidates"][1]["unit_type"] = "Alpine Troops"
+    details["candidates"][1]["defensive_capability"] = _capability(
+        "unit-alpine")
+    details["candidates"][1]["noninferiority_checks"] = sorted(
+        RULESET_DEFENSIVE_NONINFERIORITY_CHECKS)
+    semantic = copy.deepcopy(details)
+    semantic.pop("result_hash")
+    details["result_hash"] = structural_hash(semantic)
+
+    errors, measures = _validate_readout(details, {
+        "revision_id": "revision-test",
+        "snapshot_id": "snapshot-test",
+    }, _parent())
+
+    assert errors == ()
+    assert measures["shadow_preferences"] == 1
+
+
+def test_scalar_baseline_audit_rejects_inferior_ruleset_defense():
+    details = _details()
+    details["identity"] = (
+        RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+    details["candidates"][0]["defensive_capability"] = _capability(
+        "unit-control", defense=5.0)
+    details["candidates"][1]["defensive_capability"] = _capability(
+        "unit-treatment", defense=4.0)
+    details["candidates"][1]["noninferiority_checks"] = sorted(
+        RULESET_DEFENSIVE_NONINFERIORITY_CHECKS)
+    semantic = copy.deepcopy(details)
+    semantic.pop("result_hash")
+    details["result_hash"] = structural_hash(semantic)
+
+    errors, _measures = _validate_readout(details, {
+        "revision_id": "revision-test",
+        "snapshot_id": "snapshot-test",
+    }, _parent())
+
+    assert "scalar-baseline-grounded-noninferiority-differs" in errors

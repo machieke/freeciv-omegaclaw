@@ -17,6 +17,10 @@ from .fdas_authority import (
 from .fdas_calibrated_candidate_union import (
     FdasCalibratedCandidateUnion,
 )
+from .fdas_defensive_capability import (
+    FdasDefensiveCapability,
+    FdasDefensiveCapabilityResolver,
+)
 from .impact_types import ImpactCandidate
 
 
@@ -100,6 +104,7 @@ class FdasGroundedCandidateValue:
     source_atom_id: str
     eligibility_reason: str
     noninferiority_checks: tuple
+    defensive_capability: object = None
 
     def __post_init__(self):
         for value, name in (
@@ -148,9 +153,14 @@ class FdasGroundedCandidateValue:
             raise ValueError(
                 "grounded candidate noninferiority check is invalid")
         object.__setattr__(self, "noninferiority_checks", checks)
+        if (self.defensive_capability is not None
+                and not isinstance(
+                    self.defensive_capability, FdasDefensiveCapability)):
+            raise TypeError(
+                "grounded candidate defensive capability is invalid")
 
     def to_dict(self):
-        return {
+        value = {
             "action_key": self.action_key,
             "actor_id": self.actor_id,
             "effective_lineages": self.effective_lineages,
@@ -171,6 +181,10 @@ class FdasGroundedCandidateValue:
             "unit_type": self.unit_type,
             "veteran": self.veteran,
         }
+        if self.defensive_capability is not None:
+            value["defensive_capability"] = (
+                self.defensive_capability.to_dict())
+        return value
 
 
 @dataclass(frozen=True)
@@ -263,12 +277,20 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
 
     _HOMECITY_RANK = {"none": 0, "other": 1, "target": 2}
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, defensive_capability_resolver=None):
         self.config = config or FdasDecisionSafeCandidateReadoutConfig()
         if not isinstance(
                 self.config, FdasDecisionSafeCandidateReadoutConfig):
             raise TypeError(
                 "decision-safe evaluator requires typed config")
+        if (defensive_capability_resolver is not None
+                and not isinstance(
+                    defensive_capability_resolver,
+                    FdasDefensiveCapabilityResolver)):
+            raise TypeError(
+                "decision-safe evaluator requires a typed defensive "
+                "capability resolver")
+        self.defensive_capability_resolver = defensive_capability_resolver
 
     def _readout(self, status, reason, snapshot, revision, calibrated_union,
                  baseline_operation_id=None, proposed_operation_id=None,
@@ -356,6 +378,12 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
         if missing_fields:
             return None, "actor-fields-unavailable:" + ",".join(
                 missing_fields)
+        defensive_capability = None
+        if self.defensive_capability_resolver is not None:
+            defensive_capability = (
+                self.defensive_capability_resolver.resolve(actor.unit_type))
+            if defensive_capability is None:
+                return None, "ruleset-defensive-capability-unavailable"
         homecity_relation = (
             "target" if actor.homecity == target_city_id else
             "none" if actor.homecity == 0 else "other")
@@ -379,6 +407,7 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
             source_record.atom_id,
             eligibility_reason,
             tuple(checks),
+            defensive_capability,
         ), None
 
     def _ground(self, candidate, prediction, snapshot, revision, goals,
@@ -407,9 +436,33 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
             "total-movement-cost": (
                 alternative.total_movement_cost
                 <= control.total_movement_cost),
-            "unit-type": alternative.unit_type == control.unit_type,
             "veteran-level": alternative.veteran >= control.veteran,
         }
+        if self.defensive_capability_resolver is None:
+            checks["unit-type"] = alternative.unit_type == control.unit_type
+        else:
+            control_capability = control.defensive_capability
+            alternative_capability = alternative.defensive_capability
+            if (control_capability is None or alternative_capability is None):
+                raise AssertionError(
+                    "ruleset defensive comparison lost grounded capability")
+            checks.update({
+                "defensive-effect-signature": (
+                    alternative_capability.defensive_effect_signature
+                    == control_capability.defensive_effect_signature),
+                "ruleset-defense": (
+                    alternative_capability.defense
+                    >= control_capability.defense),
+                "ruleset-firepower": (
+                    alternative_capability.firepower
+                    >= control_capability.firepower),
+                "ruleset-maximum-hitpoints": (
+                    alternative_capability.maximum_hitpoints
+                    >= control_capability.maximum_hitpoints),
+                "unit-class": (
+                    alternative_capability.unit_class
+                    == control_capability.unit_class),
+            })
         failed = tuple(sorted(name for name, passed in checks.items()
                               if not passed))
         passed = tuple(sorted(name for name, value in checks.items()

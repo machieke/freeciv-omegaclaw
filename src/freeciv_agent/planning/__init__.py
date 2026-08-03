@@ -245,10 +245,18 @@ from .fdas_decision_safe_candidate_readout import (
     FdasGroundedCandidateValue,
 )
 from .fdas_scalar_baseline_candidate_readout import (
+    RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
     SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+    SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES,
     SCALAR_BASELINE_CONTROL_SEMANTICS,
     FdasScalarBaselineCandidateReadout,
     FdasScalarBaselineCandidateReadoutEvaluator,
+)
+from .fdas_defensive_capability import (
+    DEFENSIVE_CAPABILITY_IDENTITY,
+    DEFENSIVE_EFFECT_KINDS,
+    FdasDefensiveCapability,
+    FdasDefensiveCapabilityResolver,
 )
 from .fdas_decision_safe_candidate_filter import (
     DECISION_SAFE_CANDIDATE_FILTER_IDENTITY,
@@ -452,7 +460,13 @@ __all__ = [
     "FdasScalarBaselineCandidateReadout",
     "FdasScalarBaselineCandidateReadoutEvaluator",
     "FdasGroundedCandidateValue",
+    "DEFENSIVE_CAPABILITY_IDENTITY",
+    "DEFENSIVE_EFFECT_KINDS",
+    "FdasDefensiveCapability",
+    "FdasDefensiveCapabilityResolver",
+    "RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY",
     "SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY",
+    "SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES",
     "SCALAR_BASELINE_CONTROL_SEMANTICS",
     "build_decision_safe_candidate_filter",
     "TARGET_SCOPED_CANDIDATE_FILTER_IDENTITY",

@@ -9,10 +9,17 @@ from .fdas_decision_safe_candidate_readout import (
     FdasDecisionSafeCandidateReadoutEvaluator,
     FdasGroundedCandidateValue,
 )
+from .fdas_defensive_capability import FdasDefensiveCapabilityResolver
 
 
 SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY = (
     "fdas-scalar-baseline-candidate-readout/1.0")
+RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY = (
+    "fdas-scalar-baseline-candidate-readout/1.1")
+SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES = frozenset((
+    SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+    RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+))
 SCALAR_BASELINE_CONTROL_SEMANTICS = "protected-fdas-scalar-top-1"
 
 
@@ -31,6 +38,7 @@ class FdasScalarBaselineCandidateReadout:
     candidates: tuple
     rejected: tuple
     result_hash: str
+    identity: str = SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY
 
     def __post_init__(self):
         if self.status not in ("eligible-shadow", "abstained"):
@@ -46,6 +54,8 @@ class FdasScalarBaselineCandidateReadout:
                     "scalar-baseline readout {} is required".format(name))
         if self.control_semantics != SCALAR_BASELINE_CONTROL_SEMANTICS:
             raise ValueError("scalar-baseline control semantics differ")
+        if self.identity not in SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES:
+            raise ValueError("scalar-baseline readout identity differs")
         canonical = FdasDecisionSafeCandidateReadoutConfig.from_dict(
             dict(self.config)).to_dict()
         if canonical != self.config:
@@ -77,7 +87,7 @@ class FdasScalarBaselineCandidateReadout:
             "candidates": [value.to_dict() for value in self.candidates],
             "config": dict(self.config),
             "control_semantics": self.control_semantics,
-            "identity": SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+            "identity": self.identity,
             "policy_authority": False,
             "proposed_operation_id": self.proposed_operation_id,
             "protected_union_result_hash": self.protected_union_result_hash,
@@ -100,6 +110,16 @@ class FdasScalarBaselineCandidateReadout:
 class FdasScalarBaselineCandidateReadoutEvaluator(
         FdasDecisionSafeCandidateReadoutEvaluator):
     """Compare protected candidates only with their scalar top-1 control."""
+
+    def __init__(self, config=None, ruleset_ir=None):
+        resolver = (
+            None if ruleset_ir is None
+            else FdasDefensiveCapabilityResolver(ruleset_ir))
+        super().__init__(config, resolver)
+        self.readout_identity = (
+            SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY
+            if resolver is None else
+            RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
 
     @staticmethod
     def _pair_scope_rejections(candidate, baseline_candidate):
@@ -136,7 +156,7 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
             "candidates": [value.to_dict() for value in candidates],
             "config": self.config.to_dict(),
             "control_semantics": SCALAR_BASELINE_CONTROL_SEMANTICS,
-            "identity": SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+            "identity": self.readout_identity,
             "policy_authority": False,
             "proposed_operation_id": proposed_operation_id,
             "protected_union_result_hash": protected_union.result_hash,
@@ -155,7 +175,7 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
             self.config.to_dict(), baseline_operation_id,
             proposed_operation_id, status == "eligible-shadow",
             tuple(candidates), tuple(semantic["rejected"]),
-            structural_hash(semantic))
+            structural_hash(semantic), self.readout_identity)
 
     def evaluate(self, snapshot, revision, shadow_evaluation,
                  candidates, protected_union):

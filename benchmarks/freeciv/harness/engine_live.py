@@ -3320,6 +3320,14 @@ async def _play(run_dir, manifest, context):
             "readout_authority",
             "truth_mutated",
         }
+        ruleset_defensive_noninferiority = (
+            scalar_baseline_readout_diagnostic.get(
+                "ruleset_defensive_noninferiority_required", False)
+            if isinstance(scalar_baseline_readout_diagnostic, dict)
+            else False)
+        if ruleset_defensive_noninferiority:
+            expected_scalar_baseline_keys.add(
+                "ruleset_defensive_noninferiority_required")
         if scalar_baseline_readout_capability != "shadow-live":
             raise RuntimeError(
                 "FDAS scalar-baseline readout requires shadow-live manifest")
@@ -3334,6 +3342,12 @@ async def _play(run_dir, manifest, context):
                    "readout_authority", "truth_mutated")):
             raise RuntimeError(
                 "FDAS scalar-baseline readout cannot grant authority")
+        if ("ruleset_defensive_noninferiority_required"
+                in scalar_baseline_readout_diagnostic
+                and scalar_baseline_readout_diagnostic[
+                    "ruleset_defensive_noninferiority_required"] is not True):
+            raise RuntimeError(
+                "FDAS ruleset defensive noninferiority must be required")
         if (scalar_baseline_readout_diagnostic[
                     "protected_candidate_union_required"] is not True
                 or not fdas_grounded_transition_candidate_union
@@ -3355,7 +3369,10 @@ async def _play(run_dir, manifest, context):
                 "FDAS scalar-baseline readout config is not canonical")
         fdas_scalar_baseline_readout_evaluator = (
             FdasScalarBaselineCandidateReadoutEvaluator(
-                scalar_baseline_config))
+                scalar_baseline_config,
+                ruleset_ir=(
+                    observability_ir
+                    if ruleset_defensive_noninferiority else None)))
     if fdas_decision_safe_candidate_filter:
         expected_candidate_filter = {
             "action_selection_changed": False,

@@ -4,6 +4,7 @@
 import argparse
 import glob
 import json
+import math
 import os
 import sys
 
@@ -27,9 +28,12 @@ from freeciv_agent.events.schema import (  # noqa: E402
 )
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    DEFENSIVE_CAPABILITY_IDENTITY,
     FdasCandidateChoiceSetStore,
     FdasDecisionSafeCandidateReadoutConfig,
+    RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
     SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+    SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES,
     SCALAR_BASELINE_CONTROL_SEMANTICS,
 )
 
@@ -51,11 +55,46 @@ REQUIRED_NONINFERIORITY_CHECKS = frozenset({
     "unit-type",
     "veteran-level",
 })
+RULESET_DEFENSIVE_NONINFERIORITY_CHECKS = frozenset({
+    "defensive-effect-signature",
+    "estimated-turns",
+    "first-step-movement-cost",
+    "homecity-relation",
+    "hit-points",
+    "moves-left",
+    "ruleset-defense",
+    "ruleset-firepower",
+    "ruleset-maximum-hitpoints",
+    "total-movement-cost",
+    "unit-class",
+    "veteran-level",
+})
 
 
 def _read_json(path):
     with open(path, encoding="utf-8") as stream:
         return json.load(stream)
+
+
+def _validate_defensive_capability(value):
+    if not isinstance(value, dict) or set(value) != {
+            "defense", "defensive_effect_signature", "firepower",
+            "identity", "maximum_hitpoints", "rule_id", "ruleset_digest",
+            "unit_class"}:
+        return False
+    signature = value.get("defensive_effect_signature")
+    numbers = tuple(value.get(name) for name in (
+        "defense", "firepower", "maximum_hitpoints"))
+    return bool(
+        value.get("identity") == DEFENSIVE_CAPABILITY_IDENTITY
+        and all(isinstance(value.get(name), str) and value.get(name)
+                for name in ("rule_id", "ruleset_digest", "unit_class"))
+        and all(isinstance(item, (int, float)) and not isinstance(item, bool)
+                and math.isfinite(float(item)) and item >= 0
+                for item in numbers)
+        and isinstance(signature, list)
+        and all(isinstance(item, str) and item for item in signature)
+        and signature == sorted(set(signature)))
 
 
 def _validate_readout(details, payload, protected_parent):
@@ -66,7 +105,8 @@ def _validate_readout(details, payload, protected_parent):
     result_hash = semantic.pop("result_hash", None)
     if result_hash != structural_hash(semantic):
         errors.append("scalar-baseline-result-hash-differs")
-    if details.get("identity") != SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY:
+    identity = details.get("identity")
+    if identity not in SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES:
         errors.append("scalar-baseline-identity-differs")
     if details.get("control_semantics") != SCALAR_BASELINE_CONTROL_SEMANTICS:
         errors.append("scalar-baseline-control-semantics-differ")
@@ -103,6 +143,22 @@ def _validate_readout(details, payload, protected_parent):
         for value in candidates if isinstance(value, dict))
     if len(by_id) != len(candidates) or None in by_id:
         errors.append("scalar-baseline-candidate-identities-differ")
+    ruleset_defensive = (
+        identity
+        == RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+    if ruleset_defensive:
+        capabilities = tuple(
+            value.get("defensive_capability")
+            for value in candidates if isinstance(value, dict))
+        if (len(capabilities) != len(candidates)
+                or not all(_validate_defensive_capability(value)
+                           for value in capabilities)
+                or len({value.get("ruleset_digest")
+                        for value in capabilities}) > 1):
+            errors.append("scalar-baseline-defensive-capabilities-differ")
+    elif any(isinstance(value, dict)
+             and "defensive_capability" in value for value in candidates):
+        errors.append("scalar-baseline-legacy-capability-leaked")
     parent_members = set(
         value.get("operation_id")
         for value in protected_parent.get("members", ())
@@ -140,8 +196,7 @@ def _validate_readout(details, payload, protected_parent):
                 errors.append("scalar-baseline-intervals-are-not-separated")
             homecity_rank = {"none": 0, "other": 1, "target": 2}
             noninferior = (
-                proposed.get("unit_type") == control.get("unit_type")
-                and proposed.get("estimated_turns")
+                proposed.get("estimated_turns")
                 <= control.get("estimated_turns")
                 and proposed.get("total_movement_cost")
                 <= control.get("total_movement_cost")
@@ -152,10 +207,34 @@ def _validate_readout(details, payload, protected_parent):
                 and proposed.get("veteran") >= control.get("veteran")
                 and homecity_rank.get(proposed.get("homecity_relation"), -1)
                 >= homecity_rank.get(control.get("homecity_relation"), 99))
+            required_checks = REQUIRED_NONINFERIORITY_CHECKS
+            if ruleset_defensive:
+                proposed_capability = proposed.get("defensive_capability", {})
+                control_capability = control.get("defensive_capability", {})
+                noninferior = bool(
+                    noninferior
+                    and proposed_capability.get("unit_class")
+                    == control_capability.get("unit_class")
+                    and proposed_capability.get(
+                        "defensive_effect_signature")
+                    == control_capability.get(
+                        "defensive_effect_signature")
+                    and proposed_capability.get("defense", -1)
+                    >= control_capability.get("defense", float("inf"))
+                    and proposed_capability.get("firepower", -1)
+                    >= control_capability.get("firepower", float("inf"))
+                    and proposed_capability.get("maximum_hitpoints", -1)
+                    >= control_capability.get(
+                        "maximum_hitpoints", float("inf")))
+                required_checks = RULESET_DEFENSIVE_NONINFERIORITY_CHECKS
+            else:
+                noninferior = bool(
+                    noninferior
+                    and proposed.get("unit_type") == control.get("unit_type"))
             if not noninferior:
                 errors.append("scalar-baseline-grounded-noninferiority-differs")
             if (set(proposed.get("noninferiority_checks", ()))
-                    != REQUIRED_NONINFERIORITY_CHECKS
+                    != required_checks
                     or proposed.get("eligibility_reason") != "eligible"):
                 errors.append("scalar-baseline-grounded-checks-differ")
     elif status == "abstained":

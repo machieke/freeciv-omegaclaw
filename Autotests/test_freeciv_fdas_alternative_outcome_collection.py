@@ -16,7 +16,9 @@ from freeciv_agent.planning import (
     FdasCalibratedCandidateUnion,
     FdasDecisionSafeCandidateReadoutConfig,
     FdasDecisionSafeCandidateReadoutEvaluator,
+    FdasDefensiveCapabilityResolver,
     FdasScalarBaselineCandidateReadoutEvaluator,
+    RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
     build_decision_safe_candidate_filter,
     FdasPathPersistenceCandidateUnion,
     FdasPathPersistenceMember,
@@ -726,6 +728,86 @@ def test_scalar_baseline_overlap_exposes_grounded_failure_independently(ir):
         "grounded-noninferiority-failed")
     assert "unit-type" not in alternative.noninferiority_checks
     assert readout.shadow_preference is False
+
+
+def test_ruleset_defensive_capability_equates_observed_reinforcement_pair(ir):
+    resolver = FdasDefensiveCapabilityResolver(ir)
+
+    riflemen = resolver.resolve("Riflemen")
+    alpine = resolver.resolve("Alpine Troops")
+
+    assert riflemen is not None
+    assert alpine is not None
+    assert alpine.unit_class == riflemen.unit_class == "Land"
+    assert alpine.defense == riflemen.defense == 4.0
+    assert alpine.maximum_hitpoints == riflemen.maximum_hitpoints == 20.0
+    assert alpine.firepower == riflemen.firepower == 1.0
+    assert (alpine.defensive_effect_signature
+            == riflemen.defensive_effect_signature)
+    assert alpine.rule_id != riflemen.rule_id
+
+
+def test_scalar_readout_uses_ruleset_defense_not_unit_name(ir):
+    case = list(_decision_safe_case(ir))
+    baseline_id = case[6].baseline_selected_operation_id
+    baseline = next(
+        value for value in case[4]
+        if value.operation.operation_id == baseline_id)
+    treatment = next(value for value in case[4] if value != baseline)
+    case[0] = replace(case[0], units=tuple(
+        replace(
+            value,
+            unit_type=(
+                "Riflemen"
+                if value.unit_id == baseline.action["actor_id"]
+                else "Alpine Troops"
+                if value.unit_id == treatment.action["actor_id"]
+                else value.unit_type))
+        for value in case[0].units))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator(
+        ruleset_ir=ir)
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "eligible-shadow"
+    assert readout.identity == (
+        RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+    alternative = next(
+        value for value in readout.candidates
+        if value.operation_id != baseline_id)
+    assert alternative.unit_type == "Alpine Troops"
+    assert alternative.defensive_capability is not None
+    assert "unit-type" not in alternative.noninferiority_checks
+    assert set(alternative.noninferiority_checks) == {
+        "defensive-effect-signature", "estimated-turns",
+        "first-step-movement-cost", "homecity-relation", "hit-points",
+        "moves-left", "ruleset-defense", "ruleset-firepower",
+        "ruleset-maximum-hitpoints", "total-movement-cost", "unit-class",
+        "veteran-level",
+    }
+
+
+def test_scalar_readout_fails_closed_without_ruleset_unit_profile(ir):
+    case = list(_decision_safe_case(ir))
+    baseline_id = case[6].baseline_selected_operation_id
+    baseline = next(
+        value for value in case[4]
+        if value.operation.operation_id == baseline_id)
+    case[0] = replace(case[0], units=tuple(
+        replace(value, unit_type="Unknown Defensive Unit")
+        if value.unit_id == baseline.action["actor_id"] else value
+        for value in case[0].units))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator(
+        ruleset_ir=ir)
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert readout.reason == (
+        "control-ruleset-defensive-capability-unavailable")
+    assert readout.candidates == ()
 
 
 def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):
