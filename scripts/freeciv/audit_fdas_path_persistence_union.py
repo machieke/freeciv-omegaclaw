@@ -31,7 +31,7 @@ from freeciv_agent.planning import (  # noqa: E402
 )
 
 
-AUDIT_IDENTITY = "fdas-path-persistence-candidate-union-audit/1.0"
+AUDIT_IDENTITY = "fdas-path-persistence-candidate-union-audit/1.1"
 COMPONENT_ID = "fdas-path-persistence-candidate-union"
 PROBE_COMPONENT_ID = "fdas-probe-candidate-union"
 CONFIG_SOURCE = (
@@ -241,12 +241,29 @@ def _validate_path_persistence_union(details, payload, probe_parent=None):
             errors.append("persistence-regret-rejection-bound-differs")
     elif float(regret) > MAXIMUM_REACHABILITY_REGRET + 1e-12:
         errors.append("persistence-regret-bound-differs")
-    if selected_readout is not None and retention and any(retention):
-        maximum = max(float(value["instantaneous_reachability"])
-                      for value in readouts)
-        if (maximum - float(selected_readout["instantaneous_reachability"])
-                <= 1e-12):
-            errors.append("persistence-retention-lacks-current-regret")
+    route_reachability = {}
+    for readout in readouts:
+        route_id = readout.get("route_id")
+        reachability = readout.get("instantaneous_reachability")
+        if isinstance(route_id, str) and _finite(reachability):
+            route_reachability[route_id] = max(
+                float(reachability), route_reachability.get(route_id, 0.0))
+    instantaneous_best_route = (
+        min(route_reachability,
+            key=lambda value: (-route_reachability[value], value))
+        if route_reachability else None)
+    if (retention[0] is True
+            and selected_route == instantaneous_best_route):
+        errors.append("persistence-smoothing-did-not-break-route-choice")
+    if (selected_route in route_reachability and not regret_rejected
+            and _finite(regret)):
+        expected_regret = max(route_reachability.values()) - (
+            route_reachability[selected_route])
+        if abs(float(regret) - expected_regret) > 1e-12:
+            errors.append("persistence-reachability-regret-differs")
+    if (regret_rejected
+            and selected_route != instantaneous_best_route):
+        errors.append("persistence-regret-reanchor-differs")
 
     if probe_parent is None:
         errors.append("persistence-probe-parent-missing")
@@ -340,6 +357,7 @@ def audit(run_root, expected_seeds, expected_source_commit, thresholds=None,
         game_totals = dict((key, 0) for key in total_keys)
         union_errors = []
         previous_state_after = None
+        previous_selected_route = None
         for event in events:
             payload = event.get("payload", {})
             if (event.get("type") != "atomspace_shadow_decision"
@@ -363,7 +381,15 @@ def audit(run_root, expected_seeds, expected_source_commit, thresholds=None,
                 errors = tuple(errors) + (
                     "persistence-controller-state-continuity-differs",)
             if isinstance(details, dict):
+                if ((details.get("retained_by_dwell") is True
+                     or details.get("retained_by_hysteresis") is True)
+                        and details.get("persistence_selected_route_id")
+                        != previous_selected_route):
+                    errors = tuple(errors) + (
+                        "persistence-retention-route-continuity-differs",)
                 previous_state_after = details.get("state_after_hash")
+                previous_selected_route = details.get(
+                    "persistence_selected_route_id")
             union_errors.extend(
                 "{}:{}".format(event.get("event_id"), value)
                 for value in errors)

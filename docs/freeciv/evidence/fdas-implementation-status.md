@@ -447,3 +447,14 @@ produced 11 temporal additions, 18 smoothing retentions, 12 regret reanchors,
 and 9 expiries, with zero fallback or authority leakage. The smoke and its seed
 are claim-ineligible; a fresh cohort remains required. See
 `fdas-pr48-path-persistence-union-shadow.md`.
+
+PR49 passed the preregistered eight-game path-persistence confirmation. Across
+654 unions, 1,613 readouts produced 162 temporal retentions and 105 additions
+in seven of eight games. The Wilson game-level lower bound was `0.529`; the
+regret gate reanchored 91 proposals and 130 absent routes expired. There were
+zero fallbacks, rejected actions, selection changes, or authority leaks. Audit
+version 1.1 corrected an unpreregistered positive-regret assumption while
+strengthening exact-regret and route-continuity checks; the initial rejection
+is preserved in Git. This establishes bounded temporal candidate recall, not
+precision, gameplay, score, or win rate. See
+`fdas-pr49-path-persistence-union.md`.

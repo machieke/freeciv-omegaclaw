@@ -177,3 +177,18 @@ def test_path_persistence_audit_rejects_probe_parent_changes():
         _details(), _payload(), dict(_parent(), result_hash="0" * 64))
 
     assert "persistence-probe-parent-binding-differs" in errors
+
+
+def test_path_persistence_audit_accepts_zero_regret_smoothing_tie_break():
+    details = _details()
+    details["readouts"][1]["instantaneous_reachability"] = 1.0
+    details["reachability_regret"] = 0.0
+    semantic = copy.deepcopy(details)
+    semantic.pop("result_hash")
+    details["result_hash"] = structural_hash(semantic)
+
+    errors, measures = _validate_path_persistence_union(
+        details, _payload(), _parent())
+
+    assert errors == ()
+    assert measures["temporal_additions"] == 1
