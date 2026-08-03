@@ -95,18 +95,18 @@
     "resource_and_packet_schedule_complete": true,
     "zero_policy_winner_changes": true
   },
-  "generated_at": "2026-08-02T23:36:47.875447+00:00",
+  "generated_at": "2026-08-03T06:57:48.326643+00:00",
   "latency": {
     "count": 38,
-    "maximum_ms": 6.754666101187468,
-    "mean_ms": 0.9934968486624328,
-    "p50_ms": 0.6140759214758873,
-    "p95_ms": 2.514797728508711
+    "maximum_ms": 79.93358001112938,
+    "mean_ms": 3.1340131291041247,
+    "p50_ms": 0.6163632497191429,
+    "p95_ms": 2.8997231274843216
   },
   "readouts": [
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":0,\"target\":{\"production_type\":\"Settlers\"}}",
-      "authority_latency_ms": 0.04138099029660225,
+      "authority_latency_ms": 0.04017120227217674,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":0,\"target\":{\"production_type\":\"Settlers\"}}",
       "legacy_category": "production_expansion",
       "legacy_operation_id": "pf-impact-op:00000000:f1b3583e7c1b08abff69",
@@ -134,7 +134,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":102,\"settlement_site_eligible\":false,\"target\":{\"x\":12,\"y\":5}}",
-      "authority_latency_ms": 0.0374792143702507,
+      "authority_latency_ms": 0.03843382000923157,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":102,\"settlement_site_eligible\":false,\"target\":{\"x\":12,\"y\":5}}",
       "legacy_category": "expansion_move",
       "legacy_operation_id": "pf-impact-op:00000000:a665bb1d885810e1dfa4",
@@ -162,7 +162,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
-      "authority_latency_ms": 1.4888527803122997,
+      "authority_latency_ms": 1.4668162912130356,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:d94b522128fbc23738e0",
@@ -355,7 +355,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":11,\"target\":{\"production_type\":\"Alpine Troops\"}}",
-      "authority_latency_ms": 0.2893679775297642,
+      "authority_latency_ms": 0.2857726067304611,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":11,\"target\":{\"production_type\":\"Alpine Troops\"}}",
       "legacy_category": "production_defense",
       "legacy_operation_id": "pf-impact-op:00000001:5b5e4b865083e646c95b",
@@ -383,7 +383,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
-      "authority_latency_ms": 1.7602699808776379,
+      "authority_latency_ms": 1.7189900390803814,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:d3a8f145dbf810d5166e",
@@ -576,7 +576,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":115}",
-      "authority_latency_ms": 1.7902310937643051,
+      "authority_latency_ms": 1.7635021358728409,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":115}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:9f335467a78751f09aa7",
@@ -769,7 +769,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":6,\"production_value\":10,\"target\":{\"production_type\":\"Riflemen\"}}",
-      "authority_latency_ms": 0.042090192437171936,
+      "authority_latency_ms": 0.03888504579663277,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":6,\"production_value\":10,\"target\":{\"production_type\":\"Riflemen\"}}",
       "legacy_category": "production_defense",
       "legacy_operation_id": "pf-impact-op:00000001:6547a108ca96757a7654",
@@ -797,7 +797,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":117}",
-      "authority_latency_ms": 1.483619213104248,
+      "authority_latency_ms": 1.4557070098817348,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":117}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:073e14dc436fe68e1327",
@@ -990,7 +990,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":119}",
-      "authority_latency_ms": 1.4678877778351307,
+      "authority_latency_ms": 1.429400872439146,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":119}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000002:06dd45d378447ff0639d",
@@ -1183,7 +1183,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":129}",
-      "authority_latency_ms": 2.04713037237525,
+      "authority_latency_ms": 2.0576631650328636,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":129}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000015:75a07c71024c0939e25b",
@@ -1376,7 +1376,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":133}",
-      "authority_latency_ms": 6.754666101187468,
+      "authority_latency_ms": 2.225973643362522,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":133}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:00ecea019a7d2cadd1db",
@@ -1569,7 +1569,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":12,\"y\":5}}",
-      "authority_latency_ms": 0.047637615352869034,
+      "authority_latency_ms": 0.04537217319011688,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":12,\"y\":5}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:f39559e34bee1562a63e",
@@ -1597,7 +1597,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":12,\"y\":5},\"transport_required\":false}",
-      "authority_latency_ms": 0.6140759214758873,
+      "authority_latency_ms": 0.6163632497191429,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":12,\"y\":5},\"transport_required\":false}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:640ceac82873cc6622ab",
@@ -1625,7 +1625,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":138}",
-      "authority_latency_ms": 2.409660257399082,
+      "authority_latency_ms": 2.33922665938735,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":138}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:cde300e2a9ff97d98daa",
@@ -1818,7 +1818,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":10,\"y\":6}}",
-      "authority_latency_ms": 0.0460650771856308,
+      "authority_latency_ms": 0.044605229049921036,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":10,\"y\":6}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:df16dbc3e8363c7fa605",
@@ -1846,7 +1846,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
-      "authority_latency_ms": 0.6575873121619225,
+      "authority_latency_ms": 0.6179409101605415,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:f2a8d6a1f5995418ac9e",
@@ -1874,7 +1874,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":146}",
-      "authority_latency_ms": 2.3767538368701935,
+      "authority_latency_ms": 79.93358001112938,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":146}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000025:574cc727663bd55bf59a",
@@ -2067,7 +2067,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":151}",
-      "authority_latency_ms": 1.5274863690137863,
+      "authority_latency_ms": 1.5188050456345081,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":151}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:46c94327728a84aaa16e",
@@ -2260,7 +2260,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":161}",
-      "authority_latency_ms": 1.6086171381175518,
+      "authority_latency_ms": 1.6421722248196602,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":161}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000010:463c337ce5978e8a1bad",
@@ -2453,7 +2453,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":176}",
-      "authority_latency_ms": 1.5396843664348125,
+      "authority_latency_ms": 1.58259691670537,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":176}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:3af070514b4749b0ece0",
@@ -2646,7 +2646,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":186}",
-      "authority_latency_ms": 2.8458298183977604,
+      "authority_latency_ms": 2.8997231274843216,
       "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":186}",
       "legacy_category": "city_defense",
       "legacy_operation_id": "pf-impact-op:00000000:912c1c9c9992d320b6bf",
@@ -2839,7 +2839,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
-      "authority_latency_ms": 0.9550610557198524,
+      "authority_latency_ms": 1.0820082388818264,
       "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
       "legacy_category": "city_food_governor",
       "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
@@ -2867,7 +2867,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
-      "authority_latency_ms": 1.0350062511861324,
+      "authority_latency_ms": 0.9674211032688618,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:77104fef3f4566b620a9",
@@ -2895,7 +2895,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
-      "authority_latency_ms": 0.05318503826856613,
+      "authority_latency_ms": 0.053212977945804596,
       "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
       "legacy_category": "city_food_governor",
       "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
@@ -2923,7 +2923,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
-      "authority_latency_ms": 0.044992659240961075,
+      "authority_latency_ms": 0.04239613190293312,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:bc0174dd84f32a20cdde",
@@ -2951,7 +2951,7 @@
     },
     {
       "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
-      "authority_latency_ms": 0.9082113392651081,
+      "authority_latency_ms": 0.9224242530763149,
       "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
       "legacy_category": "treasury_tax_shift",
       "legacy_operation_id": "pf-impact-op:00000001:e10b527589c1b611fd9d",
@@ -2979,7 +2979,7 @@
     },
     {
       "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":50,\"tax_rate\":50}}",
-      "authority_latency_ms": 0.05549471825361252,
+      "authority_latency_ms": 0.053342897444963455,
       "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":50,\"tax_rate\":50}}",
       "legacy_category": "treasury_tax_shift",
       "legacy_operation_id": "pf-impact-op:00000000:5040f7da575670737efb",
@@ -3007,7 +3007,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":131,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
-      "authority_latency_ms": 0.04889722913503647,
+      "authority_latency_ms": 0.04716916009783745,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":131,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
       "legacy_category": "production_treasury_stabilization",
       "legacy_operation_id": "pf-impact-op:00000001:0afa8f4ef1ec973af8bf",
@@ -3035,7 +3035,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
-      "authority_latency_ms": 0.8690543472766876,
+      "authority_latency_ms": 9.230235125869513,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
       "legacy_category": "production_treasury_stabilization",
       "legacy_operation_id": "pf-impact-op:00000000:d2b805ced2a37209888c",
@@ -3063,7 +3063,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
-      "authority_latency_ms": 0.059347134083509445,
+      "authority_latency_ms": 0.05484325811266899,
       "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
       "legacy_category": "city_food_governor",
       "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
@@ -3091,7 +3091,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_production\",\"city_id\":182,\"production_kind\":3,\"production_value\":18,\"target\":{\"production_type\":\"Marketplace\"}}",
-      "authority_latency_ms": 2.514797728508711,
+      "authority_latency_ms": 2.5549731217324734,
       "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":182,\"production_kind\":3,\"production_value\":18,\"target\":{\"production_type\":\"Marketplace\"}}",
       "legacy_category": "production_treasury_stabilization",
       "legacy_operation_id": "pf-impact-op:00000001:5960499a08de9ae09977",
@@ -3119,7 +3119,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
-      "authority_latency_ms": 0.052380841225385666,
+      "authority_latency_ms": 0.052931252866983414,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:0e0237c0613b2984e153",
@@ -3147,7 +3147,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":4}}",
-      "authority_latency_ms": 0.04531070590019226,
+      "authority_latency_ms": 0.04601897671818733,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":4}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:d5a223bf4fe21f06cb32",
@@ -3175,7 +3175,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
-      "authority_latency_ms": 0.044854823499917984,
+      "authority_latency_ms": 0.044879037886857986,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:bc0174dd84f32a20cdde",
@@ -3203,7 +3203,7 @@
     },
     {
       "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
-      "authority_latency_ms": 0.044537708163261414,
+      "authority_latency_ms": 0.044934917241334915,
       "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
       "legacy_category": "city_garrison_move",
       "legacy_operation_id": "pf-impact-op:00000000:0e0237c0613b2984e153",
@@ -3231,7 +3231,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_governor\",\"city_id\":182,\"target\":{\"food_surplus_reserve\":1}}",
-      "authority_latency_ms": 0.045227352529764175,
+      "authority_latency_ms": 0.04679011180996895,
       "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":182,\"target\":{\"food_surplus_reserve\":1}}",
       "legacy_category": "city_food_governor",
       "legacy_operation_id": "pf-impact-op:00000000:d34173464d841527817c",
@@ -3259,7 +3259,7 @@
     },
     {
       "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
-      "authority_latency_ms": 0.04625692963600159,
+      "authority_latency_ms": 0.04434306174516678,
       "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
       "legacy_category": "treasury_tax_shift",
       "legacy_operation_id": "pf-impact-op:00000001:e10b527589c1b611fd9d",
@@ -3287,7 +3287,7 @@
     },
     {
       "action_key": "{\"action_type\":\"city_governor\",\"city_id\":109,\"target\":{\"food_surplus_reserve\":1}}",
-      "authority_latency_ms": 0.053890980780124664,
+      "authority_latency_ms": 0.04287390038371086,
       "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":109,\"target\":{\"food_surplus_reserve\":1}}",
       "legacy_category": "city_food_governor",
       "legacy_operation_id": "pf-impact-op:00000000:3a1d4953244ec66d04f8",
@@ -3314,7 +3314,7 @@
       "turn": 158
     }
   ],
-  "report_hash": "ba2e523b2987a38ad88ebee1be74495cacf20a90a914b1e507cf46d19bafc023",
+  "report_hash": "6bcaea87ddedfb365fc28e10ed6c200008984ab98a7525c967f0258cad436d39",
   "result": {
     "authorized_count": 13,
     "fallback_count": 25,
@@ -3325,18 +3325,18 @@
   "schema_version": "1.1",
   "source": {
     "files": {
-      "benchmarks/freeciv/harness/engine_live.py": "16bd97679ac1703d0cc0491fc7383b02887525f511f95588b8ebbeb1922cb7fe",
+      "benchmarks/freeciv/harness/engine_live.py": "5cf8ddfc0880d7cdead88ddce1823fdf629cd64c0a3b6e9ad210235d0ba6862b",
       "profile/dependent_atomspace_defense_authority.yaml": "31bfe088b62818d00784b50e3ee4b281fcf3e3bb2138621e0e5904ea06d2b1d0",
       "profile/fdas_manifest_defense_authority.json": "bec8b924a14264fd7e77be41ad9ea7d2859419ba4d65dc2da7fbb2b3db45f352",
-      "src/freeciv_agent/planning/fdas.py": "b6f82598375fdabba4c7227f4c84f1a11a9b571ad94cd3aeb5c3d6440ab3896d",
-      "src/freeciv_agent/planning/fdas_authority.py": "0e1ca0f2bbf6ee73956b938558d6169981e0d749829314257efe1fcaa0e1bf16",
+      "src/freeciv_agent/planning/fdas.py": "06aefda36de3408d66384f3bf906a39df223f4b83bb59bae2f92694a92c5a006",
+      "src/freeciv_agent/planning/fdas_authority.py": "fd296ba3070155b3aa63d37ceff12f061808d0d4d0a5b974b3d87b5bd7c8e28a",
       "src/freeciv_agent/planning/fdas_commit.py": "62d3a7900b8176e2506578f20ef206a212deaaf821ab915b619ae2b9e9e0f6cc",
-      "src/freeciv_agent/planning/fdas_episodes.py": "0e87878afacae59dd2bafbe73ac2e62f7715388c6f5c7f496f8af602742f2906",
+      "src/freeciv_agent/planning/fdas_episodes.py": "cbf7b352ff9001abe7b3060f7de952d299242378ade9d47bf76ec364ee812d24",
       "src/freeciv_agent/pressure/fdas_adapter.py": "61a3643745f5e2e0e5950575cdc1daee885097bc753819d307caca4c97c341ec",
       "src/freeciv_agent/pressure/fdas_resources.py": "5ce75db8546a38c99b5314a963f5ebf1de51d9fe5ea7ad05a4d477a451d0075c",
-      "src/freeciv_agent/state/atomspace/runtime.py": "0fcaa2d6ef956c2a05c8886f4af7dea0024750e7e1e2b31a7c3f712272758666",
+      "src/freeciv_agent/state/atomspace/runtime.py": "848db080133f6c219b6638ac21fa791cda58c480fd9b2af72b8727caa3689c9a",
       "src/freeciv_agent/state/atomspace/unit.py": "ead0b318d3e84710520894db032a245dd88be65deb0b6f3078068a789c7c03fb"
     },
-    "implementation_digest": "429c88ce18a571cc8481131efbee8601ad936d5ae85d5e7a939c3f39e76887d6"
+    "implementation_digest": "df646966a91eadb5ab9f090bf55a9c0872286c574cf70f36ff3c97ec58a57348"
   }
 }

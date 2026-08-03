@@ -683,6 +683,11 @@ class FdasDefenseEpisodeRecorder(object):
             grounding_result_ids=(instantiation_hash,),
             prediction_ids=tuple(prediction_ids),
             resource_claim_ids=resource_claim_ids,
+            extra_provenance_ids=(
+                "fdas-authorized-defense-selection/1.0",
+                "selection-turn:{}".format(before_snapshot.turn),
+                "policy-authority:true",
+            ),
         )
 
     def begin_observed_selection(
@@ -766,6 +771,7 @@ class FdasDefenseEpisodeRecorder(object):
                  if selection_policy_authority else
                  "fdas-observed-legacy-defense-selection/1.0"),
                 "selection-evidence:" + selection_evidence_hash,
+                "selection-turn:{}".format(before_snapshot.turn),
                 "policy-authority:{}".format(
                     str(selection_policy_authority).lower()),
             ) + selection_provenance_ids)

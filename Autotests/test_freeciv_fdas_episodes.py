@@ -370,7 +370,9 @@ def test_selected_defense_target_supports_move_without_requiring_fortify():
         "fdas-shadow:city-garrison-deficit:unit_move")
     context["goal_relief_due_turn"] = "20"
     attributed = replace(
-        relieved, context_signature=tuple(sorted(context.items())))
+        relieved,
+        context_signature=tuple(sorted(context.items())),
+        provenance_ids=relieved.provenance_ids + ("selection-turn:14",))
 
     assert recorder.observation_window_should_close(
         attributed, 14, True) is False
@@ -391,7 +393,7 @@ def test_selected_defense_target_supports_move_without_requiring_fortify():
         "selected-defense-persistence")
     labeler = FdasSelectedDefenseActorPersistenceLabeler(store)
     pending = labeler.open(
-        attributed, 14, "fdas-selected-defense-relief-revision")
+        attributed, 14, attributed.before_revision_id)
     due_payload = _payload(
         turn=46, unit_tile=84, unit_x=4, legal_target_x=4)
     due_payload["units"]["7"]["activity"] = "idle"
@@ -401,11 +403,58 @@ def test_selected_defense_target_supports_move_without_requiring_fortify():
 
     assert pending.target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
     assert pending.due_turn == 46
+    assert pending.index_kind == "accepted-selected-action"
+    assert pending.index_turn == 14
+    assert pending.index_revision_id == attributed.before_revision_id
     assert observed.outcome is True
     assert observed.reason == (
         "selected-actor-city-defense-observed-at-due-turn")
     assert dict(observed.observed_value)["actor_activity"] == "idle"
     assert observed.to_dict()["policy_authority"] is False
+
+
+def test_selected_defense_label_opens_at_acceptance_without_goal_relief():
+    _recorder, _episode_store, episode = _begin_episode(
+        operation_id="selected-no-relief")
+    context = dict(episode.context_signature)
+    context["operation_type"] = (
+        "fdas-shadow:city-garrison-deficit:unit_move")
+    accepted = replace(
+        episode,
+        context_signature=tuple(sorted(context.items())),
+        provenance_ids=episode.provenance_ids + ("selection-turn:12",))
+    store = EpisodeInductionOutcomeLabelStore(
+        "selected-no-relief-labels")
+    labeler = FdasSelectedDefenseActorPersistenceLabeler(store)
+
+    pending = labeler.open_selected(accepted)
+
+    assert accepted.outcome_status == "accepted-by-server"
+    assert accepted.after_revision_id is None
+    assert not accepted.realized_goal_relief
+    assert pending.relief_turn == 12
+    assert pending.due_turn == 44
+    assert "index-kind:accepted-selected-action" in pending.provenance_ids
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "selected-labels.json")
+        store.save(path)
+        recovered_store = EpisodeInductionOutcomeLabelStore.load(
+            path, "selected-no-relief-labels")
+        recovered = FdasSelectedDefenseActorPersistenceLabeler(
+            recovered_store).open_selected(accepted)
+
+    assert not recovered_store.quarantined
+    assert recovered == pending
+
+    due_payload = _payload(
+        turn=44, unit_tile=84, unit_x=4, legal_target_x=4)
+    observed = labeler.observe(
+        accepted, _snapshot(due_payload, 537),
+        "fdas-selected-no-relief-due-revision")
+
+    assert observed.status == "observed"
+    assert observed.outcome is True
 
 
 def test_no_update_is_pending_until_window_closes_then_no_effect():

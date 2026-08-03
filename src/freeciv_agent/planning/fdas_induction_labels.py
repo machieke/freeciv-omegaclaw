@@ -18,6 +18,11 @@ DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET = (
     "durable-selected-actor-city-defense/32-turn/2.0")
 _LABEL_STATES = frozenset(("pending", "observed", "confounded", "expired"))
 _TERMINAL_LABEL_STATES = frozenset(("observed", "confounded", "expired"))
+_SELECTED_ACTOR_ELIGIBLE_EPISODE_STATES = frozenset((
+    "accepted-by-server", "immediate-effect-observed",
+    "delayed-effect-pending", "goal-relief-observed",
+    "effect-without-goal-relief", "no-effect-observed",
+))
 
 
 def _strings(values, name):
@@ -29,8 +34,20 @@ def _strings(values, name):
 
 def delayed_outcome_episode_eligible(episode, target_id):
     """Return exact target-specific eligibility without creating a label."""
-    if (not isinstance(episode, DecisionEpisode)
-            or episode.outcome_status != "goal-relief-observed"):
+    if not isinstance(episode, DecisionEpisode):
+        return False
+    if target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET:
+        context = dict(episode.context_signature)
+        return bool(
+            episode.outcome_status in _SELECTED_ACTOR_ELIGIBLE_EPISODE_STATES
+            and episode.execution_event_id
+            and context.get("actor_id", "").startswith("unit:")
+            and context.get("city_id")
+            and context.get("operation_type") in (
+                "fdas-shadow:city-garrison-deficit:unit_move",
+                "fdas-shadow:unit-fortification-opportunity:unit_fortify",
+            ))
+    if episode.outcome_status != "goal-relief-observed":
         return False
     if target_id == DURABLE_CITY_COVERAGE_TARGET:
         return True
@@ -41,17 +58,6 @@ def delayed_outcome_episode_eligible(episode, target_id):
             context.get("operation_type", "").endswith("unit_fortify")
             and str(observed.get("actor_activity_after", "")).lower()
             in ("fortify", "fortified", "fortifying"))
-    if target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET:
-        context = dict(episode.context_signature)
-        observed = episode.observed_delta or {}
-        return bool(
-            context.get("operation_type") in (
-                "fdas-shadow:city-garrison-deficit:unit_move",
-                "fdas-shadow:unit-fortification-opportunity:unit_fortify",
-            )
-            and observed.get("actor_present_after") is True
-            and observed.get("actor_tile_after")
-            == observed.get("target_tile"))
     return False
 
 
@@ -129,7 +135,7 @@ class EpisodeInductionOutcomeLabel:
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError("outcome-label {} is invalid".format(name))
         if self.due_turn <= self.relief_turn:
-            raise ValueError("outcome-label due turn must follow relief")
+            raise ValueError("outcome-label due turn must follow index turn")
         if self.status not in _LABEL_STATES:
             raise ValueError("unknown outcome-label status")
         observed_value = tuple(sorted(
@@ -179,6 +185,23 @@ class EpisodeInductionOutcomeLabel:
             "schema_version": self.schema_version,
             "target_id": self.target_id,
         }
+
+    @property
+    def index_kind(self):
+        """Describe the target-specific event that starts the delay window."""
+        if self.target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET:
+            return "accepted-selected-action"
+        return "observed-goal-relief"
+
+    @property
+    def index_turn(self):
+        """Return the delay-window index turn (legacy field: relief_turn)."""
+        return self.relief_turn
+
+    @property
+    def index_revision_id(self):
+        """Return the delay-window index revision (legacy relief field)."""
+        return self.relief_revision_id
 
     @property
     def state_digest(self):
@@ -374,7 +397,18 @@ class FdasDefenseDurabilityLabeler(object):
             raise ValueError("durability label requires observed immediate relief")
         if episode.after_revision_id != str(relief_revision_id):
             raise ValueError("durability label relief revision mismatch")
-        relief_turn = int(relief_turn)
+        return self._open_indexed(
+            episode, relief_turn, relief_revision_id,
+            "observed-goal-relief")
+
+    def _open_indexed(
+            self, episode, index_turn, index_revision_id, index_kind):
+        """Open one target-specific delayed label at an audited index event."""
+        if index_kind not in (
+                "observed-goal-relief", "accepted-selected-action"):
+            raise ValueError("durability label index kind is invalid")
+        relief_turn = int(index_turn)
+        relief_revision_id = str(index_revision_id)
         due_turn = relief_turn + self.observation_window_turns
         material = {
             "due_turn": due_turn,
@@ -382,7 +416,7 @@ class FdasDefenseDurabilityLabeler(object):
             "episode_id": episode.episode_id,
             "game_id": episode.game_id,
             "player_id": episode.player_id,
-            "relief_revision_id": str(relief_revision_id),
+            "relief_revision_id": relief_revision_id,
             "relief_turn": relief_turn,
             "schema_version": LABEL_SCHEMA_VERSION,
             "target_id": self.TARGET_ID,
@@ -397,7 +431,7 @@ class FdasDefenseDurabilityLabeler(object):
             self.TARGET_ID,
             relief_turn,
             due_turn,
-            str(relief_revision_id),
+            relief_revision_id,
             "pending",
             None,
             None,
@@ -407,7 +441,8 @@ class FdasDefenseDurabilityLabeler(object):
             (
                 self.LABELER_IDENTITY,
                 "episode:" + episode.immutable_digest,
-                "relief-revision:" + str(relief_revision_id),
+                "index-kind:" + index_kind,
+                "index-revision:" + relief_revision_id,
             ))
         existing = self.store.for_episode(
             episode.episode_id, self.TARGET_ID)
@@ -540,9 +575,53 @@ class FdasSelectedDefenseActorPersistenceLabeler(
     """Observe selected move/fortify actors still defending the target city."""
 
     LABELER_IDENTITY = (
-        "fdas-selected-defense-actor-persistence-labeler/1.0")
+        "fdas-selected-defense-actor-persistence-labeler/2.0")
     TARGET_ID = DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
     OBSERVATION_WINDOW_TURNS = 32
+
+    @staticmethod
+    def _selection_turn(episode):
+        values = tuple(
+            value.split(":", 1)[1]
+            for value in episode.provenance_ids
+            if value.startswith("selection-turn:"))
+        if len(values) != 1:
+            raise ValueError(
+                "selected-defense label requires one selection turn")
+        try:
+            turn = int(values[0])
+        except (TypeError, ValueError):
+            raise ValueError("selected-defense selection turn is invalid")
+        if turn < 0:
+            raise ValueError("selected-defense selection turn is invalid")
+        return turn
+
+    def open_selected(self, episode):
+        """Open at accepted selection, independent of immediate goal relief."""
+        if not isinstance(episode, DecisionEpisode):
+            raise TypeError("selected-defense label requires decision episode")
+        if not self.eligible_episode(episode):
+            raise ValueError(
+                "selected-defense label requires accepted in-scope selection")
+        selection_turn = self._selection_turn(episode)
+        return self._open_indexed(
+            episode, selection_turn, episode.before_revision_id,
+            "accepted-selected-action")
+
+    def open(self, episode, selection_turn, selection_revision_id):
+        """Open explicitly while verifying the durable selection index."""
+        if not isinstance(episode, DecisionEpisode):
+            raise TypeError("selected-defense label requires decision episode")
+        if not self.eligible_episode(episode):
+            raise ValueError(
+                "selected-defense label requires accepted in-scope selection")
+        if int(selection_turn) != self._selection_turn(episode):
+            raise ValueError("selected-defense selection turn mismatch")
+        if episode.before_revision_id != str(selection_revision_id):
+            raise ValueError("selected-defense selection revision mismatch")
+        return self._open_indexed(
+            episode, selection_turn, selection_revision_id,
+            "accepted-selected-action")
 
     @staticmethod
     def _assessment(episode, snapshot):

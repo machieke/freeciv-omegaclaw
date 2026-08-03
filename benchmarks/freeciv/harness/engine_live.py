@@ -2914,17 +2914,21 @@ async def _play(run_dir, manifest, context):
                             existing_episode.episode_id,
                             delayed_outcome_target) is not None):
                     continue
-                relief_turn = (
-                    existing_episode.observed_delta or {}).get(
-                        "observed_turn")
-                if (isinstance(relief_turn, bool)
-                        or not isinstance(relief_turn, int)):
-                    raise RuntimeError(
-                        "FDAS delayed label recovery lacks relief turn")
-                fdas_durability_labeler.open(
-                    existing_episode,
-                    relief_turn,
-                    existing_episode.after_revision_id)
+                if (delayed_outcome_target
+                        == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET):
+                    fdas_durability_labeler.open_selected(existing_episode)
+                else:
+                    relief_turn = (
+                        existing_episode.observed_delta or {}).get(
+                            "observed_turn")
+                    if (isinstance(relief_turn, bool)
+                            or not isinstance(relief_turn, int)):
+                        raise RuntimeError(
+                            "FDAS delayed label recovery lacks relief turn")
+                    fdas_durability_labeler.open(
+                        existing_episode,
+                        relief_turn,
+                        existing_episode.after_revision_id)
             # Persist even an empty store so zero-label evidence is durable and
             # its activation/identity can be audited independently of events.
             fdas_outcome_label_store.save(fdas_outcome_label_path)
@@ -4387,6 +4391,8 @@ async def _play(run_dir, manifest, context):
                     cause = event["event_id"]
                     decision_stats["fdas_episode_relief_attributed"] += 1
                     if (fdas_durability_labeler is not None
+                            and delayed_outcome_target
+                            != DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
                             and fdas_durability_labeler.eligible_episode(
                                 updated)):
                         label = fdas_durability_labeler.open(
@@ -6575,6 +6581,30 @@ async def _play(run_dir, manifest, context):
                                 caused_by=(parent,)))
                         if choice_event is not None:
                             parent = choice_event["event_id"]
+                    if (selected_episode_id is not None
+                            and fdas_durability_labeler is not None
+                            and delayed_outcome_target
+                            == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET):
+                        selected_episode = fdas_episode_store.get(
+                            selected_episode_id)
+                        selected_label = (
+                            fdas_durability_labeler.open_selected(
+                                selected_episode))
+                        fdas_outcome_label_store.save(
+                            fdas_outcome_label_path)
+                        label_event = fdas_runtime.emit_episode_component(
+                            writer, action_snapshot,
+                            "episode_outcome_label_opened", {
+                                "label": selected_label.to_dict(),
+                                "policy_authority": False,
+                                "readout_enabled": False,
+                                "truth_mutated": False,
+                            }, caused_by=(parent,))
+                        parent = label_event["event_id"]
+                        decision_stats[
+                            "fdas_delayed_outcome_labels_opened"] += 1
+                        decision_stats[
+                            "fdas_delayed_outcome_labels_pending"] += 1
                     planned_actions += 1
                     record_meaningful_action(
                         impact_action, impact=True,
