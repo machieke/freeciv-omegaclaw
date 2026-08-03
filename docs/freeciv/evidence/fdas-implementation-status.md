@@ -778,3 +778,10 @@ predictive gate, confirming the implementation but not changing PR61's primary
 failure or granting activation. Fresh disjoint evidence remains required. See
 `fdas-pr62-transition-feature-cohort-audit.md` and
 `fdas-pr61-candidate-transition-calibration-cohort-audit-sensitivity.json`.
+
+PR63 freezes the required fresh confirmation after audit 2.0. It retains the
+same 30-game size, PR60 model, selected-action label, lineage semantics, yield
+thresholds, predictive thresholds, endpoint rules, and scalar controller. All
+30 seeds are new and disjoint from PR59–PR61, including PR60 reserves. No model
+is loaded into live readout during collection. See
+`fdas-pr63-candidate-transition-calibration-confirmation-preregistration.md`.
