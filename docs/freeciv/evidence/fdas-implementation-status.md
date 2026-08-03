@@ -680,9 +680,7 @@ first-step tile, and
 action cost must agree; otherwise the query records a bounded missingness
 reason and unknown mechanics rather than imputing them. The PR40 model remains
 byte-identical on enriched queries, fortification stays on its frozen schema,
-and all authority remains false. Twenty focused and 180 broader tests pass. A
-clean engine feature-yield smoke remains the next gate; see
-`fdas-pr59-candidate-transition-features.md`.
+and all authority remains false. Twenty focused and 180 broader tests pass.
 
 The first PR59 integration smoke from `24ee0b3` failed that gate despite a
 clean turn-161 endpoint: all 436 move queries were marked stale because the new
@@ -692,3 +690,15 @@ movement semantics require an exact turn and a non-future sequence while also
 revalidating actor and first-step facts. PR59 and the latent identical PR58
 check now use that rule, with unit coverage for accepted earlier and rejected
 future route revisions. The failed feature-yield attempt remains excluded.
+
+The corrected clean PR59 smoke from `6029496` passes. Seed `108013` reached
+observed turn 161 with no infrastructure failure, resume, or rejected action.
+All 435 move rows are completely grounded and expose 22 distinct transition
+signatures; 65 of 75 multi-move sets contain more than one signature. All 19
+fortify rows remain frozen, and all 435 enriched queries reproduce the exact
+PR40 prediction. The parent PR58 mechanics also remains unchanged at 95
+abstentions and zero preferences or action changes. This closes transition-
+feature collection only. Candidate-specific fitting still requires a separate
+preregistered discovery and untouched confirmation design; see
+`fdas-pr59-candidate-transition-features.md` and
+`fdas-pr59-candidate-transition-feature-smoke.json`.

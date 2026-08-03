@@ -46,7 +46,7 @@ projection rejection, outcome absence, and byte-identical frozen-model
 predictions. The 20 focused tests pass. The broader alternative-collection,
 episode-induction, FDAS-config, and harness suites pass all 180 tests.
 
-A clean one-game engine smoke is the next gate. It must show that move choice
+A clean one-game engine smoke was the next gate. It had to show that move choice
 queries carry the exact PR59 schema, that at least one multi-candidate set has
 more than one grounded transition signature when its native mechanics differ,
 and that frozen prediction values, action decisions, rejection counts, and
@@ -66,7 +66,21 @@ earlier same-turn route is accepted and a future route is rejected. The failed
 attempt is not feature-yield evidence and will not be pooled with the corrected
 smoke.
 
-After that mechanics gate, a separately preregistered discovery/confirmation
-design may fit candidate-specific values. It must reserve games and lineages
+The corrected clean smoke from commit
+`6029496c3f3389e7185a67e29d498146a766b543` passes. Seed `108013` reached
+observed turn 161 with zero infrastructure failures, resumes, or rejected
+actions. All 435 move rows have complete grounding, with 22 distinct
+transition signatures. Seventy-five choice sets offered at least two moves and
+65 of them contained at least two distinct signatures. All 19 fortification
+rows remained on their frozen schema. The auditor reproduced byte-identical
+PR40 predictions for every enriched move row, and the parent PR58 audit still
+reports 95 honest abstentions, zero eligible preferences, and zero action
+changes. Report
+`fdas-pr59-candidate-transition-feature-smoke.json` passes every gate with hash
+`b1a37e81fcd2e17be8cf2f040f6a7690aa96f8e0dcda9d79a26d05d592f52726`.
+
+With that mechanics gate closed, a separately preregistered discovery/
+confirmation design may fit candidate-specific values. It must reserve games
+and lineages
 before fitting, evaluate calibration and discrimination on untouched games,
 retain interval uncertainty, and abstain outside complete grounded support.
