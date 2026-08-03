@@ -80,6 +80,25 @@ def unambiguous_defense_choice_surface_candidates(
     return unique, ambiguous
 
 
+def candidate_choice_lineage_id(candidate, game_id):
+    """Identify a game-local actor/target/action lifecycle across route steps."""
+    if not isinstance(candidate, ShadowOperationCandidate):
+        raise TypeError("candidate lineage requires shadow candidate")
+    if not isinstance(game_id, str) or not game_id:
+        raise ValueError("candidate lineage requires game identity")
+    actors = tuple(sorted(
+        "{}:{}".format(value.actor_class, value.actor_id)
+        for value in candidate.operation.participants))
+    if not actors:
+        raise ValueError("candidate lineage requires operation participants")
+    return "candidate-lineage-" + structural_hash({
+        "actors": list(actors),
+        "game_id": game_id,
+        "operation_type": candidate.operation.operation_type,
+        "target_ref": candidate.operation.target_ref,
+    })[:32]
+
+
 @dataclass(frozen=True)
 class FdasCandidateChoice:
     """One offered candidate; nonselected rows are explicitly censored."""
@@ -87,6 +106,7 @@ class FdasCandidateChoice:
     operation_id: str
     action_key: str
     candidate_hash: str
+    candidate_lineage_id: object
     feature_query: InductionFeatureQuery
     admissible: bool
     baseline_rank: object
@@ -123,11 +143,12 @@ class FdasCandidateChoice:
                     or rank < 1)):
                 raise ValueError("choice {} is invalid".format(name))
         _optional_string(self.prediction_result_hash, "prediction hash")
+        _optional_string(self.candidate_lineage_id, "candidate lineage ID")
         if self.selection_role not in _SELECTION_ROLES:
             raise ValueError("invalid candidate selection role")
 
     def to_dict(self):
-        return {
+        value = {
             "action_key": self.action_key,
             "admissible": bool(self.admissible),
             "baseline_priority": float(self.baseline_priority),
@@ -145,12 +166,16 @@ class FdasCandidateChoice:
             "shadow_priority": float(self.shadow_priority),
             "shadow_rank": self.shadow_rank,
         }
+        if self.candidate_lineage_id is not None:
+            value["candidate_lineage_id"] = self.candidate_lineage_id
+        return value
 
     @classmethod
     def from_dict(cls, value):
         return cls(
             value["operation_id"], value["action_key"],
             value["candidate_hash"],
+            value.get("candidate_lineage_id"),
             _query_from_dict(value["feature_query"]),
             value["admissible"], value.get("baseline_rank"),
             value.get("shadow_rank"), value["baseline_priority"],
@@ -560,7 +585,10 @@ class FdasCandidateChoiceSetRecorder(object):
                 else row.prediction.result_hash)
             choices.append(FdasCandidateChoice(
                 row.operation_id, candidate.action_key,
-                candidate.candidate_hash, row.feature_query,
+                candidate.candidate_hash,
+                candidate_choice_lineage_id(
+                    candidate, snapshot.identity.game_id),
+                row.feature_query,
                 row.admissible, row.baseline_rank, row.shadow_rank,
                 row.baseline_priority, row.population_baseline_priority,
                 row.shadow_priority, row.priority_delta, row.estimated,
@@ -654,7 +682,10 @@ class FdasCandidateChoiceSetRecorder(object):
                 raise ValueError("defense surface query cannot carry outcome")
             choices.append(FdasCandidateChoice(
                 operation_id, candidate.action_key,
-                candidate.candidate_hash, query, score.admissible,
+                candidate.candidate_hash,
+                candidate_choice_lineage_id(
+                    candidate, snapshot.identity.game_id),
+                query, score.admissible,
                 baseline_rank.get(operation_id),
                 baseline_rank.get(operation_id), score.priority,
                 score.priority, score.priority, 0.0, False,
@@ -775,6 +806,24 @@ class FdasCandidateChoiceCalibrationExport:
         if len({value.episode_id for value in self.examples}) != len(
                 self.examples):
             raise ValueError("calibration export example IDs overlap")
+        semantic = {
+            "choice_set_count": self.choice_set_count,
+            "examples": [value.to_dict() for value in self.examples],
+            "no_in_scope_selection_count": (
+                self.no_in_scope_selection_count),
+            "nonselected_censored_count": self.nonselected_censored_count,
+            "operation_type": self.operation_type,
+            "outcome_target": self.outcome_target,
+            "policy_authority": False,
+            "readout_authority": False,
+            "selected_observed_count": len(self.examples),
+            "selected_pending_or_censored_count": (
+                self.selected_pending_or_censored_count),
+            "source_store_digest": self.source_store_digest,
+            "truth_mutated": False,
+        }
+        if self.result_hash != structural_hash(semantic):
+            raise ValueError("calibration export result hash differs")
 
     def to_dict(self):
         return {
@@ -835,6 +884,9 @@ def export_candidate_choice_calibration(
                 DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES):
             raise ValueError(
                 "selected candidate calibration operation type differs")
+        lineage_provenance = (
+            () if row.candidate_lineage_id is None else
+            ("candidate-lineage:" + row.candidate_lineage_id,))
         examples.append(InductionEpisode(
             "candidate-example-" + choice_set.choice_set_id,
             row.feature_query.context,
@@ -851,7 +903,7 @@ def export_candidate_choice_calibration(
                     "selected-operation:" + row.operation_id,
                     "selected-operation-type:" + selected_operation_type,
                     "selected-episode:" + choice_set.selected_episode_id,
-                ))))))
+                ) + lineage_provenance)))))
     examples = tuple(sorted(examples, key=lambda value: value.episode_id))
     semantic = {
         "choice_set_count": len(scoped),

@@ -351,3 +351,17 @@ gate passed. This permits a fresh, action-stratified, lineage-clustered
 calibration discovery design; PR38 remains excluded from fitting and does not
 establish calibration, ranking, gameplay, score, or win rate. See
 `fdas-pr38-action-family-yield.md`.
+
+PR39 implements the permitted non-authorizing calibration substrate without
+fitting the inspected PR38 cohort. New choices carry durable game-local
+actor/target/action lineages, and selected-only exports preserve those
+lineages while all alternatives remain censored. A typed action/lifecycle
+model collapses sequential rows to effective lineage contributions, reports
+Wilson 95% intervals, backs off only within the same action stratum, and
+abstains below frozen support. Export, bin, model, and prediction hashes are
+recomputed on load; every artifact explicitly denies truth, policy, and
+readout authority. The fitting command refuses dirty, overlapping,
+quarantined, mechanically invalid, or progression-inadequate discovery data.
+This establishes implementation safety, not calibration or decision value;
+fresh discovery and disjoint confirmation remain required. See
+`fdas-pr39-candidate-calibration-artifact.md`.

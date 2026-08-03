@@ -163,8 +163,17 @@ from .fdas_candidate_choices import (
     FdasCandidateChoiceSetRecorder,
     FdasCandidateChoiceSetStore,
     combine_candidate_choice_stores,
+    candidate_choice_lineage_id,
     export_candidate_choice_calibration,
     unambiguous_defense_choice_surface_candidates,
+)
+from .fdas_candidate_calibration import (
+    CALIBRATION_MODEL_IDENTITY,
+    CANDIDATE_CALIBRATION_SCHEMA_VERSION,
+    FdasCandidateCalibrationBin,
+    FdasCandidateCalibrationModel,
+    FdasCandidateCalibrationPrediction,
+    fit_candidate_calibration,
 )
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
@@ -298,8 +307,13 @@ __all__ = [
     "FdasCandidateChoiceCalibrationExport",
     "FdasCandidateChoiceSetRecorder", "FdasCandidateChoiceSetStore",
     "combine_candidate_choice_stores",
+    "candidate_choice_lineage_id",
     "export_candidate_choice_calibration",
     "unambiguous_defense_choice_surface_candidates",
+    "CALIBRATION_MODEL_IDENTITY",
+    "CANDIDATE_CALIBRATION_SCHEMA_VERSION",
+    "FdasCandidateCalibrationBin", "FdasCandidateCalibrationModel",
+    "FdasCandidateCalibrationPrediction", "fit_candidate_calibration",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",

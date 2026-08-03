@@ -41,6 +41,7 @@ from freeciv_agent.planning import (  # noqa: E402
     combine_candidate_choice_stores,
     combine_outcome_label_stores,
     export_candidate_choice_calibration,
+    candidate_choice_lineage_id,
     unambiguous_defense_choice_surface_candidates,
 )
 from freeciv_agent.pressure import (  # noqa: E402
@@ -404,6 +405,7 @@ def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
 
     assert choice_set.selected_operation_id == candidate.operation.operation_id
     assert rows[candidate.operation.operation_id].selection_role == "selected"
+    assert rows[candidate.operation.operation_id].candidate_lineage_id
     assert rows[alternative.operation.operation_id].selection_role == (
         "nonselected-censored")
     assert all("outcome" not in row.feature_query.to_dict()
@@ -457,6 +459,10 @@ def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
     assert (
         "selected-operation-type:fdas-shadow:unit-fortification-opportunity:"
         "unit_fortify") in exported.examples[0].provenance_ids
+    assert (
+        "candidate-lineage:"
+        + rows[candidate.operation.operation_id].candidate_lineage_id
+        in exported.examples[0].provenance_ids)
     assert all(
         alternative.operation.operation_id not in value.provenance_ids
         for value in exported.examples)
@@ -586,6 +592,16 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
                for row in choice_set.choices)
     assert all("outcome" not in row.feature_query.to_dict()
                for row in choice_set.choices)
+    assert all(row.candidate_lineage_id for row in choice_set.choices)
+    next_route_step = replace(
+        move,
+        operation=replace(
+            move.operation,
+            operation_id="candidate-garrison-move-next-route-step"),
+        candidate_hash="candidate-hash-move-next-route-step")
+    assert candidate_choice_lineage_id(
+        move, legal_snapshot.identity.game_id) == candidate_choice_lineage_id(
+            next_route_step, legal_snapshot.identity.game_id)
 
     no_selection_recorder = FdasCandidateChoiceSetRecorder(
         FdasCandidateChoiceSetStore(
