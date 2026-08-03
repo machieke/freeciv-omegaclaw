@@ -648,3 +648,16 @@ repeat of that intervention. See
 `fdas-pr57c-execution-hardening-replay-preregistration.md`,
 `fdas-pr57c-execution-hardening-replay.json`, and
 `fdas-pr57c-execution-hardening-trace.json`.
+
+PR58 begins the separate semantic correction without retuning or reusing the
+failed nearest-score intervention. A new shadow-only readout compares the
+active control with calibrated alternatives and emits a counterfactual
+preference only when the alternative lower confidence bound strictly clears
+the control upper bound and exact native route, source-garrison, target,
+resource, unit-type, health, mobility, veteran, and home-city facts are all
+non-inferior. Missing groundings, interval overlap, and any mechanical
+regression abstain with an explicit reason. The component cannot change the
+selected action or truth and has a separately bound manifest/profile. Unit
+tests cover separated acceptance, interval-overlap abstention, and native-route
+inferiority abstention. A clean one-game engine mechanics smoke remains the
+next gate; see `fdas-pr58-decision-safe-candidate-readout.md`.

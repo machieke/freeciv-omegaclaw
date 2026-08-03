@@ -11,6 +11,11 @@ from freeciv_agent.planning import (
     CandidateOperationFactory,
     FdasAlternativeOutcomeCollectionConfig,
     FdasAlternativeOutcomeCollectionEvaluator,
+    FdasCalibratedCandidateMember,
+    FdasCalibratedCandidateReadout,
+    FdasCalibratedCandidateUnion,
+    FdasDecisionSafeCandidateReadoutConfig,
+    FdasDecisionSafeCandidateReadoutEvaluator,
     FdasPathPersistenceCandidateUnion,
     FdasPathPersistenceMember,
     FdasPathPersistenceReadout,
@@ -303,6 +308,85 @@ def _movement_case(ir):
         candidates, scores, union)
 
 
+def _decision_safe_case(ir, control_interval=(0.30, 0.40, 0.50),
+                        treatment_interval=(0.70, 0.80, 0.90),
+                        treatment_route_turns=1):
+    case = list(_movement_case(ir))
+    snapshot = case[0]
+    baseline = next(
+        value for value in case[4]
+        if value.action_key == case[3].action_key)
+    treatment = next(value for value in case[4] if value != baseline)
+    baseline_id = baseline.operation.operation_id
+    treatment_id = treatment.operation.operation_id
+    # The legacy transport fixture predates authoritative home-city and
+    # veteran fields. Supply exact values for this decision-safe unit test.
+    units = tuple(replace(
+        value, homecity=3, veteran=0) for value in snapshot.units)
+    routes = tuple(replace(
+        value,
+        estimated_turns=(
+            treatment_route_turns
+            if value.unit_id == treatment.action["actor_id"]
+            else value.estimated_turns),
+        total_movement_cost=(
+            value.total_movement_cost * treatment_route_turns
+            if value.unit_id == treatment.action["actor_id"]
+            else value.total_movement_cost))
+        for value in snapshot.movement_routes)
+    snapshot = replace(snapshot, units=units, movement_routes=routes)
+    case[0] = snapshot
+    readouts = (
+        FdasCalibratedCandidateReadout(
+            baseline_id, baseline.action_key,
+            baseline.operation.operation_type,
+            1, 0.80, "estimated", "test-control",
+            "prediction-control", control_interval[1],
+            control_interval[0], control_interval[2], 12, True,
+            "calibrated-transition-recall"),
+        FdasCalibratedCandidateReadout(
+            treatment_id, treatment.action_key,
+            treatment.operation.operation_type,
+            2, 0.79, "estimated", "test-treatment",
+            "prediction-treatment", treatment_interval[1],
+            treatment_interval[0], treatment_interval[2], 12, True,
+            "calibrated-transition-recall"),
+    )
+    members = (
+        FdasCalibratedCandidateMember(
+            baseline_id, ("scalar-top-k", "scalar-winner")),
+        FdasCalibratedCandidateMember(
+            treatment_id, ("calibrated-transition-recall",)),
+    )
+    semantic = {
+        "abstained_operation_ids": [],
+        "action_selection_changed": False,
+        "baseline_selected_operation_id": baseline_id,
+        "calibrated_added_operation_ids": [treatment_id],
+        "calibrated_per_action": 1,
+        "capacity_solver_enabled": False,
+        "flow_advection_enabled": False,
+        "identity": "fdas-calibrated-candidate-union/1.0",
+        "maximum_interval_width": 0.60,
+        "members": [value.to_dict() for value in members],
+        "model_result_hash": "test-calibration-model",
+        "policy_authority": False,
+        "readout_authority": False,
+        "readouts": [value.to_dict() for value in readouts],
+        "revision_id": case[1].revision_id,
+        "scalar_final_score_authority": True,
+        "scalar_top_k": 1,
+        "snapshot_id": snapshot.snapshot_id,
+        "truth_mutated": False,
+    }
+    calibrated = FdasCalibratedCandidateUnion(
+        snapshot.snapshot_id, case[1].revision_id,
+        "test-calibration-model", baseline_id, 1, 1, 0.60,
+        members, readouts, (treatment_id,), (),
+        structural_hash(semantic))
+    return tuple(case[:6]) + (calibrated,)
+
+
 def test_alternative_collection_records_stable_safe_shadow_assignment(ir):
     case = _case(ir)
     evaluator = FdasAlternativeOutcomeCollectionEvaluator(
@@ -479,3 +563,62 @@ def test_alternative_collection_declaration_rejects_authority_leak():
 
     with pytest.raises(ValueError):
         FdasAlternativeOutcomeCollectionConfig.from_dict(values)
+
+
+def test_decision_safe_readout_requires_interval_and_grounded_dominance(ir):
+    case = _decision_safe_case(ir)
+    evaluator = FdasDecisionSafeCandidateReadoutEvaluator(
+        FdasDecisionSafeCandidateReadoutConfig())
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[3], case[4], case[6])
+
+    assert readout.status == "eligible-shadow"
+    assert readout.reason == "calibrated-and-grounded-dominance"
+    assert readout.proposed_operation_id != readout.baseline_operation_id
+    assert readout.counterfactual_change
+    assert readout.to_dict()["action_selection_changed"] is False
+    assert readout.to_dict()["policy_authority"] is False
+    assert readout.to_dict()["readout_authority"] is False
+    assert readout.to_dict()["truth_mutated"] is False
+    proposed = next(
+        value for value in readout.candidates
+        if value.operation_id == readout.proposed_operation_id)
+    assert proposed.eligibility_reason == "eligible"
+    assert set(proposed.noninferiority_checks) == {
+        "estimated-turns", "first-step-movement-cost",
+        "homecity-relation", "hit-points", "moves-left",
+        "total-movement-cost", "unit-type", "veteran-level",
+    }
+
+
+def test_decision_safe_readout_abstains_when_intervals_overlap(ir):
+    case = _decision_safe_case(
+        ir, control_interval=(0.30, 0.50, 0.70),
+        treatment_interval=(0.50, 0.70, 0.90))
+    evaluator = FdasDecisionSafeCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[3], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert readout.reason == (
+        "no-separated-grounded-noninferior-alternative")
+    assert any("calibrated-interval-overlap" in value
+               for value in readout.rejected)
+    assert not readout.counterfactual_change
+
+
+def test_decision_safe_readout_abstains_on_inferior_native_route(ir):
+    case = _decision_safe_case(ir, treatment_route_turns=2)
+    evaluator = FdasDecisionSafeCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[3], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert any("grounded-noninferiority-failed" in value
+               and "estimated-turns" in value
+               and "total-movement-cost" in value
+               for value in readout.rejected)
+    assert readout.proposed_operation_id is None

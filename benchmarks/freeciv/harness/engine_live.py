@@ -63,6 +63,8 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasCandidateChoiceSetStore,
                                     FdasAlternativeOutcomeCollectionConfig,
                                     FdasAlternativeOutcomeCollectionEvaluator,
+                                    FdasDecisionSafeCandidateReadoutConfig,
+                                    FdasDecisionSafeCandidateReadoutEvaluator,
                                     FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
@@ -2752,6 +2754,14 @@ async def _play(run_dir, manifest, context):
     fdas_calibrated_candidate_union = bool(
         calibrated_union_capability is not None
         or calibrated_union_diagnostic is not None)
+    decision_safe_readout_capability = fdas_manifest["capabilities"].get(
+        "decision_safe_candidate_readout")
+    decision_safe_readout_diagnostic = fdas_manifest.get(
+        "decision_safe_candidate_readout_diagnostic")
+    fdas_decision_safe_candidate_readout = bool(
+        decision_safe_readout_capability is not None
+        or decision_safe_readout_diagnostic is not None)
+    fdas_decision_safe_readout_evaluator = None
     probe_union_capability = fdas_manifest["capabilities"].get(
         "probe_candidate_reachability")
     probe_union_diagnostic = fdas_manifest.get(
@@ -3102,6 +3112,50 @@ async def _play(run_dir, manifest, context):
                     "source_store_digests"])):
             raise RuntimeError(
                 "FDAS calibrated candidate confirmation differs or overlaps")
+    if fdas_decision_safe_candidate_readout:
+        expected_decision_safe_keys = {
+            "action_selection_changed",
+            "calibrated_candidate_union_required",
+            "config",
+            "policy_authority",
+            "readout_authority",
+            "truth_mutated",
+        }
+        if decision_safe_readout_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS decision-safe readout requires shadow-live manifest")
+        if (not isinstance(decision_safe_readout_diagnostic, dict)
+                or set(decision_safe_readout_diagnostic)
+                != expected_decision_safe_keys):
+            raise RuntimeError(
+                "FDAS decision-safe readout declaration is incomplete")
+        if any(decision_safe_readout_diagnostic[name] is not False
+               for name in (
+                   "action_selection_changed", "policy_authority",
+                   "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS decision-safe readout cannot grant authority")
+        if (decision_safe_readout_diagnostic[
+                    "calibrated_candidate_union_required"] is not True
+                or not fdas_calibrated_candidate_union
+                or fdas_candidate_calibration_model is None):
+            raise RuntimeError(
+                "FDAS decision-safe readout requires calibrated candidates")
+        try:
+            decision_safe_config = (
+                FdasDecisionSafeCandidateReadoutConfig.from_dict(
+                    decision_safe_readout_diagnostic["config"]))
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "FDAS decision-safe readout config is invalid: {}".format(
+                    error))
+        if decision_safe_config.to_dict() != (
+                decision_safe_readout_diagnostic["config"]):
+            raise RuntimeError(
+                "FDAS decision-safe readout config is not canonical")
+        fdas_decision_safe_readout_evaluator = (
+            FdasDecisionSafeCandidateReadoutEvaluator(
+                decision_safe_config))
     if fdas_probe_candidate_reachability:
         expected_probe_union_keys = {
             "action_selection_changed",
@@ -3603,6 +3657,10 @@ async def _play(run_dir, manifest, context):
         "fdas_calibrated_candidate_union_additions": 0,
         "fdas_calibrated_candidate_union_abstentions": 0,
         "fdas_calibrated_candidate_union_selection_changes": 0,
+        "fdas_decision_safe_candidate_readout_evaluations": 0,
+        "fdas_decision_safe_candidate_readout_eligible": 0,
+        "fdas_decision_safe_candidate_readout_abstentions": 0,
+        "fdas_decision_safe_candidate_readout_counterfactual_changes": 0,
         "fdas_probe_candidate_union_evaluations": 0,
         "fdas_probe_candidate_union_readouts": 0,
         "fdas_probe_candidate_union_members": 0,
@@ -5807,6 +5865,44 @@ async def _play(run_dir, manifest, context):
                                     if calibrated_union_event is not None:
                                         parent = calibrated_union_event[
                                             "event_id"]
+                                    if fdas_decision_safe_candidate_readout:
+                                        decision_safe_readout = (
+                                            fdas_decision_safe_readout_evaluator
+                                            .evaluate(
+                                                snapshot,
+                                                choice_revision,
+                                                fdas_shadow,
+                                                decision.candidate,
+                                                surface_candidates,
+                                                calibrated_union))
+                                        decision_stats[
+                                            "fdas_decision_safe_candidate_"
+                                            "readout_evaluations"] += 1
+                                        decision_stats[
+                                            "fdas_decision_safe_candidate_"
+                                            "readout_eligible"] += int(
+                                                decision_safe_readout.status
+                                                == "eligible-shadow")
+                                        decision_stats[
+                                            "fdas_decision_safe_candidate_"
+                                            "readout_abstentions"] += int(
+                                                decision_safe_readout.status
+                                                == "abstained")
+                                        decision_stats[
+                                            "fdas_decision_safe_candidate_"
+                                            "readout_counterfactual_changes"] += int(
+                                                decision_safe_readout
+                                                .counterfactual_change)
+                                        decision_safe_event = (
+                                            fdas_runtime
+                                            .emit_decision_safe_candidate_readout(
+                                                writer,
+                                                snapshot,
+                                                decision_safe_readout,
+                                                caused_by=(parent,)))
+                                        if decision_safe_event is not None:
+                                            parent = decision_safe_event[
+                                                "event_id"]
                                     if fdas_probe_candidate_reachability:
                                         probe_union = build_probe_candidate_union(
                                             calibrated_union,
@@ -7457,6 +7553,18 @@ async def _play(run_dir, manifest, context):
         ("fdas_calibrated_candidate_union_selection_changes",
          decision_stats[
              "fdas_calibrated_candidate_union_selection_changes"]),
+        ("fdas_decision_safe_candidate_readout_evaluations",
+         decision_stats[
+             "fdas_decision_safe_candidate_readout_evaluations"]),
+        ("fdas_decision_safe_candidate_readout_eligible",
+         decision_stats[
+             "fdas_decision_safe_candidate_readout_eligible"]),
+        ("fdas_decision_safe_candidate_readout_abstentions",
+         decision_stats[
+             "fdas_decision_safe_candidate_readout_abstentions"]),
+        ("fdas_decision_safe_candidate_readout_counterfactual_changes",
+         decision_stats[
+             "fdas_decision_safe_candidate_readout_counterfactual_changes"]),
         ("fdas_probe_candidate_union_evaluations",
          decision_stats["fdas_probe_candidate_union_evaluations"]),
         ("fdas_probe_candidate_union_readouts",
@@ -8045,6 +8153,19 @@ async def _play(run_dir, manifest, context):
             "fdas_calibrated_candidate_union_selection_changes": (
                 decision_stats[
                     "fdas_calibrated_candidate_union_selection_changes"]),
+            "fdas_decision_safe_candidate_readout_evaluations": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_readout_evaluations"]),
+            "fdas_decision_safe_candidate_readout_eligible": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_readout_eligible"]),
+            "fdas_decision_safe_candidate_readout_abstentions": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_readout_abstentions"]),
+            "fdas_decision_safe_candidate_readout_counterfactual_changes": (
+                decision_stats[
+                    "fdas_decision_safe_candidate_readout_"
+                    "counterfactual_changes"]),
             "fdas_probe_candidate_union_evaluations": (
                 decision_stats["fdas_probe_candidate_union_evaluations"]),
             "fdas_probe_candidate_union_readouts": (
@@ -8497,6 +8618,19 @@ async def _play(run_dir, manifest, context):
         "fdas_calibrated_candidate_union_selection_changes": (
             decision_stats[
                 "fdas_calibrated_candidate_union_selection_changes"]),
+        "fdas_decision_safe_candidate_readout_evaluations": (
+            decision_stats[
+                "fdas_decision_safe_candidate_readout_evaluations"]),
+        "fdas_decision_safe_candidate_readout_eligible": (
+            decision_stats[
+                "fdas_decision_safe_candidate_readout_eligible"]),
+        "fdas_decision_safe_candidate_readout_abstentions": (
+            decision_stats[
+                "fdas_decision_safe_candidate_readout_abstentions"]),
+        "fdas_decision_safe_candidate_readout_counterfactual_changes": (
+            decision_stats[
+                "fdas_decision_safe_candidate_readout_"
+                "counterfactual_changes"]),
         "fdas_probe_candidate_union_evaluations": (
             decision_stats["fdas_probe_candidate_union_evaluations"]),
         "fdas_probe_candidate_union_readouts": (

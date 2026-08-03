@@ -213,6 +213,13 @@ from .fdas_alternative_outcome_collection import (
     FdasAlternativeOutcomeCollectionEvaluator,
     FdasAlternativeOutcomeCollectionReadout,
 )
+from .fdas_decision_safe_candidate_readout import (
+    DECISION_SAFE_CANDIDATE_READOUT_IDENTITY,
+    FdasDecisionSafeCandidateReadout,
+    FdasDecisionSafeCandidateReadoutConfig,
+    FdasDecisionSafeCandidateReadoutEvaluator,
+    FdasGroundedCandidateValue,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -375,6 +382,11 @@ __all__ = [
     "FdasAlternativeOutcomeCollectionConfig",
     "FdasAlternativeOutcomeCollectionEvaluator",
     "FdasAlternativeOutcomeCollectionReadout",
+    "DECISION_SAFE_CANDIDATE_READOUT_IDENTITY",
+    "FdasDecisionSafeCandidateReadout",
+    "FdasDecisionSafeCandidateReadoutConfig",
+    "FdasDecisionSafeCandidateReadoutEvaluator",
+    "FdasGroundedCandidateValue",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",
