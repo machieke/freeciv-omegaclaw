@@ -364,8 +364,16 @@ def test_selected_defense_target_supports_move_without_requiring_fortify():
     context = dict(relieved.context_signature)
     context["operation_type"] = (
         "fdas-shadow:city-garrison-deficit:unit_move")
+    context["goal_relief_due_turn"] = "20"
     attributed = replace(
         relieved, context_signature=tuple(sorted(context.items())))
+
+    assert recorder.observation_window_should_close(
+        attributed, 14, True) is False
+    assert recorder.observation_window_should_close(
+        attributed, 20, True) is True
+    assert recorder.observation_window_should_close(
+        attributed, 21, False) is False
 
     old_labeler = FdasDefenseActorPersistenceLabeler(
         EpisodeInductionOutcomeLabelStore("old-fortify-only-target"))

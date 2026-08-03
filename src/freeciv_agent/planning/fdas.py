@@ -750,6 +750,22 @@ class CandidateOperationFactory(object):
                     "observe:{}".format(goal.target_key.predicate),
                     1,
                 )
+                latest_turn = int(snapshot.turn) + 1
+                route_window_grounded = False
+                if (goal.deficit_predicate == "city-garrison-deficit"
+                        and action_type == "unit_move"
+                        and city_id is not None):
+                    city = snapshot.city(city_id)
+                    route = snapshot.movement_route(
+                        action.get("actor_id"),
+                        None if city is None else city.tile)
+                    if (route is not None and route.reachable
+                            and isinstance(route.estimated_turns, int)
+                            and not isinstance(route.estimated_turns, bool)
+                            and route.estimated_turns > 0):
+                        latest_turn = int(snapshot.turn) + max(
+                            1, int(route.estimated_turns))
+                        route_window_grounded = True
                 operation = OperationSpec(
                     OPERATION_SCHEMA_VERSION,
                     operation_id,
@@ -759,13 +775,14 @@ class CandidateOperationFactory(object):
                     target_ref,
                     (step,),
                     int(snapshot.turn),
-                    int(snapshot.turn) + 1,
+                    latest_turn,
                     0.0,
                     (
                         "fdas-city-economy-shadow/1.0",
                         "current-byte-identical-legal-action",
                         "no-action-authority",
-                    ),
+                    ) + (("server-route-goal-relief-window",)
+                         if route_window_grounded else ()),
                     self.ruleset_digest,
                 )
                 blockers = self._route_blockers(goal, action, snapshot)

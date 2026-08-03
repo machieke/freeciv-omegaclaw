@@ -3993,7 +3993,11 @@ async def _play(run_dir, manifest, context):
                 updated = fdas_episode_recorder.observe(
                     prior_episode.episode_id, current,
                     current_revision.revision_id,
-                    observation_window_closed=observation_window_closed)
+                    observation_window_closed=(
+                        fdas_episode_recorder
+                        .observation_window_should_close(
+                            prior_episode, current.turn,
+                            observation_window_closed)))
                 if updated == prior_episode:
                     continue
                 cause = publish_fdas_episode_revision(current, cause)

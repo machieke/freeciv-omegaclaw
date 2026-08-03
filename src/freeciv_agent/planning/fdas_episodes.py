@@ -507,6 +507,9 @@ class FdasDefenseEpisodeRecorder(object):
             "own_units_at_target_band": _count_band(len(target_units)),
             "target_tile": str(None if city is None else city.tile),
         }
+        if operation.operation_type == (
+                "fdas-shadow:city-garrison-deficit:unit_move"):
+            context["goal_relief_due_turn"] = str(operation.expiry_turn)
         if self.induction_feature_schema == CAUSAL_INDUCTION_FEATURE_SCHEMA:
             fortified_activities = frozenset((
                 "fortify", "fortified", "fortifying"))
@@ -530,6 +533,26 @@ class FdasDefenseEpisodeRecorder(object):
                 "visible_enemy_proximity_band": threat_proximity,
             })
         return tuple(sorted(context.items()))
+
+    @staticmethod
+    def observation_window_should_close(
+            episode, current_turn, turn_boundary_closed):
+        """Close route attribution only at its grounded completion turn."""
+        if not isinstance(episode, DecisionEpisode):
+            raise TypeError("observation window requires decision episode")
+        if not turn_boundary_closed:
+            return False
+        context = dict(episode.context_signature)
+        due_turn = context.get("goal_relief_due_turn")
+        if due_turn is None:
+            return True
+        try:
+            due_turn = int(due_turn)
+        except (TypeError, ValueError):
+            raise ValueError("episode goal-relief due turn is invalid")
+        if due_turn < 0:
+            raise ValueError("episode goal-relief due turn is invalid")
+        return int(current_turn) >= due_turn
 
     def begin(self, binding, operation_record, before_snapshot,
               before_revision_id, validation_result_hash,

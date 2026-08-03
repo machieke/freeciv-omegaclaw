@@ -447,8 +447,9 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
         "x": 5,
         "y": 2,
     }
-    payload["authoritative"]["movement_routes"] = [
-        _native_route(7, 84, 466)]
+    native_route = _native_route(7, 84, 466)
+    native_route["estimated_turns"] = 3
+    payload["authoritative"]["movement_routes"] = [native_route]
     snapshot = _snapshot(payload, 466)
     digest = ruleset_digest(ir)
     registry = TypedGroundingRegistry(ir, ruleset_digest=digest)
@@ -458,7 +459,7 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
     assert route.available and eta.available
     assert route.authority.value == "server_exact"
     assert route.value["first_step_tile"] == 83
-    assert eta.value == 1
+    assert eta.value == 3
     assert any(
         value.key.path == "movement_routes.7:84.first_step_tile"
         for value in route.dependencies)
@@ -472,7 +473,7 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
     assert reinforcement.key.arguments[1].entity_id == "4"
     assert reinforcement.supports[0].witness_hash == structural_hash({
         "destination_tile": 84,
-        "estimated_turns": 1,
+        "estimated_turns": 3,
         "first_step_tile": 83,
         "path_length": 2,
         "route_authority": "freeciv-server-pathfinder",
@@ -497,6 +498,8 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
         if value.action.get("action_type") == "unit_move")
     assert move.action["target"] == {"direction": "e", "x": 3, "y": 2}
     assert move.operation.target_ref == "city:4"
+    assert move.operation.expiry_turn == snapshot.turn + 3
+    assert "server-route-goal-relief-window" in move.operation.provenance
     assert set(move.blockers) == {"uncompiled-action-effect"}
 
 

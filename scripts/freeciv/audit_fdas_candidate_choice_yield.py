@@ -131,8 +131,11 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
         })
     choice_audit = audit_choices(tuple(choice_paths))
     stores = tuple(_load_choice_store(path) for path in choice_paths)
-    cohort_store = combine_candidate_choice_stores(
-        stores, choice_audit["artifact"]["cohort_persistence_identity"])
+    cohort_store = (
+        stores[0] if len(stores) == 1 else
+        combine_candidate_choice_stores(
+            stores,
+            choice_audit["artifact"]["cohort_persistence_identity"]))
     choice_sets = cohort_store.choice_sets()
     selected_rows = tuple(
         row for value in choice_sets for row in value.choices
@@ -265,6 +268,9 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
             "selected_action_strata_lineage_yield": all(
                 len(selected_operation_type_lineages.get(value, ())) >= 2
+                for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
+            "observed_action_strata_lineage_yield": all(
+                len(observed_operation_type_lineages.get(value, ())) >= 2
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
         })
     semantic = {

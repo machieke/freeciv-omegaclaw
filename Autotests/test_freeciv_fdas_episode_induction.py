@@ -553,6 +553,9 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
     for candidate in (move, fortify):
         context = evaluator.recorder.context_for_operation(
             candidate.operation, legal_snapshot)
+        if candidate == move:
+            assert dict(context)["goal_relief_due_turn"] == str(
+                candidate.operation.expiry_turn)
         queries[candidate.operation.operation_id] = (
             causal_induction_feature_query(
                 "query-" + candidate.operation.operation_id,
