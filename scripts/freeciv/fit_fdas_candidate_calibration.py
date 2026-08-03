@@ -65,7 +65,8 @@ def fit_report(run_root, discovery_id, model_id, expected_seeds,
     thresholds = dict(DEFAULT_THRESHOLDS if thresholds is None else thresholds)
     yield_report = audit_yield(
         run_root, expected_seeds=expected_seeds, pilot_id=discovery_id,
-        require_surface_strata=True, progression_thresholds=thresholds)
+        require_surface_strata=True, require_durable_lineages=True,
+        progression_thresholds=thresholds)
     if not yield_report["mechanically_accepted"]:
         raise ValueError("calibration discovery mechanical gate failed")
     if not yield_report["progression_gate_passed"]:

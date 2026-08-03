@@ -92,8 +92,16 @@ def _choice_actor_id(choice):
     return actor_id
 
 
+def _choice_lineage_id(choice):
+    value = choice.candidate_lineage_id
+    if not isinstance(value, str) or not value:
+        raise ValueError("candidate choice lacks durable lineage identity")
+    return value
+
+
 def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
-          require_surface_strata=False, progression_thresholds=None):
+          require_surface_strata=False, require_durable_lineages=False,
+          progression_thresholds=None):
     run_root = os.path.abspath(run_root)
     expected_seeds = tuple(int(value) for value in expected_seeds)
     if (not expected_seeds
@@ -208,6 +216,12 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
             == DEFENSE_CANDIDATE_CHOICE_SURFACE
             and choice_audit["outcome_target"]
             == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET)
+    if require_durable_lineages:
+        mechanical_gates[
+            "all_candidate_choices_have_durable_lineages"] = all(
+                isinstance(row.candidate_lineage_id, str)
+                and bool(row.candidate_lineage_id)
+                for value in choice_sets for row in value.choices)
     selected_operation_type_counts = dict(
         (operation_type, sum(
             _choice_operation_type(row) == operation_type
@@ -220,14 +234,16 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
         for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
     selected_operation_type_lineages = dict(
         (operation_type, set(
-            (value.game_id, _choice_actor_id(row), operation_type)
+            (_choice_lineage_id(row) if require_durable_lineages else
+             (value.game_id, _choice_actor_id(row), operation_type))
             for value in choice_sets for row in value.choices
             if (row.selection_role == "selected"
                 and _choice_operation_type(row) == operation_type)))
         for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
     observed_operation_type_lineages = dict(
         (operation_type, set(
-            (value.game_id, _choice_actor_id(row), operation_type)
+            (_choice_lineage_id(row) if require_durable_lineages else
+             (value.game_id, _choice_actor_id(row), operation_type))
             for value in observed_sets for row in value.choices
             if (row.selection_role == "selected"
                 and _choice_operation_type(row) == operation_type)))
@@ -238,6 +254,9 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
         "choices": sum(len(value.choices) for value in choice_sets),
         "distinct_selected_feature_signatures": len(feature_signatures),
         "engine_hours": engine_hours,
+        "lineage_identity": (
+            "candidate_lineage_id" if require_durable_lineages else
+            "legacy_game_actor_operation_type"),
         "multi_candidate_choice_sets": sum(
             len(value.choices) > 1 for value in choice_sets),
         "mixed_operation_type_choice_sets": sum(
@@ -333,6 +352,7 @@ def main(argv=None):
         help="repeat for each preregistered seed; defaults to PR34")
     parser.add_argument("--pilot-id", default=PILOT_ID)
     parser.add_argument("--require-surface-strata", action="store_true")
+    parser.add_argument("--require-durable-lineages", action="store_true")
     parser.add_argument("--minimum-actor-context-signatures", type=int)
     parser.add_argument("--minimum-mixed-operation-type-sets", type=int)
     parser.add_argument("--minimum-multi-candidate-sets", type=int)
@@ -364,6 +384,7 @@ def main(argv=None):
             if args.expected_seed else EXPECTED_SEEDS),
         pilot_id=args.pilot_id,
         require_surface_strata=args.require_surface_strata,
+        require_durable_lineages=args.require_durable_lineages,
         progression_thresholds=dict(
             (key, value) for key, value in threshold_args.items()
             if value is not None))
