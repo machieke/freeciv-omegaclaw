@@ -388,3 +388,16 @@ selected-only and non-authorizing, and the evaluator fails closed on overlap,
 missing provenance, insufficient support, threshold failure, or model hash
 mismatch. Confirmation remains the next gate. See
 `fdas-pr41-calibration-confirmation-evaluator.md`.
+
+PR42 passed its preregistered eight-game held-out confirmation. All 203,909
+events validate without warnings; source, store, censorship, lineage, outcome,
+and action-stratum gates passed with zero failures or rejections. The frozen
+model covered all 43 effective lineages, with Brier `0.200`, log loss `0.585`,
+and calibration error `0.023`. Lifecycle conditioning improved Brier by
+`0.0069`; its game-clustered 95% interval `[-0.0267, +0.0296]` establishes
+frozen noninferiority, not superiority. Move remains weak at six lineages,
+Brier `0.275`, and calibration error `0.236`; fortify has 37 lineages and
+Brier `0.188`. This permits only a protected shadow candidate-union readout,
+with uncertainty and same-action abstention intact. It does not establish
+counterfactual ranking value, gameplay impact, score, or win rate. See
+`fdas-pr42-candidate-calibration-confirmation.md`.
