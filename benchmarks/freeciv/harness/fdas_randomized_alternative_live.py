@@ -251,7 +251,8 @@ def audit_randomized_alternative_game(
         expected_implementation_sha256=None, require_treatment=False,
         require_catalog_reprojection=False, require_assignment=True,
         preserve_incomplete_failure=False,
-        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE):
+        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE,
+        expected_execution_component_version=None):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -389,6 +390,10 @@ def audit_randomized_alternative_game(
                     "execution-reprojection-provenance-is-not-typed")
             elif execution_component_version not in ("1.0", "1.1"):
                 errors.append("execution-component-version-is-unsupported")
+            if (expected_execution_component_version is not None
+                    and execution_component_version
+                    != expected_execution_component_version):
+                errors.append("execution-component-version-differs")
             if (action_result is None
                     or action_result.get("type") != "action_result"
                     or action_result.get("payload", {}).get("status")
@@ -617,7 +622,8 @@ def audit_randomized_alternative_run(
         expected_implementation_sha256=None, require_treatment=False,
         minimum_observed_per_arm=0, allow_zero_assignment_games=False,
         required_treatment_seeds=(), required_catalog_reprojection_seeds=(),
-        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE):
+        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE,
+        expected_execution_component_version=None):
     """Audit all engine games in one frozen randomized run."""
     run_dir = os.path.abspath(run_dir)
     root = os.path.join(run_dir, "games", "main", "e_full_loop")
@@ -646,7 +652,9 @@ def audit_randomized_alternative_run(
                 manifest_seed in required_catalog_reprojection_seeds),
             require_assignment=not allow_zero_assignment_games,
             preserve_incomplete_failure=True,
-            expected_manifest_source=expected_manifest_source))
+            expected_manifest_source=expected_manifest_source,
+            expected_execution_component_version=(
+                expected_execution_component_version)))
     games = tuple(games)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))

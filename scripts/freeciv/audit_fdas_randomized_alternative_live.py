@@ -27,6 +27,7 @@ def main():
     parser.add_argument("--expected-source-commit")
     parser.add_argument("--expected-implementation-sha256")
     parser.add_argument("--expected-manifest-source")
+    parser.add_argument("--expected-execution-component-version")
     parser.add_argument("--require-treatment", action="store_true")
     parser.add_argument(
         "--require-treatment-seed", action="append", type=int, default=[],
@@ -56,7 +57,9 @@ def main():
         expected_manifest_source=(
             args.expected_manifest_source
             or "profile/fdas_manifest_defense_alternative_collection_"
-               "randomized_pilot.json"))
+               "randomized_pilot.json"),
+        expected_execution_component_version=(
+            args.expected_execution_component_version))
     payload = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
     if args.output:
         output = os.path.abspath(args.output)
