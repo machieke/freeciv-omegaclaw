@@ -291,9 +291,50 @@ def test_exact_authority_rematerializes_only_a_cached_legal_candidate():
     try:
         planner.rematerialize_exact_authority(snapshot, prior, uncached)
     except ValueError as error:
-        assert "one cached candidate" in str(error)
+        assert "outside authority kind" in str(error)
     else:
         raise AssertionError("uncached authority unexpectedly materialized")
+
+
+def test_exact_authority_handles_duplicate_or_broader_current_candidate():
+    actions = [
+        {"action_type": "unit_fortify", "actor_id": 11,
+         "is_valid": True},
+        {"action_type": "unit_fortify", "actor_id": 12,
+         "is_valid": True},
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot([
+        _unit(11, "Alpine Troops"),
+        _unit(12, "Alpine Troops"),
+    ], actions)
+    planner = GroundedImpactPlanner()
+    control = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 11},
+        "city_defense", 10.0, "control")
+    treatment = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 12},
+        "city_defense", 10.0, "treatment")
+    prior = planner._materialize_candidate(snapshot, control)
+    authority = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-broader-operation", "test-defense-operation",
+        treatment.action, treatment.action_key, treatment.category,
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-randomized-authority",))
+
+    planner.last_candidate_catalog = (treatment, treatment)
+    duplicate = planner.rematerialize_exact_authority(
+        snapshot, prior, authority)
+    assert duplicate.candidate == treatment
+
+    planner.last_candidate_catalog = (control,)
+    diagnostics = {}
+    reprojected = planner.rematerialize_exact_authority(
+        snapshot, prior, authority, diagnostics=diagnostics)
+    assert reprojected.candidate.action_key == treatment.action_key
+    assert reprojected.candidate.category == treatment.category
+    assert diagnostics["authority_catalog_reprojections"] == 1
 
 
 def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():

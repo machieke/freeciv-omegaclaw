@@ -14,7 +14,7 @@ import time
 
 from ..events.schema import canonical_json_bytes, structural_hash
 from .model import BranchScore, Plan, PlanStep, ResourceLedger
-from .operations import OperationAuthorityReadout
+from .operations import OperationAuthorityKind, OperationAuthorityReadout
 from .impact_types import (
     COMMERCE_IMPROVEMENT_PRIORITY,
     DEFENDER_PRIORITY,
@@ -54,7 +54,7 @@ from .impact_types import (
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.35"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.36"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -6941,11 +6941,13 @@ class GroundedImpactPlanner(object):
     def rematerialize_exact_authority(
             self, snapshot, prior_decision, authority_readout,
             diagnostics=None):
-        """Apply one current exact authority readout to the cached catalog.
+        """Apply one current exact authority readout to a decision-safe row.
 
-        This cannot manufacture a candidate or action.  It accepts exactly one
-        candidate produced by the immediately preceding plan call and keeps
-        the existing final execution gate downstream.
+        Prefer the immediately preceding catalog.  If the FDAS operation is
+        broader than the legacy heuristic catalog, reproject only its exact
+        current legal action through the normal bounded-operation authority
+        path.  No alternate action is introduced and the final execution gate
+        remains downstream.
         """
         if not isinstance(prior_decision, ImpactDecision):
             raise TypeError("exact rematerialization requires a prior decision")
@@ -6957,14 +6959,34 @@ class GroundedImpactPlanner(object):
                 or authority_readout.action_key
                 not in snapshot.legal_action_json):
             raise ValueError("exact rematerialization authority is stale")
+        action_type = str(authority_readout.action.get("action_type", ""))
+        if (authority_readout.authority_kind
+                == OperationAuthorityKind.CITY_DEFENSE
+                and action_type not in ("unit_move", "unit_fortify")):
+            raise ValueError(
+                "exact rematerialization action is outside authority kind")
         matches = tuple(
             value for value in self.last_candidate_catalog
             if (value.action_key == authority_readout.action_key
                 and value.category
                 == authority_readout.candidate_category))
-        if len(matches) != 1:
+        if not matches:
+            matches = tuple(
+                value for value in self.candidates(
+                    snapshot, operation_authority=authority_readout)
+                if (value.action_key == authority_readout.action_key
+                    and value.category
+                    == authority_readout.candidate_category))
+            if diagnostics is not None:
+                diagnostics["authority_catalog_reprojections"] = (
+                    diagnostics.get("authority_catalog_reprojections", 0)
+                    + 1)
+        if not matches:
             raise ValueError(
-                "exact rematerialization requires one cached candidate")
+                "exact rematerialization requires one current candidate")
+        # Duplicate packet advertisements can yield repeated representations
+        # of one byte-identical action.  The catalog is already deterministically
+        # ordered; choosing its first exact row cannot change engine behavior.
         candidate = matches[0]
         changed = candidate.action_key != prior_decision.candidate.action_key
         authority_result = {

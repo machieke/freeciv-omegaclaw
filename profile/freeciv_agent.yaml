@@ -8,7 +8,7 @@ defaults:
 
 pf_pln_runtime:
   schema_version: "1.0"
-  adapter: grounded-impact-planner/1.35
+  adapter: grounded-impact-planner/1.36
   components:
     executable_semantics:
       phase: 0

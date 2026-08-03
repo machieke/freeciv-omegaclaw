@@ -576,6 +576,12 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
         DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET, queries,
         global_baseline_selected_operation_id=move.operation.operation_id,
         provenance_ids=("declaration-hash:test",))
+    distinct_provenance = recorder.capture_defense_surface(
+        (move, fortify), (move_score, fortify_score), legal_snapshot,
+        "surface-revision", fortify.action_key,
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET, queries,
+        global_baseline_selected_operation_id=move.operation.operation_id,
+        provenance_ids=("declaration-hash:test", "selection-pass:second"))
     rows = dict((row.operation_id, row) for row in choice_set.choices)
 
     assert choice_set.operation_type == DEFENSE_CANDIDATE_CHOICE_SURFACE
@@ -593,6 +599,8 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
     assert all("outcome" not in row.feature_query.to_dict()
                for row in choice_set.choices)
     assert all(row.candidate_lineage_id for row in choice_set.choices)
+    assert distinct_provenance.choice_set_id != choice_set.choice_set_id
+    assert len(recorder.store.choice_sets()) == 2
     next_route_step = replace(
         move,
         operation=replace(

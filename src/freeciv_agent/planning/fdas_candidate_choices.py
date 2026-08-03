@@ -99,6 +99,39 @@ def candidate_choice_lineage_id(candidate, game_id):
     })[:32]
 
 
+def _choice_set_identity(
+        game_id, player_id, turn, snapshot_id, revision_id,
+        evaluation_result_hash, operation_type, outcome_target,
+        global_baseline_selected_operation_id,
+        category_baseline_selected_operation_id, selected_operation_id,
+        choices, provenance_ids):
+    """Bind an ID to every immutable choice-set field.
+
+    A decision loop may evaluate the same revision and selected operation more
+    than once with different selection provenance.  Those are distinct
+    evidence records, not mutable transitions of one record.
+    """
+    return "choice-set-" + structural_hash({
+        "category_baseline_selected_operation_id": (
+            category_baseline_selected_operation_id),
+        "choices": [value.to_dict() for value in sorted(
+            choices, key=lambda row: row.operation_id)],
+        "evaluation_result_hash": evaluation_result_hash,
+        "game_id": game_id,
+        "global_baseline_selected_operation_id": (
+            global_baseline_selected_operation_id),
+        "operation_type": operation_type,
+        "outcome_target": outcome_target,
+        "player_id": int(player_id),
+        "provenance_ids": sorted(str(value) for value in provenance_ids),
+        "revision_id": str(revision_id),
+        "schema_version": CANDIDATE_CHOICE_SCHEMA_VERSION,
+        "selected_operation_id": selected_operation_id,
+        "snapshot_id": snapshot_id,
+        "turn": int(turn),
+    })[:32]
+
+
 @dataclass(frozen=True)
 class FdasCandidateChoice:
     """One offered candidate; nonselected rows are explicitly censored."""
@@ -541,7 +574,7 @@ def combine_candidate_choice_stores(stores, persistence_identity):
 class FdasCandidateChoiceSetRecorder(object):
     """Capture offered choices, then resolve only the executed candidate."""
 
-    RECORDER_IDENTITY = "fdas-candidate-choice-set-recorder/1.0"
+    RECORDER_IDENTITY = "fdas-candidate-choice-set-recorder/1.1"
 
     def __init__(self, store):
         if not isinstance(store, FdasCandidateChoiceSetStore):
@@ -595,14 +628,14 @@ class FdasCandidateChoiceSetRecorder(object):
                 row.reason, prediction_hash,
                 ("selected" if row.operation_id == selected_operation_id
                  else "nonselected-censored")))
-        identity_material = {
-            "evaluation_result_hash": evaluation.result_hash,
-            "revision_id": str(revision_id),
-            "schema_version": CANDIDATE_CHOICE_SCHEMA_VERSION,
-            "selected_operation_id": selected_operation_id,
-        }
-        choice_set_id = "choice-set-" + structural_hash(
-            identity_material)[:32]
+        provenance = (self.RECORDER_IDENTITY,) + tuple(provenance_ids)
+        choice_set_id = _choice_set_identity(
+            snapshot.identity.game_id, snapshot.player_id, snapshot.turn,
+            snapshot.snapshot_id, revision_id, evaluation.result_hash,
+            evaluation.operation_type, evaluation.outcome_target,
+            evaluation.global_baseline_selected_operation_id,
+            evaluation.baseline_selected_operation_id,
+            selected_operation_id, choices, provenance)
         result = FdasCandidateChoiceSet(
             CANDIDATE_CHOICE_SCHEMA_VERSION, choice_set_id,
             snapshot.identity.game_id, snapshot.player_id, snapshot.turn,
@@ -616,7 +649,7 @@ class FdasCandidateChoiceSetRecorder(object):
             ("pending-execution" if selected_operation_id is not None
              else "censored-no-selection"),
             None, None, None,
-            (self.RECORDER_IDENTITY,) + tuple(provenance_ids))
+            provenance)
         return self.store.record(result)
 
     def capture_defense_surface(
@@ -705,12 +738,17 @@ class FdasCandidateChoiceSetRecorder(object):
             "snapshot_id": snapshot.snapshot_id,
         }
         evaluation_hash = structural_hash(evaluation_material)
-        choice_set_id = "choice-set-" + structural_hash({
-            "evaluation_result_hash": evaluation_hash,
-            "revision_id": str(revision_id),
-            "schema_version": CANDIDATE_CHOICE_SCHEMA_VERSION,
-            "selected_operation_id": selected_operation_id,
-        })[:32]
+        provenance = (
+            self.RECORDER_IDENTITY,
+            "fdas-defense-choice-surface-recorder/1.1",
+        ) + tuple(provenance_ids)
+        choice_set_id = _choice_set_identity(
+            snapshot.identity.game_id, snapshot.player_id, snapshot.turn,
+            snapshot.snapshot_id, revision_id, evaluation_hash,
+            DEFENSE_CANDIDATE_CHOICE_SURFACE, outcome_target,
+            global_baseline_selected_operation_id,
+            admissible[0].operation.operation_id,
+            selected_operation_id, choices, provenance)
         result = FdasCandidateChoiceSet(
             CANDIDATE_CHOICE_SCHEMA_VERSION, choice_set_id,
             snapshot.identity.game_id, snapshot.player_id, snapshot.turn,
@@ -724,9 +762,7 @@ class FdasCandidateChoiceSetRecorder(object):
             ("pending-execution" if selected_operation_id is not None
              else "censored-no-selection"),
             None, None, None,
-            (self.RECORDER_IDENTITY,
-             "fdas-defense-choice-surface-recorder/1.0")
-            + tuple(provenance_ids))
+            provenance)
         return self.store.record(result)
 
     def record_execution(self, choice_set_id, accepted, execution_event_id,

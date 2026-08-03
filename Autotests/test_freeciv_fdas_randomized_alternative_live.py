@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 
 from freeciv.harness.fdas_randomized_alternative_live import (
     ASSIGNMENT_IDENTITY,
@@ -6,6 +7,7 @@ from freeciv.harness.fdas_randomized_alternative_live import (
     ASSIGNMENT_UNIT,
     assignment_draw,
     assignment_material,
+    audit_randomized_alternative_run,
     randomized_outcome_summary,
     wilson_interval,
 )
@@ -122,3 +124,38 @@ def test_wilson_interval_is_bounded_and_rejects_invalid_counts():
     import pytest
     with pytest.raises(ValueError):
         wilson_interval(2, 1)
+
+
+def test_run_audit_preserves_early_failed_game_as_rejected_row(tmp_path):
+    game = tmp_path / "games" / "main" / "e_full_loop" / "123-00"
+    game.mkdir(parents=True)
+    (game / "manifest.json").write_text(json.dumps({
+        "game_id": "failed-game-123",
+        "seed": 123,
+        "source": {
+            "commit": "source-commit",
+            "dirty": False,
+            "implementation_sha256": "implementation-hash",
+        },
+    }), encoding="utf-8")
+    (game / "status.json").write_text(json.dumps({
+        "completed": False,
+        "error": "ValueError: startup failed after manifest",
+        "infrastructure_failure": True,
+    }), encoding="utf-8")
+
+    report = audit_randomized_alternative_run(
+        str(tmp_path), expected_seeds=(123,),
+        expected_source_commit="source-commit",
+        expected_implementation_sha256="implementation-hash",
+        allow_zero_assignment_games=True)
+
+    assert report["passed"] is False
+    assert report["assignments"] == 0
+    assert report["assignment_events"] == 0
+    assert report["gates"]["exact_expected_seeds_completed"] is True
+    assert report["games"][0]["failure"]["missing_evidence"]
+    assert report["games"][0]["gates"][
+        "failed_game_is_preserved_not_completed"] is True
+    assert report["games"][0]["gates"][
+        "complete_randomized_evidence_present"] is False

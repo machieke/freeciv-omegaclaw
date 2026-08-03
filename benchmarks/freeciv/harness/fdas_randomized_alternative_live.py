@@ -14,7 +14,7 @@ from freeciv_agent.planning import (
 )
 
 
-AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.1"
+AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.3"
 ASSIGNMENT_IDENTITY = "fdas-safe-alternative-outcome-collection/4.0"
 ASSIGNMENT_POLICY = "fdas-defense-nearest-score-randomized/4.0"
 ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
@@ -171,10 +171,82 @@ def _provenance_has(values, prefix, expected):
     return "{}{}".format(prefix, expected) in values
 
 
+def _incomplete_failed_game_report(
+        game_dir, missing, expected_source_commit=None,
+        expected_implementation_sha256=None):
+    """Preserve an early failed game as an explicitly rejected audit row."""
+    manifest_path = os.path.join(game_dir, "manifest.json")
+    status_path = os.path.join(game_dir, "status.json")
+    events_path = os.path.join(game_dir, "events.jsonl")
+    manifest = _load(manifest_path) if os.path.isfile(manifest_path) else {}
+    status = _load(status_path) if os.path.isfile(status_path) else {}
+    events = _events(events_path) if os.path.isfile(events_path) else ()
+    validation = validate_file(events_path) if os.path.isfile(
+        events_path) else None
+    source = manifest.get("source", {})
+    assignment_events = tuple(
+        value for value in events
+        if (value.get("type") == "atomspace_authority_decision"
+            and _details(value).get("identity") == ASSIGNMENT_IDENTITY
+            and _details(value).get("status")
+            == "eligible-randomized-diagnostic"))
+    gates = {
+        "complete_randomized_evidence_present": False,
+        "event_ledger_valid_without_warnings": bool(
+            validation is not None and validation.valid
+            and not validation.warnings),
+        "failed_game_is_preserved_not_completed": bool(
+            status.get("completed") is False
+            and status.get("infrastructure_failure") is True),
+        "source_is_clean_and_expected": bool(
+            source.get("dirty") is False
+            and (expected_source_commit is None
+                 or source.get("commit") == expected_source_commit)
+            and (expected_implementation_sha256 is None
+                 or source.get("implementation_sha256")
+                 == expected_implementation_sha256)),
+    }
+    semantic = {
+        "assignment_errors": [
+            "missing-randomized-evidence:" + ",".join(sorted(missing))],
+        "assignments": [],
+        "audit_identity": AUDIT_IDENTITY,
+        "claim_scope": CLAIM_SCOPE,
+        "event_errors": (
+            ["events-missing"] if validation is None
+            else list(validation.errors)),
+        "event_warnings": (
+            [] if validation is None else list(validation.warnings)),
+        "failure": {
+            "error": status.get("error"),
+            "infrastructure_failure": status.get("infrastructure_failure"),
+            "missing_evidence": sorted(missing),
+        },
+        "game_id": manifest.get("game_id"),
+        "gates": gates,
+        "passed": False,
+        "seed": manifest.get("seed"),
+        "source": source,
+        "status_counts": {
+            "assignment_events_before_failure": len(assignment_events),
+            "assignments": 0,
+            "control": 0,
+            "execution_links": 0,
+            "labels_observed": 0,
+            "labels_pending": 0,
+            "negative_outcomes": 0,
+            "positive_outcomes": 0,
+            "treatment": 0,
+        },
+    }
+    semantic["report_hash"] = structural_hash(semantic)
+    return semantic
+
+
 def audit_randomized_alternative_game(
         game_dir, expected_source_commit=None,
         expected_implementation_sha256=None, require_treatment=False,
-        require_assignment=True):
+        require_assignment=True, preserve_incomplete_failure=False):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -188,6 +260,12 @@ def audit_randomized_alternative_game(
     missing = tuple(name for name, path in paths.items()
                     if not os.path.isfile(path))
     if missing:
+        if preserve_incomplete_failure:
+            return _incomplete_failed_game_report(
+                game_dir, missing,
+                expected_source_commit=expected_source_commit,
+                expected_implementation_sha256=(
+                    expected_implementation_sha256))
         raise ValueError(
             "missing randomized evidence: {}".format(", ".join(missing)))
 
@@ -509,7 +587,8 @@ def audit_randomized_alternative_run(
         expected_source_commit=expected_source_commit,
         expected_implementation_sha256=expected_implementation_sha256,
         require_treatment=require_treatment,
-        require_assignment=not allow_zero_assignment_games)
+        require_assignment=not allow_zero_assignment_games,
+        preserve_incomplete_failure=True)
         for value in game_dirs)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))
@@ -523,8 +602,11 @@ def audit_randomized_alternative_run(
              value["source"].get("implementation_sha256"))
             for value in games}) == 1,
     }
-    assignments = tuple(
+    assignment_events = tuple(
         row for game in games for row in game["assignments"])
+    assignments = tuple(
+        row for game in games if game["passed"]
+        for row in game["assignments"])
     outcome_summary = randomized_outcome_summary(assignments)
     minimum_observed_per_arm = int(minimum_observed_per_arm)
     if minimum_observed_per_arm < 0:
@@ -539,12 +621,15 @@ def audit_randomized_alternative_run(
         outcome_summary["unresolved_after_due"] == 0)
     semantic = {
         "assignments": len(assignments),
+        "assignment_events": len(assignment_events),
         "audit_identity": AUDIT_IDENTITY,
         "claim_scope": CLAIM_SCOPE,
         "control_assignments": sum(
             value["assigned_arm"] == "control" for value in assignments),
         "games": list(games),
         "gates": gates,
+        "invalid_game_assignment_events": (
+            len(assignment_events) - len(assignments)),
         "negative_outcomes": sum(
             value["label_outcome"] is False for value in assignments),
         "outcome_summary": outcome_summary,
