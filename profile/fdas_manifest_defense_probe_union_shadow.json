@@ -68,7 +68,7 @@
     "calibrated_candidate_union_required": true,
     "capacity_solver_enabled": false,
     "flow_advection_enabled": false,
-    "maximum_probe_regions": 4,
+    "maximum_probe_regions": 1,
     "policy_authority": false,
     "probe_config": {
       "advantage_gain": 1.0,
