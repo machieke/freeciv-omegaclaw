@@ -1,0 +1,37 @@
+schema_version: "1.0"
+seed_overlay_base: profile/freeciv_harness_fdas_pr49_160_turn.yaml
+dependent_atomspace:
+  config_path: profile/dependent_atomspace_defense_choice_surface_shadow.yaml
+  manifest_path: profile/fdas_manifest_defense_decision_safe_readout_shadow.json
+seeds:
+  # Fresh, disjoint PR61 replication cohort. Do not substitute or extend.
+  - 108343
+  - 108347
+  - 108359
+  - 108377
+  - 108379
+  - 108401
+  - 108413
+  - 108421
+  - 108439
+  - 108457
+  - 108461
+  - 108463
+  - 108497
+  - 108499
+  - 108503
+  - 108517
+  - 108529
+  - 108533
+  - 108541
+  - 108553
+  - 108557
+  - 108571
+  - 108587
+  - 108631
+  - 108637
+  - 108643
+  - 108649
+  - 108677
+  - 108707
+  - 108709

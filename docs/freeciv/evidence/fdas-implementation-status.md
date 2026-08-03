@@ -743,3 +743,12 @@ new disjoint, prospectively sized replication that freezes the same model and
 thresholds; PR60's reserved seeds cannot be added post hoc. See
 `fdas-pr60-candidate-transition-calibration-confirmation.md` and
 `fdas-pr60-candidate-transition-calibration-confirmation.json`.
+
+PR61 prospectively freezes the required independent replication without
+changing or refitting the PR60 model. Thirty new seeds are sized from the
+mechanical four-of-twelve contributing-game rate; at that planning rate they
+have approximately 96.5% binomial probability of supplying the unchanged
+six-game minimum. All PR60 model, yield, validation, endpoint, and non-authority
+contracts remain fixed. PR60 data cannot be pooled, and its reserved seeds stay
+excluded. See
+`fdas-pr61-candidate-transition-calibration-replication-preregistration.md`.
