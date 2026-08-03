@@ -1,6 +1,6 @@
 # PR57 execution hardening replay preregistration
 
-Status: preregistered; execution not started
+Status: stopped before gameplay; required local ruleset binding omitted
 
 ## Purpose and claim boundary
 
@@ -74,3 +74,15 @@ PR57 passes only if:
 
 A pass proves only the two mechanics corrections. PR56 remains invalid and
 cannot be repaired by this replay.
+
+## Launch result
+
+The clean `b624822` launch created both expected rows but stopped before any
+gameplay snapshot or action because the invoking environment omitted the
+required local `FREECIV_RULESET_ROOT` binding. Both rows record
+`RuntimeError: engine-live requires FREECIV_RULESET_ROOT`; the harness reports
+zero completed games and two infrastructure failures. The artifact is
+preserved at the frozen output path and is not resumed.
+
+PR57b supplies only the missing pinned environment binding and writes a new
+artifact. See `fdas-pr57b-execution-hardening-replay-preregistration.md`.
