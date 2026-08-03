@@ -45,8 +45,10 @@ gate.
 
 ## Fresh execution and acceptance
 
-The single fixed seed is `109007`, which is outside PR59 through PR63. The
-smoke uses the exact 160-turn profile and one clean source commit:
+The single fixed execution seed is `109007`, which is outside PR59 through
+PR63. The profile declares a schema-valid 30-seed fresh pool, while
+`--limit-seeds 1` fixes execution to its first seed. The smoke uses the exact
+160-turn profile and one clean source commit:
 
 ```bash
 SOURCE_COMMIT=$(git rev-parse HEAD)
@@ -58,7 +60,7 @@ python3 scripts/freeciv/run_harness.py \
   --out artifacts/freeciv/fdas-pr64-grounded-transition-readout-smoke-v1 \
   --config profile/freeciv_harness_fdas_pr64_grounded_transition_readout_160_turn.yaml \
   --backend engine-live --workers 1 --base-port 6001 \
-  --condition e_full_loop --main-only --no-resume
+  --condition e_full_loop --main-only --limit-seeds 1 --no-resume
 
 PYTHONPATH=src:benchmarks \
 python3 scripts/freeciv/audit_fdas_grounded_transition_candidate_readout.py \

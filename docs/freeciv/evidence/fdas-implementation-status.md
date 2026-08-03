@@ -811,3 +811,11 @@ overlap. All policy, readout, truth, flow, capacity, and action-selection
 authority remains false. A fresh seed-`109007` engine smoke and its audit are
 preregistered before collection; see
 `fdas-pr64-grounded-transition-readout-smoke-preregistration.md`.
+
+PR64's first command from `a9ac5d9` stopped in profile loading before a run
+directory or game existed because the one-seed overlay violated the shared
+30-seed profile schema. PR64a records this pre-collection failure, adds 29
+unused seeds after fixed first seed `109007`, and explicitly executes only the
+first seed with `--limit-seeds 1`. No model, threshold, auditor, authority, or
+evidence was observed or changed; see
+`fdas-pr64a-grounded-transition-readout-launch-correction.md`.
