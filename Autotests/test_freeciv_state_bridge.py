@@ -80,6 +80,28 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
         "status": "partial", "tile_records": 1, "visible_tiles": 1}
 
 
+def test_off_map_proxy_actions_cannot_enter_trusted_legal_set():
+    payload = _payload()
+    baseline = _snapshot(payload=payload)
+    payload["legal_actions"].extend((
+        {
+            "type": "unit_move", "unit_id": 7,
+            "dest_x": 2, "dest_y": -1, "is_valid": True,
+        },
+        {
+            "type": "unit_attack", "unit_id": 7,
+            "target": {"x": payload["map"]["width"], "y": 2},
+            "is_valid": True,
+        },
+    ))
+
+    filtered = _snapshot(payload=payload)
+
+    assert filtered.legal_action_json == baseline.legal_action_json
+    assert filtered.legal_actions_digest == baseline.legal_actions_digest
+    assert filtered.identity.state_hash == baseline.identity.state_hash
+
+
 def test_snapshot_store_legacy_mode_is_an_exact_revision_free_rollback():
     snapshot = _snapshot()
     dependent = SnapshotStore()

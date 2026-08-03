@@ -1,6 +1,6 @@
 # PR56 powered randomized candidate-value discovery preregistration
 
-Status: preregistered; execution not started
+Status: completed; mechanically rejected and not advanced
 
 Implementation commit: `645ee5e835f9b6c5a291a15e982bd07a227f54de`
 
@@ -114,3 +114,42 @@ assignment count can substitute for game clusters.
 Even a positive discovery result is not a final claim. Confirmation must freeze
 new seeds, the same estimator, the same minimum counts, and a one-sided positive
 gate before its gameplay begins.
+
+## Frozen result
+
+PR56 executed all 168 exact seeds from clean source commit `51186e4` with
+implementation digest
+`cbe379821c78c57306053808a57b38d291b3f380ae879d6ac2762d7ed833553b`.
+The harness closed 166 games successfully and preserved two infrastructure
+failures; no seed was resumed or replaced.
+
+The two failures were both engine rejections of proxy-advertised actions:
+
+- seed `106417`, turn 135: the trusted legal set contained three negative-y
+  moves on a non-wrapping map; the selected move to `(10,-1)` was rejected as
+  outside game bounds; and
+- seed `107123`, turn 42: a randomized treatment move for unit 125 was accepted,
+  its bounded authoritative refresh timed out, and the same treatment was
+  reprojected from the unchanged snapshot and rejected because the unit no
+  longer had moves.
+
+Audit 1.5 therefore rejects the cohort on the all-game gate and preserves both
+failed rows. Its exact-seed, source-identity, no-overdue-outcome, and authority
+boundary gates pass. The machine report is
+`fdas-pr56-candidate-value-discovery-mechanical.json`, report hash
+`21dc7c79b2090a788b2993793e726b20db8a3878e31eabd6bcd9c62db4197288`.
+
+Yield also missed the frozen powered-analysis gate. The 166 valid games
+provided 59 analyzable assignments: 30 control outcomes in 18 game clusters
+and 27 observed treatment outcomes in 20 game clusters, with two treatment
+outcomes pending in the failed stale-snapshot game. The design required 44
+observed outcomes and 20 independent game clusters in each arm.
+
+For completeness only, the invalid cohort's descriptive durable-defense rates
+were 16/30 control and 9/27 treatment, a treatment-minus-control risk difference
+of `-0.20` with interval `[-0.5112, 0.1603]`. Mechanical rejection and power
+failure prohibit a candidate-value claim. The direction also fails the frozen
+positive-discovery rule, so no same-design held-out confirmation is launched.
+The next work is the claim-ineligible PR57 exact failure-seed hardening replay;
+any later value study must use a new intervention rationale and a newly powered,
+fresh-seed design.

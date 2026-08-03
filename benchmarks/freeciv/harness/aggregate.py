@@ -127,6 +127,7 @@ METRICS = (
     "decision_effect_confirmation_expired",
     "decision_effect_confirmation_pending",
     "decision_stale_terminal_followups_blocked",
+    "decision_stale_unit_scope_followups_blocked",
     "decision_no_effect_retries_blocked",
     "decision_no_effect_failover_attempts",
     "decision_no_effect_failover_recoveries",

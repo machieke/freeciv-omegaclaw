@@ -604,3 +604,25 @@ and advances only when its 95% interval lower bound is above zero; even then a
 same-sized held-out confirmation remains mandatory. The frozen power plan is
 `fdas-pr56-candidate-value-power-plan.json`, plan hash
 `ba88a0c89575dfde0bc5ba3a7c4836ab20e6361a31baaea0844acd9f9b4c4d89`.
+
+PR56 then executed the fixed 168-game powered discovery design. It closed 166
+games and preserved two engine-rejection failures. Seed `106417` selected an
+off-map move that the proxy had incorrectly advertised as valid; seed `107123`
+replayed an already accepted randomized move after the authoritative refresh
+timed out and the stale legal catalog remained visible. Audit 1.5 rejects the
+cohort and preserves both rows. Yield independently missed power: 30 observed
+control outcomes in 18 game clusters and 27 observed treatment outcomes in 20
+clusters, below the required 44 and 20 per arm. The invalid descriptive risk
+difference was `-0.20` with interval `[-0.5112, 0.1603]`, so the frozen positive
+discovery rule does not permit confirmation even aside from mechanics and
+yield. See `fdas-pr56-candidate-value-discovery-preregistration.md` and
+`fdas-pr56-candidate-value-discovery-mechanical.json`.
+
+PR57 hardens both failures without retuning the intervention. Spatial actions
+outside authoritative map dimensions are removed before entering the canonical
+legal digest. Any accepted unit action whose authoritative refresh times out
+now ends the same-snapshot action phase, preventing both legacy and FDAS
+authority from replaying stale unit scope. A 294-test state/harness/Impact suite
+passes. The exact two known failure seeds are preregistered for a permanently
+claim-ineligible engineering replay before further candidate-value design; see
+`fdas-pr57-execution-hardening-replay-preregistration.md`.

@@ -3554,6 +3554,21 @@ def test_accepted_non_unit_no_update_closes_as_bounded_no_effect():
             {}, snapshot, "accepted-result", False)
 
 
+def test_accepted_unit_without_refresh_stops_same_snapshot_followups():
+    class UnitCandidate:
+        unit_scope_consumed_on_accept = True
+
+    class NonUnitCandidate:
+        unit_scope_consumed_on_accept = False
+
+    assert engine_live._must_stop_stale_impact_followups(
+        UnitCandidate(), authoritative_refresh=False)
+    assert not engine_live._must_stop_stale_impact_followups(
+        UnitCandidate(), authoritative_refresh=True)
+    assert not engine_live._must_stop_stale_impact_followups(
+        NonUnitCandidate(), authoritative_refresh=False)
+
+
 def test_accepted_impact_refresh_waits_for_candidate_specific_effect():
     snapshot = object()
     applied = object()

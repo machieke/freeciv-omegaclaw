@@ -1963,6 +1963,13 @@ def _impact_refresh_timeout(planner, candidate):
     return planner.refresh_timeout_seconds
 
 
+def _must_stop_stale_impact_followups(candidate, authoritative_refresh):
+    """Whether an accepted action invalidated its unrefreshed unit scope."""
+    return bool(
+        not authoritative_refresh
+        and candidate.unit_scope_consumed_on_accept)
+
+
 def _control_plan(snapshot, assumption=None):
     action = {"action_type": "end_turn"}
     suffix = structural_hash([snapshot.snapshot_id, "control", assumption.atom_id if assumption else None])
@@ -3570,6 +3577,7 @@ async def _play(run_dir, manifest, context):
         "effect_confirmation_recovered": 0,
         "effect_confirmation_expired": 0,
         "stale_terminal_followups_blocked": 0,
+        "stale_unit_scope_followups_blocked": 0,
         "operation_authority_opportunities": 0,
         "operation_authority_actions": 0,
         "operation_authority_winner_changes": 0,
@@ -6792,13 +6800,21 @@ async def _play(run_dir, manifest, context):
                         time.perf_counter() - reconcile_started) * 1000.0
                     impact_postconfirmation_latency_ms += (
                         time.perf_counter() - postconfirmation_started) * 1000.0
-                    if (not authoritative_refresh
-                            and decision.candidate.terminal_on_accept):
-                        # The actor may already be gone even though the proxy
-                        # has not projected the effect. Never plan a follow-up
-                        # from the unchanged pre-action snapshot.
+                    if _must_stop_stale_impact_followups(
+                            decision.candidate, authoritative_refresh):
+                        # Acceptance can consume a unit's movement/action
+                        # budget even when the proxy misses the bounded source
+                        # sequence barrier.  The unchanged legal-action digest
+                        # is no longer execution authority for any same-snapshot
+                        # follow-up: in particular, FDAS authority can
+                        # rematerialize an exact action outside the legacy
+                        # excluded-scope catalog.  End this action phase until
+                        # the next authoritative turn boundary.
                         decision_stats[
-                            "stale_terminal_followups_blocked"] += 1
+                            "stale_unit_scope_followups_blocked"] += 1
+                        if decision.candidate.terminal_on_accept:
+                            decision_stats[
+                                "stale_terminal_followups_blocked"] += 1
                         break
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
                 decision_stats["failover_recoveries"] += impact_budget.recoveries
@@ -7608,6 +7624,8 @@ async def _play(run_dir, manifest, context):
         ("decision_effect_confirmation_pending", len(pending_impact_outcomes)),
         ("decision_stale_terminal_followups_blocked",
          decision_stats["stale_terminal_followups_blocked"]),
+        ("decision_stale_unit_scope_followups_blocked",
+         decision_stats["stale_unit_scope_followups_blocked"]),
         ("decision_no_effect_actions", decision_stats["no_effect"]),
         ("decision_no_effect_retries_blocked",
          impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
@@ -8197,6 +8215,8 @@ async def _play(run_dir, manifest, context):
                 len(final_domain_estimate_events),
             "decision_stale_terminal_followups_blocked": (
                 decision_stats["stale_terminal_followups_blocked"]),
+            "decision_stale_unit_scope_followups_blocked": (
+                decision_stats["stale_unit_scope_followups_blocked"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "founder_production_changes": (
                 decision_stats["founder_production_changes"]),
@@ -8633,6 +8653,8 @@ async def _play(run_dir, manifest, context):
         "decision_effect_confirmation_pending": len(pending_impact_outcomes),
         "decision_stale_terminal_followups_blocked": (
             decision_stats["stale_terminal_followups_blocked"]),
+        "decision_stale_unit_scope_followups_blocked": (
+            decision_stats["stale_unit_scope_followups_blocked"]),
         "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],

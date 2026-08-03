@@ -78,7 +78,32 @@ def _action_rows(actions):
     return rows
 
 
-def _canonical_actions(actions, player_id=None):
+def _action_target_within_map(action, width, height):
+    """Reject proxy-advertised spatial actions outside engine coordinates.
+
+    The proxy's adjacent-action projection can briefly expose negative or
+    over-bound coordinates at a non-wrapping map edge while still marking the
+    row valid.  Civserver does not accept those coordinates, so they cannot be
+    admitted to the trusted canonical legal-action set.  This deliberately
+    validates the executable coordinate representation even on wrapping maps;
+    an advertised wrapped action must already use canonical in-map coordinates
+    before it can authorize execution.
+    """
+    target = action.get("target")
+    if not isinstance(target, dict):
+        return True
+    x = target.get("x")
+    y = target.get("y")
+    if x is None and y is None:
+        return True
+    return bool(
+        isinstance(x, int) and not isinstance(x, bool)
+        and isinstance(y, int) and not isinstance(y, bool)
+        and 0 <= x < width and 0 <= y < height)
+
+
+def _canonical_actions(actions, player_id=None, map_width=None,
+                       map_height=None):
     rows = _action_rows(actions)
     valid = []
     kinds = set()
@@ -88,6 +113,10 @@ def _canonical_actions(actions, player_id=None):
         if row.get("is_valid") is False:
             continue
         normalized = _executable_action(row, player_id=player_id)
+        if (map_width is not None and map_height is not None
+                and not _action_target_within_map(
+                    normalized, map_width, map_height)):
+            continue
         kind = normalized.get("action_type")
         if kind is not None:
             kinds.add(str(kind))
@@ -1245,7 +1274,9 @@ class ProxyStateDTO:
             if legal_actions is None else legal_actions)
         legal_json, legal_action_kinds = _canonical_actions(
             action_source,
-            player_id=player_id)
+            player_id=player_id,
+            map_width=width,
+            map_height=height)
         research_options = _research_options(
             action_source, player_id=player_id)
         legal_digest = hashlib.sha256("\n".join(legal_json).encode("utf-8")).hexdigest()
