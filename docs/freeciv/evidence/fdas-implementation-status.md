@@ -438,3 +438,12 @@ establishes recurrent probe-informed candidate recall beyond the calibrated
 union while preserving scalar authority. It does not establish candidate
 precision, ranking, score, or win rate. See
 `fdas-pr47-probe-candidate-union.md`.
+
+PR48 implements path persistence as a third membership-only layer rather than
+reviving the historically adverse CT4 ranking authority. Stable current
+corridors use smoothing, bounded momentum, dwell, hysteresis, immediate expiry,
+and a maximum reachability-regret gate. A clean 160-turn engineering smoke
+produced 11 temporal additions, 18 smoothing retentions, 12 regret reanchors,
+and 9 expiries, with zero fallback or authority leakage. The smoke and its seed
+are claim-ineligible; a fresh cohort remains required. See
+`fdas-pr48-path-persistence-union-shadow.md`.
