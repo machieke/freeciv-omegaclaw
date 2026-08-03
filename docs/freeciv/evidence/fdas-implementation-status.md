@@ -871,3 +871,17 @@ surface are unchanged. Fresh seed `109021` is preregistered to require parent
 mechanical acceptance, candidate-specific prediction yield, at least one exact
 failure, and zero generic failures; see
 `fdas-pr66-scalar-baseline-grounding-diagnostic-preregistration.md`.
+
+PR66 passes from clean commit `b2e518c` and identifies the exact mismatch.
+Seed `109021` reached turn 161 cleanly. Fifty-six move controls failed the
+bounded validator because every candidate carried
+`protected-source-garrison` plus the already permitted
+`uncompiled-action-effect`; two controls grounded, and eight fortify baselines
+abstained outside the move domain. The former blocker is an exact proof that
+moving the actor creates a source-city defense deficit and must not be
+allowlisted. PR59 transition completeness described observed movement
+mechanics, not source-release safety. The next correction must retain these
+candidates for observation while excluding them from the decision-safe scalar
+baseline and calibrated recall surface with explicit reasons. See
+`fdas-pr66-scalar-baseline-grounding-diagnostic.md` and
+`fdas-pr66-scalar-baseline-grounding-diagnostic.json`.
