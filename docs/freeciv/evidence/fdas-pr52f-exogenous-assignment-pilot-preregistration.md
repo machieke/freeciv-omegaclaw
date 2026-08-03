@@ -1,6 +1,6 @@
 # PR52f exogenous-assignment randomized execution pilot preregistration
 
-Status: frozen before execution
+Status: mechanically passed
 
 Corrected implementation commit: `1a14afd`
 
@@ -67,3 +67,27 @@ complete and the next step is not another targeted pilot: it is a separately
 preregistered, fresh-seed randomized outcome cohort with lineage clustering,
 effective-sample-size gates, confidence intervals, and explicit stopping and
 missingness rules.
+
+## Frozen outcome
+
+PR52f passed every mechanical gate. The clean engine-backed game reached the
+fixed horizon with 406 accepted and zero rejected actions. Its sole eligible
+turn-17 assignment reproduced exogenous material hash
+`188e3d07d868775df772c064da0a80e6238ba769d84a60e350f8901651d03b32`
+and draw `0.0959203857568428`, selected treatment actor `117`, changed the
+legacy winner, passed independent preflight and the final planner gate, and
+linked the accepted engine result to exactly one episode.
+
+That episode opened exactly one selected-actor label at turn 17, due turn 49,
+despite terminating as effect without immediate goal relief. The label was
+observed at turn 49 as negative because actor `117` was not at the target city,
+and the exact candidate choice set resolved to the same negative outcome. The
+event ledger has zero errors and warnings; store hashes, source identity,
+propensity, causal ancestry, censored alternatives, and authority boundaries
+all pass the reusable fail-closed auditor.
+
+The machine-readable result is
+`fdas-pr52f-exogenous-assignment-pilot.json`, report hash
+`72cc089699d2d746fdc05abcbe791b6b2b9c6812ef71d30946ac1fb5e74b2f3d`.
+This confirms mechanics only. The deliberately targeted seed and single
+negative treatment outcome support no candidate-value or gameplay claim.

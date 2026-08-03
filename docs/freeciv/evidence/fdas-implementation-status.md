@@ -506,3 +506,15 @@ pair, experiment, policy, and seed; bookkeeping-hash invariance is unit-tested.
 The frozen, claim-ineligible PR52f treatment retry is the next and final
 mechanics gate; see
 `fdas-pr52f-exogenous-assignment-pilot-preregistration.md`.
+
+PR52f passed the final randomized mechanics gate. The exogenous turn-17 draw
+selected treatment actor `117`; the exact action was accepted and linked once,
+its selection-indexed label opened immediately with due turn 49, and the label
+resolved negative at turn 49 into the linked choice set. All 406 engine actions
+were accepted, and a new reusable auditor verifies source/store hashes,
+assignment reconstruction, propensity, preflight evidence, causal ancestry,
+episode/label/choice linkage, missingness, and authority isolation. This is
+still a targeted one-opportunity pilot and makes no value or score claim. The
+next gate is a separately preregistered fresh-seed randomized outcome cohort;
+see `fdas-pr52f-exogenous-assignment-pilot-preregistration.md` and
+`fdas-pr52f-exogenous-assignment-pilot.json`.
