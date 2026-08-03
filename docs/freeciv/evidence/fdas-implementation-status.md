@@ -494,3 +494,15 @@ at accepted selection for both relief and no-relief actions, persists its turn
 for restart recovery, and opens the 32-turn label immediately. The frozen PR52e
 retry is the next gate; see
 `fdas-pr52e-randomized-execution-pilot-preregistration.md`.
+
+PR52e proved the corrected label lifecycle: its accepted randomized episode
+opened at turn 17, received a due-turn-49 selected-actor label despite having
+effect without immediate relief, resolved that label as negative at turn 49,
+and propagated the result to the exact choice set. However, it exercised the
+control arm because the old randomization key included revision and diagnostic
+hashes changed by the new provenance. It is therefore mechanically rejected.
+Commit `1a14afd` isolates assignment to the exogenous game-turn exact-action
+pair, experiment, policy, and seed; bookkeeping-hash invariance is unit-tested.
+The frozen, claim-ineligible PR52f treatment retry is the next and final
+mechanics gate; see
+`fdas-pr52f-exogenous-assignment-pilot-preregistration.md`.
