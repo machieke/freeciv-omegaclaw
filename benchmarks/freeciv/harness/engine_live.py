@@ -6247,34 +6247,40 @@ async def _play(run_dir, manifest, context):
                             .operation_authority
                             .get("applied")
                     ):
-                        authority_events = (
-                            control_event_emitter
-                            .emit_operation_authority_selection(
-                                writer,
-                                snapshot.turn,
-                                decision
-                                .operation_authority[
-                                    "readout"],
+                        selected_readout = decision.operation_authority[
+                            "readout"]
+                        # The randomized FDAS diagnostic already emitted its
+                        # revision-bound authority assignment.  It has no GDO
+                        # operation payload and must not enter that unrelated
+                        # event adapter's retained-payload lifecycle.
+                        if (alternative_authority is None
+                                or selected_readout != alternative_authority):
+                            authority_events = (
+                                control_event_emitter
+                                .emit_operation_authority_selection(
+                                    writer,
+                                    snapshot.turn,
+                                    selected_readout,
+                                    decision
+                                    .operation_authority
+                                    .get(
+                                        "baseline_candidate_key"),
+                                    caused_by=(
+                                        parent,)))
+                            parent = (
+                                authority_events[
+                                    -1]["event_id"])
+                            decision_stats[
+                                "operation_authority_actions"
+                            ] += 1
+                            decision_stats[
+                                "operation_authority_winner_changes"
+                            ] += int(
                                 decision
                                 .operation_authority
                                 .get(
-                                    "baseline_candidate_key"),
-                                caused_by=(
-                                    parent,)))
-                        parent = (
-                            authority_events[
-                                -1]["event_id"])
-                        decision_stats[
-                            "operation_authority_actions"
-                        ] += 1
-                        decision_stats[
-                            "operation_authority_winner_changes"
-                        ] += int(
-                            decision
-                            .operation_authority
-                            .get(
-                                "changed_winner",
-                                False))
+                                    "changed_winner",
+                                    False))
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])
