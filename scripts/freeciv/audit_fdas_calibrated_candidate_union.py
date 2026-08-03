@@ -27,6 +27,8 @@ from freeciv_agent.planning import (  # noqa: E402
 
 
 AUDIT_IDENTITY = "fdas-calibrated-candidate-union-audit/1.0"
+ABSORBING_TERMINAL_AUDIT_IDENTITY = (
+    "fdas-calibrated-candidate-union-audit/1.1")
 COMPONENT_ID = "fdas-calibrated-candidate-union"
 CONFIG_SOURCE = (
     "profile/dependent_atomspace_defense_choice_surface_shadow.yaml")
@@ -63,6 +65,18 @@ def _wilson(successes, samples, z=1.959963984540054):
     radius = z * math.sqrt(
         p * (1.0 - p) / n + z * z / (4.0 * n * n)) / denominator
     return max(0.0, center - radius), min(1.0, center + radius)
+
+
+def _completed_endpoint(status, allow_absorbing_terminal=False):
+    if (status.get("completed") is not True
+            or status.get("infrastructure_failure") is not False):
+        return False
+    if status.get("horizon_reached") is True:
+        return True
+    return bool(
+        allow_absorbing_terminal
+        and (status.get("terminal_game_over") is True
+             or status.get("terminal_player_elimination") is True))
 
 
 def _validate_union(details, payload):
@@ -169,7 +183,8 @@ def _validate_union(details, payload):
 
 
 def audit(run_root, expected_seeds, expected_source_commit, thresholds=None,
-          cohort_id="fdas_calibrated_candidate_union_confirmation_v1"):
+          cohort_id="fdas_calibrated_candidate_union_confirmation_v1",
+          allow_absorbing_terminal=False):
     run_root = os.path.abspath(run_root)
     expected_seeds = tuple(int(value) for value in expected_seeds)
     if (not expected_seeds
@@ -239,10 +254,8 @@ def audit(run_root, expected_seeds, expected_source_commit, thresholds=None,
                 len(choice_store.choice_sets())
                 == game_totals["union_events"]
                 == status.get("fdas_candidate_choice_sets")),
-            "completed_horizon_without_infrastructure_failure": (
-                status.get("completed") is True
-                and status.get("horizon_reached") is True
-                and status.get("infrastructure_failure") is False),
+            "completed_preregistered_endpoint_without_infrastructure_failure": (
+                _completed_endpoint(status, allow_absorbing_terminal)),
             "event_ledger_valid_without_warnings": (
                 validation.valid and not validation.warnings),
             "manifest_profile_is_frozen": (
@@ -306,12 +319,17 @@ def audit(run_root, expected_seeds, expected_source_commit, thresholds=None,
             totals["union_events"] >= thresholds["union_readouts"]),
     }
     semantic = {
-        "audit_identity": AUDIT_IDENTITY,
+        "audit_identity": (
+            ABSORBING_TERMINAL_AUDIT_IDENTITY
+            if allow_absorbing_terminal else AUDIT_IDENTITY),
         "claim_scope": (
             "protected candidate recall beyond frozen scalar top-1 on "
             "fresh engine games; no action-selection, counterfactual-outcome, "
             "gameplay, score, or win-rate claim"),
         "cohort_id": cohort_id,
+        "completion_semantics": (
+            "fixed-horizon-or-genuine-absorbing-terminal"
+            if allow_absorbing_terminal else "fixed-horizon-only"),
         "expected_source_commit": expected_source_commit,
         "games": games,
         "games_with_additions": games_with_additions,
@@ -345,6 +363,7 @@ def main(argv=None):
     parser.add_argument(
         "--cohort-id",
         default="fdas_calibrated_candidate_union_confirmation_v1")
+    parser.add_argument("--allow-absorbing-terminal", action="store_true")
     parser.add_argument("--minimum-calibrated-additions", type=int, default=8)
     parser.add_argument("--minimum-eligible-readouts", type=int, default=50)
     parser.add_argument(
@@ -365,7 +384,8 @@ def main(argv=None):
     }
     report = audit(
         args.run_root, tuple(args.expected_seed),
-        args.expected_source_commit, thresholds, args.cohort_id)
+        args.expected_source_commit, thresholds, args.cohort_id,
+        args.allow_absorbing_terminal)
     payload = canonical_json_bytes(report) + b"\n"
     if args.output:
         output = os.path.abspath(args.output)

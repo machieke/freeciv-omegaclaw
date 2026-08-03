@@ -14,6 +14,7 @@ from audit_fdas_calibrated_candidate_union import (  # noqa: E402
     CALIBRATION_ARTIFACT_HASH,
     CONFIRMATION_REPORT_HASH,
     MODEL_RESULT_HASH,
+    _completed_endpoint,
     _validate_union,
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
@@ -101,3 +102,25 @@ def test_candidate_union_audit_rejects_rehashed_authority_change():
     })
 
     assert "shadow-authority-differs" in errors
+
+
+def test_candidate_union_completion_accepts_only_declared_endpoints():
+    horizon = {
+        "completed": True,
+        "horizon_reached": True,
+        "infrastructure_failure": False,
+        "terminal_game_over": False,
+        "terminal_player_elimination": False,
+    }
+    eliminated = dict(horizon)
+    eliminated.update({
+        "horizon_reached": False,
+        "terminal_player_elimination": True,
+    })
+    infrastructure = dict(eliminated)
+    infrastructure["infrastructure_failure"] = True
+
+    assert _completed_endpoint(horizon) is True
+    assert _completed_endpoint(eliminated) is False
+    assert _completed_endpoint(eliminated, True) is True
+    assert _completed_endpoint(infrastructure, True) is False
