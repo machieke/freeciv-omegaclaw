@@ -137,6 +137,35 @@ def test_causal_induction_profile_is_explicit_and_readout_disabled():
         "induction_feature_schema"] == "defense-episode-features/3.0"
 
 
+def test_grounded_transition_readout_profile_is_bound_and_shadow_only():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_grounded_transition_readout_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest[
+        "grounded_transition_candidate_union_diagnostic"]
+
+    assert config.enabled is True
+    assert manifest["capabilities"].get("calibrated_candidate_union") is None
+    assert manifest["capabilities"][
+        "grounded_transition_candidate_union"] == "shadow-live"
+    assert diagnostic["action_selection_changed"] is False
+    assert diagnostic["policy_authority"] is False
+    assert diagnostic["readout_authority"] is False
+    assert diagnostic["flow_advection_enabled"] is False
+    assert diagnostic["capacity_solver_enabled"] is False
+    assert manifest["decision_safe_candidate_readout_diagnostic"][
+        "action_selection_changed"] is False
+
+
 def test_checked_observation_execution_profile_requires_authoritative_return():
     with open(os.path.join(
             REPO, "profile",

@@ -8,6 +8,9 @@ from ..pressure.induction import InductionFeatureQuery
 from ..pressure.scheduler import OperationScore
 from .fdas import ShadowOperationCandidate
 from .fdas_candidate_calibration import FdasCandidateCalibrationModel
+from .fdas_candidate_transition_calibration import (
+    FdasCandidateTransitionCalibrationModel,
+)
 from .fdas_candidate_choices import (
     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
 )
@@ -282,7 +285,9 @@ def build_calibrated_candidate_union(
         scalar_top_k=3, calibrated_per_action=1,
         maximum_interval_width=0.55):
     """Enlarge scalar recall only; calibrated values never score or select."""
-    if not isinstance(model, FdasCandidateCalibrationModel):
+    if not isinstance(model, (
+            FdasCandidateCalibrationModel,
+            FdasCandidateTransitionCalibrationModel)):
         raise TypeError("calibrated union requires typed model")
     for value, name in (
             (scalar_top_k, "scalar top-k"),

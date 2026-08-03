@@ -20,6 +20,8 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasCandidateTransitionCalibrationModel,
     evaluate_candidate_transition_calibration,
     fit_candidate_transition_calibration,
+    load_candidate_transition_calibration_confirmation,
+    load_candidate_transition_calibration_model,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionEpisode,
@@ -29,6 +31,12 @@ from freeciv_agent.pressure import (  # noqa: E402
 
 MOVE = "fdas-shadow:city-garrison-deficit:unit_move"
 FORTIFY = "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+DISCOVERY = os.path.join(
+    REPO, "docs", "freeciv", "evidence",
+    "fdas-pr60-candidate-transition-calibration-discovery.json")
+CONFIRMATION = os.path.join(
+    REPO, "docs", "freeciv", "evidence",
+    "fdas-pr63-candidate-transition-calibration-confirmation.json")
 
 
 def _values(eta, unit_type="Alpine Troops", status="complete"):
@@ -234,3 +242,15 @@ def test_transition_validation_rejects_overlap_and_fails_adverse_holdout():
         "transition-adverse-confirmation", bootstrap_samples=200)
     assert report["passed"] is False
     assert report["gates"]["brier_score_bounded"] is False
+
+
+def test_transition_artifact_loaders_bind_passing_confirmation():
+    model, artifact_hash = load_candidate_transition_calibration_model(
+        DISCOVERY)
+    confirmation, confirmation_hash = (
+        load_candidate_transition_calibration_confirmation(CONFIRMATION))
+
+    assert confirmation["passed"] is True
+    assert confirmation["calibration_artifact_hash"] == artifact_hash
+    assert confirmation["model_result_hash"] == model.result_hash
+    assert confirmation["report_hash"] == confirmation_hash

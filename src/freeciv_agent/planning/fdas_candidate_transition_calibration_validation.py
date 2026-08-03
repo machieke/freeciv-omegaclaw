@@ -49,6 +49,51 @@ def load_candidate_transition_calibration_model(path):
         raw["calibration_model"]), report_hash
 
 
+def load_candidate_transition_calibration_confirmation(path):
+    """Load a passing audit-2.0 transition confirmation artifact."""
+    with open(path, encoding="utf-8") as stream:
+        raw = json.load(stream)
+    report_hash = raw.get("report_hash")
+    semantic = dict(raw)
+    semantic.pop("report_hash", None)
+    if (not isinstance(report_hash, str)
+            or report_hash != structural_hash(semantic)):
+        raise ValueError("transition confirmation artifact hash differs")
+    if raw.get("schema_version") != (
+            "fdas-candidate-transition-calibration-confirmation/2.0"):
+        raise ValueError("transition confirmation artifact schema differs")
+    if (raw.get("passed") is not True
+            or any(raw.get(name) is not False for name in (
+                "policy_authority", "readout_authority", "truth_mutated"))):
+        raise ValueError("transition confirmation is not passing shadow evidence")
+    validation = raw.get("validation")
+    validation_hash = (
+        None if not isinstance(validation, dict)
+        else validation.get("report_hash"))
+    validation_semantic = (
+        {} if not isinstance(validation, dict) else dict(validation))
+    validation_semantic.pop("report_hash", None)
+    if (not isinstance(validation_hash, str)
+            or validation_hash != structural_hash(validation_semantic)
+            or validation.get("passed") is not True
+            or validation.get("model_result_hash")
+            != raw.get("model_result_hash")
+            or validation.get("claim_scope") != raw.get("claim_scope")
+            or any(validation.get(name) is not False for name in (
+                "policy_authority", "readout_authority", "truth_mutated"))):
+        raise ValueError("transition confirmation validation differs")
+    if (not isinstance(raw.get("yield"), dict)
+            or raw["yield"].get("passed") is not True):
+        raise ValueError("transition confirmation yield did not pass")
+    for name in (
+            "calibration_artifact_hash", "feature_audit_hash",
+            "model_result_hash"):
+        if not isinstance(raw.get(name), str) or not raw[name]:
+            raise ValueError(
+                "transition confirmation lacks {}".format(name))
+    return raw, report_hash
+
+
 def _single_prefixed(values, prefix, name):
     matches = tuple(
         value[len(prefix):] for value in values if value.startswith(prefix))

@@ -195,6 +195,7 @@ from .fdas_candidate_transition_calibration_validation import (
     DEFAULT_TRANSITION_VALIDATION_THRESHOLDS,
     TRANSITION_VALIDATION_IDENTITY,
     evaluate_candidate_transition_calibration,
+    load_candidate_transition_calibration_confirmation,
     load_candidate_transition_calibration_model,
 )
 from .fdas_candidate_calibration_validation import (
@@ -398,6 +399,7 @@ __all__ = [
     "DEFAULT_TRANSITION_VALIDATION_THRESHOLDS",
     "TRANSITION_VALIDATION_IDENTITY",
     "evaluate_candidate_transition_calibration",
+    "load_candidate_transition_calibration_confirmation",
     "load_candidate_transition_calibration_model",
     "DEFAULT_VALIDATION_THRESHOLDS", "VALIDATION_IDENTITY",
     "evaluate_candidate_calibration",

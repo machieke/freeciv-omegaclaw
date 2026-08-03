@@ -161,6 +161,51 @@ def test_calibrated_candidate_union_event_is_revision_bound_and_shadow_only(
             "confirmation-report-hash")
 
 
+def test_grounded_transition_union_event_is_revision_bound_and_shadow_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "capacity_solver_enabled": False,
+        "flow_advection_enabled": False,
+        "policy_authority": False,
+        "readout_authority": False,
+        "result_hash": "grounded-transition-union-result-hash",
+        "scalar_final_score_authority": True,
+        "truth_mutated": False,
+    }
+    candidate_union = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(
+        str(tmp_path), "grounded-transition-union-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_grounded_transition_candidate_union(
+        writer, snapshot, candidate_union, "calibration-artifact-hash",
+        "confirmation-report-hash")
+
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-grounded-transition-candidate-union")
+    assert event["payload"]["details"]["calibration_model_kind"] == (
+        "grounded-transition")
+    assert event["payload"]["details"]["action_selection_changed"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        revision_id="fdas-revision-stale",
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_grounded_transition_candidate_union(
+            writer, snapshot, stale, "calibration-artifact-hash",
+            "confirmation-report-hash")
+
+
 def test_probe_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

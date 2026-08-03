@@ -798,3 +798,16 @@ a separate default-off shadow readout-yield experiment. It does not establish
 censored counterfactual value, ranking quality, gameplay, score, or win rate.
 See `fdas-pr63-candidate-transition-calibration-confirmation.md` and
 `fdas-pr63-candidate-transition-calibration-confirmation.json`.
+
+PR64 implements the separately permitted default-off grounded-transition
+shadow readout without changing the confirmed model or the scalar controller.
+The activating manifest hash-binds the PR60 discovery model and PR63
+confirmation, protects scalar top-1, may recall at most one confidence-eligible
+candidate per action category, and retains the existing strict interval-
+separation plus exact grounded-noninferiority gate. Runtime events distinguish
+candidate-specific transition predictions from broad action/lifecycle backoff,
+calibrated additions, uncertainty abstentions, and decision-safe interval
+overlap. All policy, readout, truth, flow, capacity, and action-selection
+authority remains false. A fresh seed-`109007` engine smoke and its audit are
+preregistered before collection; see
+`fdas-pr64-grounded-transition-readout-smoke-preregistration.md`.
