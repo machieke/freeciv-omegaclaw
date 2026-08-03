@@ -3259,9 +3259,10 @@ async def _play(run_dir, manifest, context):
             raise RuntimeError(
                 "FDAS alternative collection escaped diagnostic scope")
         if (fdas_alternative_randomized_diagnostic
-                and (not fdas_runtime.config.authority_enabled
-                     or not fdas_runtime.config.section(
-                         "domain_authority")["city_defense"]
+                and (not manifest["dependent_atomspace"]["config"][
+                    "authority_enabled"]
+                     or not manifest["dependent_atomspace"]["config"][
+                         "domain_authority"]["city_defense"]
                      or not fdas_manifest.get("policy_authority"))):
             raise RuntimeError(
                 "FDAS randomized alternative collection requires bounded "
