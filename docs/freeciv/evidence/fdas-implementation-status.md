@@ -553,3 +553,15 @@ carry a typed `authority_catalog_reprojected` field, backed by an exact
 per-decision diagnostic delta and aggregate status counter. This closes the
 observability ambiguity for a targeted, claim-ineligible reprojection retry;
 fresh unseen-seed outcome-yield evaluation remains downstream of that proof.
+
+PR54b supplied that proof. On historical seed `105529`, a frozen post-hoc
+assignment kept turn 37 on control and selected treatment at turn 39. The
+treatment's exact move was absent from the cached legacy catalog, was
+reprojected once through bounded city-defense authority, accepted by the
+engine, linked to one episode and selected choice, and resolved its turn-71
+label. Event version 1.1 and the aggregate status counter both record exactly
+one reprojection; audit 1.4 passes every ledger, store, source, endpoint,
+authority, treatment, and reprojection gate. PR54b remains claim-ineligible and
+its negative outcomes are not evidence of value. The engineering blocker is
+closed, so the next gate is an unseen-seed opportunity-yield cohort using the
+same frozen controller and provenance contract.

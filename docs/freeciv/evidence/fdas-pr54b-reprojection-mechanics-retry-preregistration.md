@@ -1,6 +1,6 @@
 # PR54b exact reprojection mechanics retry preregistration
 
-Status: preregistered; execution not started
+Status: passed; exact reprojection mechanics proven
 
 Implementation commit: `153f4be5845e81b064d01467c9770a26571316f3`
 
@@ -69,3 +69,35 @@ PR54b passes only if:
 
 Failure is preserved as evidence. A pass authorizes only a new preregistered
 unseen-seed yield cohort; it does not rehabilitate PR53b or PR54 outcomes.
+
+## Frozen result
+
+PR54b passed every preregistered engineering gate. Seed `105529` ran from clean
+source commit `13e522d` with implementation digest
+`49067650358ee3c6916b2b1d1223c01c6e8d1c85c7c5594f596ad0e00d460433`,
+reached final observed turn 161 in 86.69 seconds, and completed with no
+infrastructure failure or rejected engine action.
+
+The exact assignments were:
+
+| Turn | Draw | Arm | Reprojected | Engine | Due label |
+|---:|---:|---|---|---|---|
+| 37 | 0.7117420215 | control | false | accepted | turn 69, negative |
+| 39 | 0.4393403992 | treatment | true | accepted | turn 71, negative |
+
+The turn-39 treatment selected the historical actor-`113` move to `(7,15)`.
+Its execution event version 1.1 records
+`authority_catalog_reprojected: true`; the run status records exactly one
+catalog reprojection. The accepted action links through one exact episode, one
+selected choice set, and one observed due-turn label. The ledger validates with
+no warnings, all stores are digest-valid and unquarantined, and every audit 1.4
+gate passes.
+
+The machine-readable report is
+`fdas-pr54b-reprojection-mechanics-retry.json`, report hash
+`b274897122442de93a9bda7fd04fdf58d1eb72d33f77552bbfea998e614a348a`.
+Both outcomes were negative, but that direction is scientifically
+non-interpretable because the assignment seed was selected after observing the
+action pairs. The result proves only bounded reprojection, legal execution, and
+attribution mechanics. It now permits a separately preregistered unseen-seed
+opportunity-yield cohort.
