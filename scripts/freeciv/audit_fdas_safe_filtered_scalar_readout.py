@@ -207,7 +207,7 @@ def _validate_target_filter(details, payload):
 
 
 def audit(run_root, expected_seeds, expected_source_commit,
-          *, target_scoped=False):
+          *, target_scoped=False, target_scoped_manifest_source=None):
     run_root = os.path.abspath(run_root)
     expected_seeds = tuple(int(value) for value in expected_seeds)
     if (not expected_seeds
@@ -389,7 +389,8 @@ def audit(run_root, expected_seeds, expected_source_commit,
             "exact_manifest_and_config": (
                 declaration.get("config_source") == CONFIG_SOURCE
                 and declaration.get("manifest_source") == (
-                    TARGET_SCOPED_MANIFEST_SOURCE
+                    (target_scoped_manifest_source
+                     or TARGET_SCOPED_MANIFEST_SOURCE)
                     if target_scoped else MANIFEST_SOURCE)),
             "filter_counters_match_status": all(
                 status.get("fdas_decision_safe_candidate_filter_" + suffix)
