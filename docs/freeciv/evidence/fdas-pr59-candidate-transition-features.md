@@ -1,0 +1,57 @@
+# FDAS PR59 grounded candidate-transition features
+
+## Result
+
+PR58's clean engine smoke exposed two genuine in-slice reinforcement choices,
+but the frozen calibration model assigned every candidate in each set the same
+lifecycle-level estimate and broad interval. Inspection showed that the
+outcome-free query did not record the native route or source-unit facts that
+distinguished those candidates. Relaxing PR58's uncertainty gate would not
+repair this information loss.
+
+PR59 adds a separate observational feature projection for reinforcement moves.
+It preserves the original query ID and causal episode features, and appends:
+
+- actor HP band and exact ruleset unit type;
+- native estimated-turn, first-step-cost, total-cost, and path-length bands;
+- whether the actor starts in the target city, another own city, or no city;
+- counts of other own and fortified units on the source tile; and
+- an explicit transition-grounding status.
+
+The projection accepts only the bounded city-garrison move operation. It binds
+route facts to the exact snapshot turn and source sequence, checks actor,
+origin, movement points, transport state, action cost, and first-step tile, and
+never imputes a missing value. A missing, unreachable, stale, or action-
+inconsistent route produces a fixed reason plus `unknown` mechanical features.
+
+## Authority and compatibility boundary
+
+This is collection substrate, not a model or policy change. The frozen PR40
+action/lifecycle model ignores the added schema and produces byte-identical
+predictions for an enriched query. PR58 remains shadow-only; no selection,
+truth, policy, readout, flow, packet, or resource authority is added. Existing
+fortification queries remain on their frozen schema.
+
+The new rows are outcome-free at choice time. Only the already selected action
+may later receive the existing delayed durability label; nonselected choices
+remain explicitly censored. Therefore PR59 alone makes no calibration,
+counterfactual, ranking, gameplay, score, or win-rate claim.
+
+## Acceptance
+
+Focused feature and calibration compatibility tests cover complete grounding,
+stale routes, missing routes, action mismatches, domain rejection, duplicate
+projection rejection, outcome absence, and byte-identical frozen-model
+predictions. The 20 focused tests pass. The broader alternative-collection,
+episode-induction, FDAS-config, and harness suites pass all 180 tests.
+
+A clean one-game engine smoke is the next gate. It must show that move choice
+queries carry the exact PR59 schema, that at least one multi-candidate set has
+more than one grounded transition signature when its native mechanics differ,
+and that frozen prediction values, action decisions, rejection counts, and
+authority flags remain unchanged.
+
+After that mechanics gate, a separately preregistered discovery/confirmation
+design may fit candidate-specific values. It must reserve games and lineages
+before fitting, evaluate calibration and discrimination on untouched games,
+retain interval uncertainty, and abstain outside complete grounded support.

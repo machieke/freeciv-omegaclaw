@@ -670,3 +670,15 @@ specified candidate-specific calibration design with fresh held-out evidence,
 not a looser PR58 readout. See
 `fdas-pr58-decision-safe-candidate-readout.md` and
 `fdas-pr58-decision-safe-readout-smoke.json`.
+
+PR59 repairs the identified information boundary without changing the frozen
+model or readout. Reinforcement-move choice queries now append outcome-free,
+exact-revision transition features for actor HP/type, native route time/cost/
+length, source-city relation, and source-tile own/fortified support. Route
+turn/source sequence, actor origin/moves/transport state, first-step tile, and
+action cost must agree; otherwise the query records a bounded missingness
+reason and unknown mechanics rather than imputing them. The PR40 model remains
+byte-identical on enriched queries, fortification stays on its frozen schema,
+and all authority remains false. Twenty focused and 180 broader tests pass. A
+clean engine feature-yield smoke remains the next gate; see
+`fdas-pr59-candidate-transition-features.md`.

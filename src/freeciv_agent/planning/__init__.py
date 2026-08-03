@@ -175,6 +175,12 @@ from .fdas_candidate_calibration import (
     FdasCandidateCalibrationPrediction,
     fit_candidate_calibration,
 )
+from .fdas_candidate_transition_features import (
+    CANDIDATE_TRANSITION_FEATURE_KEYS,
+    CANDIDATE_TRANSITION_FEATURE_SCHEMA,
+    CANDIDATE_TRANSITION_OPERATION_TYPE,
+    candidate_transition_feature_query,
+)
 from .fdas_candidate_calibration_validation import (
     DEFAULT_VALIDATION_THRESHOLDS,
     VALIDATION_IDENTITY,
@@ -361,6 +367,10 @@ __all__ = [
     "CANDIDATE_CALIBRATION_SCHEMA_VERSION",
     "FdasCandidateCalibrationBin", "FdasCandidateCalibrationModel",
     "FdasCandidateCalibrationPrediction", "fit_candidate_calibration",
+    "CANDIDATE_TRANSITION_FEATURE_KEYS",
+    "CANDIDATE_TRANSITION_FEATURE_SCHEMA",
+    "CANDIDATE_TRANSITION_OPERATION_TYPE",
+    "candidate_transition_feature_query",
     "DEFAULT_VALIDATION_THRESHOLDS", "VALIDATION_IDENTITY",
     "evaluate_candidate_calibration",
     "load_candidate_calibration_confirmation",

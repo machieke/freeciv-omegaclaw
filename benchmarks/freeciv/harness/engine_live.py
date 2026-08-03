@@ -83,6 +83,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     build_calibrated_candidate_union,
                                     build_probe_candidate_union,
                                     causal_induction_feature_query,
+                                    candidate_transition_feature_query,
                                     load_candidate_calibration_confirmation,
                                     load_candidate_calibration_model,
                                     unambiguous_defense_choice_surface_candidates,
@@ -5794,20 +5795,28 @@ async def _play(run_dir, manifest, context):
                                             "revision_id": (
                                                 choice_revision.revision_id),
                                         })[:32])
+                                    surface_query = (
+                                        causal_induction_feature_query(
+                                            query_id,
+                                            context_signature,
+                                            delayed_outcome_target,
+                                            (
+                                                "candidate-hash:" +
+                                                candidate.candidate_hash,
+                                                "revision-id:" +
+                                                choice_revision.revision_id,
+                                                "snapshot-id:" +
+                                                snapshot.snapshot_id,
+                                            )))
+                                    if candidate.action.get(
+                                            "action_type") == "unit_move":
+                                        surface_query = (
+                                            candidate_transition_feature_query(
+                                                surface_query, candidate,
+                                                snapshot))
                                     surface_queries[
                                         candidate.operation.operation_id] = (
-                                            causal_induction_feature_query(
-                                                query_id,
-                                                context_signature,
-                                                delayed_outcome_target,
-                                                (
-                                                    "candidate-hash:" +
-                                                    candidate.candidate_hash,
-                                                    "revision-id:" +
-                                                    choice_revision.revision_id,
-                                                    "snapshot-id:" +
-                                                    snapshot.snapshot_id,
-                                                )))
+                                            surface_query)
                                 if fdas_candidate_calibration_model is not None:
                                     surface_scores = tuple(
                                         score_by_id[
