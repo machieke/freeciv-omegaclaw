@@ -19,7 +19,8 @@ It preserves the original query ID and causal episode features, and appends:
 - an explicit transition-grounding status.
 
 The projection accepts only the bounded city-garrison move operation. It binds
-route facts to the exact snapshot turn and source sequence, checks actor,
+route facts to the exact snapshot turn and a non-future source sequence, checks
+actor,
 origin, movement points, transport state, action cost, and first-step tile, and
 never imputes a missing value. A missing, unreachable, stale, or action-
 inconsistent route produces a fixed reason plus `unknown` mechanical features.
@@ -50,6 +51,20 @@ queries carry the exact PR59 schema, that at least one multi-candidate set has
 more than one grounded transition signature when its native mechanics differ,
 and that frozen prediction values, action decisions, rejection counts, and
 authority flags remain unchanged.
+
+The first clean integration attempt from commit `24ee0b3` reached turn 161
+without engine failures or rejected actions, but failed this feature-yield
+gate: all 436 move rows reported `route-stale`. Native path queries are issued
+earlier in the same authoritative refresh, so their source sequence is
+non-future but normally lower than the aggregate snapshot sequence. The first
+implementation incorrectly required equality even though the existing bounded
+movement authority requires the same turn plus `route.source_seq <=
+snapshot.source_seq`, then revalidates actor origin, moves, transport state,
+destination, and first step. The correction applies those established
+semantics to both PR59 and the latent PR58 grounding check. Tests prove an
+earlier same-turn route is accepted and a future route is rejected. The failed
+attempt is not feature-yield evidence and will not be pooled with the corrected
+smoke.
 
 After that mechanics gate, a separately preregistered discovery/confirmation
 design may fit candidate-specific values. It must reserve games and lineages

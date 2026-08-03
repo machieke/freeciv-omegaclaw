@@ -332,7 +332,7 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
                 or actor is None or city is None or route is None
                 or not route.reachable
                 or route.turn != snapshot.turn
-                or route.source_seq != snapshot.identity.source_seq
+                or route.source_seq > snapshot.identity.source_seq
                 or route.estimated_turns < 1
                 or any(value is None for value in (
                     actor.hp, actor.moves_left, actor.veteran,

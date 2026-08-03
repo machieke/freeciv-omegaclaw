@@ -675,10 +675,20 @@ PR59 repairs the identified information boundary without changing the frozen
 model or readout. Reinforcement-move choice queries now append outcome-free,
 exact-revision transition features for actor HP/type, native route time/cost/
 length, source-city relation, and source-tile own/fortified support. Route
-turn/source sequence, actor origin/moves/transport state, first-step tile, and
+turn/non-future source sequence, actor origin/moves/transport state,
+first-step tile, and
 action cost must agree; otherwise the query records a bounded missingness
 reason and unknown mechanics rather than imputing them. The PR40 model remains
 byte-identical on enriched queries, fortification stays on its frozen schema,
 and all authority remains false. Twenty focused and 180 broader tests pass. A
 clean engine feature-yield smoke remains the next gate; see
 `fdas-pr59-candidate-transition-features.md`.
+
+The first PR59 integration smoke from `24ee0b3` failed that gate despite a
+clean turn-161 endpoint: all 436 move queries were marked stale because the new
+projection required route/source-sequence equality. Native route queries are
+earlier responses within the same aggregate snapshot; established bounded
+movement semantics require an exact turn and a non-future sequence while also
+revalidating actor and first-step facts. PR59 and the latent identical PR58
+check now use that rule, with unit coverage for accepted earlier and rejected
+future route revisions. The failed feature-yield attempt remains excluded.

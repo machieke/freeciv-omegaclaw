@@ -117,7 +117,7 @@ def _grounded_features(candidate, snapshot):
     if route is None:
         return _unknown_features("route-unavailable")
     if (route.turn != snapshot.turn
-            or route.source_seq != snapshot.identity.source_seq):
+            or route.source_seq > snapshot.identity.source_seq):
         return _unknown_features("route-stale")
     if not route.reachable:
         return _unknown_features("route-unreachable")

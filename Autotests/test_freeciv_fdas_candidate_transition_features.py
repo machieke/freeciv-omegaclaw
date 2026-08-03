@@ -61,7 +61,7 @@ def _case():
         "path_length": 1,
         "reachable": True,
         "schema_version": "1.0",
-        "source_seq": 991,
+        "source_seq": 990,
         "total_movement_cost": 7,
         "transported_at_request": False,
         "turn": payload["turn"],
@@ -150,7 +150,7 @@ def test_transition_query_exposes_missing_or_inconsistent_grounding(
     snapshot, candidate, query = _case()
     if mutation == "stale":
         snapshot = replace(snapshot, movement_routes=tuple(
-            replace(value, source_seq=value.source_seq - 1)
+            replace(value, source_seq=snapshot.identity.source_seq + 1)
             for value in snapshot.movement_routes))
     elif mutation == "cost":
         candidate = replace(

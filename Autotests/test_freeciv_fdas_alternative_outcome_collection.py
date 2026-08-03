@@ -566,7 +566,10 @@ def test_alternative_collection_declaration_rejects_authority_leak():
 
 
 def test_decision_safe_readout_requires_interval_and_grounded_dominance(ir):
-    case = _decision_safe_case(ir)
+    case = list(_decision_safe_case(ir))
+    case[0] = replace(case[0], movement_routes=tuple(
+        replace(value, source_seq=case[0].identity.source_seq - 1)
+        for value in case[0].movement_routes))
     evaluator = FdasDecisionSafeCandidateReadoutEvaluator(
         FdasDecisionSafeCandidateReadoutConfig())
 
@@ -590,6 +593,20 @@ def test_decision_safe_readout_requires_interval_and_grounded_dominance(ir):
         "homecity-relation", "hit-points", "moves-left",
         "total-movement-cost", "unit-type", "veteran-level",
     }
+
+
+def test_decision_safe_readout_rejects_future_route_revision(ir):
+    case = list(_decision_safe_case(ir))
+    case[0] = replace(case[0], movement_routes=tuple(
+        replace(value, source_seq=case[0].identity.source_seq + 1)
+        for value in case[0].movement_routes))
+    evaluator = FdasDecisionSafeCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[3], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert readout.reason == "control-grounded-transition-input-unavailable"
 
 
 def test_decision_safe_readout_abstains_when_intervals_overlap(ir):
