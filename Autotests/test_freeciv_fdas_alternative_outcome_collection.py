@@ -7,6 +7,7 @@ import pytest
 
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.planning import (
+    CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY,
     CandidateInstantiation,
     CandidateOperationFactory,
     FdasAlternativeOutcomeCollectionConfig,
@@ -314,7 +315,9 @@ def _movement_case(ir):
 
 def _decision_safe_case(ir, control_interval=(0.30, 0.40, 0.50),
                         treatment_interval=(0.70, 0.80, 0.90),
-                        treatment_route_turns=1):
+                        treatment_route_turns=1,
+                        prediction_reasons=(
+                            "test-control", "test-treatment")):
     case = list(_movement_case(ir))
     snapshot = case[0]
     baseline = next(
@@ -344,14 +347,14 @@ def _decision_safe_case(ir, control_interval=(0.30, 0.40, 0.50),
         FdasCalibratedCandidateReadout(
             baseline_id, baseline.action_key,
             baseline.operation.operation_type,
-            1, 0.80, "estimated", "test-control",
+            1, 0.80, "estimated", prediction_reasons[0],
             "prediction-control", control_interval[1],
             control_interval[0], control_interval[2], 12, True,
             "calibrated-transition-recall"),
         FdasCalibratedCandidateReadout(
             treatment_id, treatment.action_key,
             treatment.operation.operation_type,
-            2, 0.79, "estimated", "test-treatment",
+            2, 0.79, "estimated", prediction_reasons[1],
             "prediction-treatment", treatment_interval[1],
             treatment_interval[0], treatment_interval[2], 12, True,
             "calibrated-transition-recall"),
@@ -808,6 +811,66 @@ def test_scalar_readout_fails_closed_without_ruleset_unit_profile(ir):
     assert readout.reason == (
         "control-ruleset-defensive-capability-unavailable")
     assert readout.candidates == ()
+
+
+def test_scalar_readout_prefers_exact_calibration_grounded_pareto(ir):
+    interval = (0.30, 0.40, 0.50)
+    case = list(_decision_safe_case(
+        ir, control_interval=interval, treatment_interval=interval,
+        prediction_reasons=("action-estimate", "action-estimate")))
+    baseline_id = case[6].baseline_selected_operation_id
+    baseline = next(
+        value for value in case[4]
+        if value.operation.operation_id == baseline_id)
+    case[0] = replace(case[0], movement_routes=tuple(
+        replace(
+            value,
+            estimated_turns=2,
+            total_movement_cost=value.total_movement_cost * 2)
+        if value.unit_id == baseline.action["actor_id"] else value
+        for value in case[0].movement_routes))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator(
+        ruleset_ir=ir, calibrated_equivalence_pareto=True)
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "eligible-shadow"
+    assert readout.identity == (
+        CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY)
+    assert readout.reason == (
+        "calibrated-equivalence-and-grounded-pareto-dominance")
+    proposed = next(
+        value for value in readout.candidates
+        if value.operation_id == readout.proposed_operation_id)
+    assert proposed.eligibility_reason == (
+        "eligible-calibrated-equivalence-pareto")
+    assert proposed.strict_grounded_improvements == (
+        "estimated-turns", "total-movement-cost")
+    assert proposed.calibration_prediction_reason == "action-estimate"
+    assert not any(value.endswith(":calibrated-interval-overlap")
+                   for value in readout.rejected)
+
+
+def test_scalar_equivalence_readout_requires_strict_grounded_improvement(ir):
+    interval = (0.30, 0.40, 0.50)
+    case = _decision_safe_case(
+        ir, control_interval=interval, treatment_interval=interval,
+        prediction_reasons=("action-estimate", "action-estimate"))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator(
+        ruleset_ir=ir, calibrated_equivalence_pareto=True)
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "abstained"
+    alternative = next(
+        value for value in readout.candidates
+        if value.operation_id != readout.baseline_operation_id)
+    assert alternative.eligibility_reason == "grounded-noninferior"
+    assert alternative.strict_grounded_improvements == ()
+    assert any(value.endswith(":calibrated-interval-overlap")
+               for value in readout.rejected)
 
 
 def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):

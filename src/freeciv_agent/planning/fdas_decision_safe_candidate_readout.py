@@ -105,6 +105,8 @@ class FdasGroundedCandidateValue:
     eligibility_reason: str
     noninferiority_checks: tuple
     defensive_capability: object = None
+    calibration_prediction_reason: object = None
+    strict_grounded_improvements: tuple = ()
 
     def __post_init__(self):
         for value, name in (
@@ -158,6 +160,19 @@ class FdasGroundedCandidateValue:
                     self.defensive_capability, FdasDefensiveCapability)):
             raise TypeError(
                 "grounded candidate defensive capability is invalid")
+        if (self.calibration_prediction_reason is not None
+                and (not isinstance(self.calibration_prediction_reason, str)
+                     or not self.calibration_prediction_reason)):
+            raise ValueError(
+                "grounded candidate calibration reason is invalid")
+        improvements = tuple(sorted(set(
+            str(value) for value in self.strict_grounded_improvements)))
+        if (any(not value for value in improvements)
+                or (improvements
+                    and self.calibration_prediction_reason is None)):
+            raise ValueError(
+                "grounded candidate strict improvement is invalid")
+        object.__setattr__(self, "strict_grounded_improvements", improvements)
 
     def to_dict(self):
         value = {
@@ -184,6 +199,11 @@ class FdasGroundedCandidateValue:
         if self.defensive_capability is not None:
             value["defensive_capability"] = (
                 self.defensive_capability.to_dict())
+        if self.calibration_prediction_reason is not None:
+            value["calibration_prediction_reason"] = (
+                self.calibration_prediction_reason)
+            value["strict_grounded_improvements"] = list(
+                self.strict_grounded_improvements)
         return value
 
 
@@ -291,6 +311,7 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
                 "decision-safe evaluator requires a typed defensive "
                 "capability resolver")
         self.defensive_capability_resolver = defensive_capability_resolver
+        self.record_calibration_comparison = False
 
     def _readout(self, status, reason, snapshot, revision, calibrated_union,
                  baseline_operation_id=None, proposed_operation_id=None,
@@ -408,6 +429,9 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
             eligibility_reason,
             tuple(checks),
             defensive_capability,
+            (prediction.prediction_reason
+             if self.record_calibration_comparison else None),
+            (),
         ), None
 
     def _ground(self, candidate, prediction, snapshot, revision, goals,
@@ -468,6 +492,44 @@ class FdasDecisionSafeCandidateReadoutEvaluator:
         passed = tuple(sorted(name for name, value in checks.items()
                               if value))
         return not failed, passed, failed
+
+    def _strict_grounded_improvements(self, control, alternative):
+        improvements = []
+        for name, alternative_value, control_value, lower_is_better in (
+                ("estimated-turns", alternative.estimated_turns,
+                 control.estimated_turns, True),
+                ("first-step-movement-cost",
+                 alternative.first_step_movement_cost,
+                 control.first_step_movement_cost, True),
+                ("homecity-relation",
+                 self._HOMECITY_RANK[alternative.homecity_relation],
+                 self._HOMECITY_RANK[control.homecity_relation], False),
+                ("hit-points", alternative.hp, control.hp, False),
+                ("moves-left", alternative.moves_left,
+                 control.moves_left, False),
+                ("total-movement-cost",
+                 alternative.total_movement_cost,
+                 control.total_movement_cost, True),
+                ("veteran-level", alternative.veteran,
+                 control.veteran, False)):
+            if ((lower_is_better and alternative_value < control_value)
+                    or (not lower_is_better
+                        and alternative_value > control_value)):
+                improvements.append(name)
+        if self.defensive_capability_resolver is not None:
+            control_capability = control.defensive_capability
+            alternative_capability = alternative.defensive_capability
+            for name, alternative_value, control_value in (
+                    ("ruleset-defense", alternative_capability.defense,
+                     control_capability.defense),
+                    ("ruleset-firepower", alternative_capability.firepower,
+                     control_capability.firepower),
+                    ("ruleset-maximum-hitpoints",
+                     alternative_capability.maximum_hitpoints,
+                     control_capability.maximum_hitpoints)):
+                if alternative_value > control_value:
+                    improvements.append(name)
+        return tuple(sorted(improvements))
 
     def evaluate(self, snapshot, revision, shadow_evaluation,
                  legacy_candidate, candidates, calibrated_union):

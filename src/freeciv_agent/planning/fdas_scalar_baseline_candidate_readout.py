@@ -16,9 +16,12 @@ SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY = (
     "fdas-scalar-baseline-candidate-readout/1.0")
 RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY = (
     "fdas-scalar-baseline-candidate-readout/1.1")
+CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY = (
+    "fdas-scalar-baseline-candidate-readout/1.2")
 SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITIES = frozenset((
     SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
     RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+    CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY,
 ))
 SCALAR_BASELINE_CONTROL_SEMANTICS = "protected-fdas-scalar-top-1"
 
@@ -111,15 +114,37 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
         FdasDecisionSafeCandidateReadoutEvaluator):
     """Compare protected candidates only with their scalar top-1 control."""
 
-    def __init__(self, config=None, ruleset_ir=None):
+    def __init__(self, config=None, ruleset_ir=None,
+                 calibrated_equivalence_pareto=False):
+        if not isinstance(calibrated_equivalence_pareto, bool):
+            raise TypeError(
+                "calibrated equivalence Pareto flag must be boolean")
+        if calibrated_equivalence_pareto and ruleset_ir is None:
+            raise ValueError(
+                "calibrated equivalence Pareto requires ruleset grounding")
         resolver = (
             None if ruleset_ir is None
             else FdasDefensiveCapabilityResolver(ruleset_ir))
         super().__init__(config, resolver)
+        self.calibrated_equivalence_pareto = calibrated_equivalence_pareto
+        self.record_calibration_comparison = calibrated_equivalence_pareto
         self.readout_identity = (
             SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY
             if resolver is None else
+            CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY
+            if calibrated_equivalence_pareto else
             RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+
+    @staticmethod
+    def _calibrated_equivalent(control, alternative):
+        return all(getattr(control, name) == getattr(alternative, name)
+                   for name in (
+                       "effective_lineages",
+                       "estimate",
+                       "interval_lower",
+                       "interval_upper",
+                       "prediction_reason",
+                   ))
 
     @staticmethod
     def _pair_scope_rejections(candidate, baseline_candidate):
@@ -253,19 +278,32 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
                 continue
             noninferior, passed, failed = self._noninferiority(
                 control, alternative)
+            strict_improvements = (
+                self._strict_grounded_improvements(control, alternative)
+                if self.calibrated_equivalence_pareto else ())
+            calibrated_equivalent = bool(
+                self.calibrated_equivalence_pareto
+                and self._calibrated_equivalent(
+                    baseline_prediction, predictions.get(operation_id)))
+            equivalence_pareto = bool(
+                self.calibrated_equivalence_pareto
+                and noninferior
+                and calibrated_equivalent
+                and strict_improvements)
             alternative = FdasGroundedCandidateValue(**{
                 **alternative.__dict__,
                 "eligibility_reason": (
                     "grounded-noninferior"
                     if noninferior else "grounded-noninferiority-failed"),
                 "noninferiority_checks": passed,
+                "strict_grounded_improvements": strict_improvements,
             })
             separated = (
                 alternative.interval_lower
                 >= control.interval_upper
                 + self.config.minimum_interval_separation
                 and alternative.interval_lower > control.interval_upper)
-            if not separated:
+            if not separated and not equivalence_pareto:
                 grounded.append(alternative)
                 rejected.append(
                     operation_id + ":calibrated-interval-overlap")
@@ -277,7 +315,11 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
             alternative = FdasGroundedCandidateValue(**{
                 **alternative.__dict__,
                 "eligibility_reason": (
-                    "eligible" if noninferior
+                    ("eligible-interval-separated"
+                     if self.calibrated_equivalence_pareto and separated else
+                     "eligible-calibrated-equivalence-pareto"
+                     if equivalence_pareto else
+                     "eligible") if noninferior
                     else "grounded-noninferiority-failed"),
                 "noninferiority_checks": passed,
             })
@@ -300,6 +342,8 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
         selected = sorted(
             eligible,
             key=lambda value: (
+                (0 if value.eligibility_reason
+                 in ("eligible", "eligible-interval-separated") else 1),
                 -value.interval_lower,
                 -value.estimate,
                 value.estimated_turns,
@@ -308,7 +352,11 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
                 -value.veteran,
                 value.operation_id))[0]
         return self._readout(
-            "eligible-shadow", "calibrated-and-grounded-dominance",
+            "eligible-shadow",
+            ("calibrated-equivalence-and-grounded-pareto-dominance"
+             if selected.eligibility_reason
+             == "eligible-calibrated-equivalence-pareto" else
+             "calibrated-and-grounded-dominance"),
             snapshot, revision, protected_union,
             baseline_operation_id=baseline_id,
             proposed_operation_id=selected.operation_id,

@@ -3325,9 +3325,17 @@ async def _play(run_dir, manifest, context):
                 "ruleset_defensive_noninferiority_required", False)
             if isinstance(scalar_baseline_readout_diagnostic, dict)
             else False)
+        calibrated_equivalence_pareto = (
+            scalar_baseline_readout_diagnostic.get(
+                "calibrated_equivalence_pareto_required", False)
+            if isinstance(scalar_baseline_readout_diagnostic, dict)
+            else False)
         if ruleset_defensive_noninferiority:
             expected_scalar_baseline_keys.add(
                 "ruleset_defensive_noninferiority_required")
+        if calibrated_equivalence_pareto:
+            expected_scalar_baseline_keys.add(
+                "calibrated_equivalence_pareto_required")
         if scalar_baseline_readout_capability != "shadow-live":
             raise RuntimeError(
                 "FDAS scalar-baseline readout requires shadow-live manifest")
@@ -3348,6 +3356,17 @@ async def _play(run_dir, manifest, context):
                     "ruleset_defensive_noninferiority_required"] is not True):
             raise RuntimeError(
                 "FDAS ruleset defensive noninferiority must be required")
+        if ("calibrated_equivalence_pareto_required"
+                in scalar_baseline_readout_diagnostic
+                and scalar_baseline_readout_diagnostic[
+                    "calibrated_equivalence_pareto_required"] is not True):
+            raise RuntimeError(
+                "FDAS calibrated equivalence Pareto must be required")
+        if (calibrated_equivalence_pareto
+                and not ruleset_defensive_noninferiority):
+            raise RuntimeError(
+                "FDAS calibrated equivalence Pareto requires ruleset "
+                "defensive noninferiority")
         if (scalar_baseline_readout_diagnostic[
                     "protected_candidate_union_required"] is not True
                 or not fdas_grounded_transition_candidate_union
@@ -3372,7 +3391,9 @@ async def _play(run_dir, manifest, context):
                 scalar_baseline_config,
                 ruleset_ir=(
                     observability_ir
-                    if ruleset_defensive_noninferiority else None)))
+                    if ruleset_defensive_noninferiority else None),
+                calibrated_equivalence_pareto=(
+                    calibrated_equivalence_pareto)))
     if fdas_decision_safe_candidate_filter:
         expected_candidate_filter = {
             "action_selection_changed": False,

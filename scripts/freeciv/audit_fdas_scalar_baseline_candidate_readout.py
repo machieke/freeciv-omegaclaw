@@ -28,6 +28,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
 )
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY,
     DEFENSIVE_CAPABILITY_IDENTITY,
     FdasCandidateChoiceSetStore,
     FdasDecisionSafeCandidateReadoutConfig,
@@ -97,6 +98,48 @@ def _validate_defensive_capability(value):
         and signature == sorted(set(signature)))
 
 
+def _strict_grounded_improvements(control, proposed):
+    homecity_rank = {"none": 0, "other": 1, "target": 2}
+    improvements = []
+    for name, proposed_value, control_value, lower_is_better in (
+            ("estimated-turns", proposed.get("estimated_turns"),
+             control.get("estimated_turns"), True),
+            ("first-step-movement-cost",
+             proposed.get("first_step_movement_cost"),
+             control.get("first_step_movement_cost"), True),
+            ("homecity-relation",
+             homecity_rank.get(proposed.get("homecity_relation"), -1),
+             homecity_rank.get(control.get("homecity_relation"), 99), False),
+            ("hit-points", proposed.get("hp"), control.get("hp"), False),
+            ("moves-left", proposed.get("moves_left"),
+             control.get("moves_left"), False),
+            ("total-movement-cost", proposed.get("total_movement_cost"),
+             control.get("total_movement_cost"), True),
+            ("veteran-level", proposed.get("veteran"),
+             control.get("veteran"), False)):
+        if (isinstance(proposed_value, (int, float))
+                and isinstance(control_value, (int, float))
+                and ((lower_is_better and proposed_value < control_value)
+                     or (not lower_is_better
+                         and proposed_value > control_value))):
+            improvements.append(name)
+    proposed_capability = proposed.get("defensive_capability", {})
+    control_capability = control.get("defensive_capability", {})
+    for name, proposed_value, control_value in (
+            ("ruleset-defense", proposed_capability.get("defense"),
+             control_capability.get("defense")),
+            ("ruleset-firepower", proposed_capability.get("firepower"),
+             control_capability.get("firepower")),
+            ("ruleset-maximum-hitpoints",
+             proposed_capability.get("maximum_hitpoints"),
+             control_capability.get("maximum_hitpoints"))):
+        if (isinstance(proposed_value, (int, float))
+                and isinstance(control_value, (int, float))
+                and proposed_value > control_value):
+            improvements.append(name)
+    return tuple(sorted(improvements))
+
+
 def _validate_readout(details, payload, protected_parent):
     errors = []
     if not isinstance(details, dict):
@@ -143,9 +186,10 @@ def _validate_readout(details, payload, protected_parent):
         for value in candidates if isinstance(value, dict))
     if len(by_id) != len(candidates) or None in by_id:
         errors.append("scalar-baseline-candidate-identities-differ")
-    ruleset_defensive = (
-        identity
-        == RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY)
+    ruleset_defensive = identity in (
+        RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
+        CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY,
+    )
     if ruleset_defensive:
         capabilities = tuple(
             value.get("defensive_capability")
@@ -159,6 +203,21 @@ def _validate_readout(details, payload, protected_parent):
     elif any(isinstance(value, dict)
              and "defensive_capability" in value for value in candidates):
         errors.append("scalar-baseline-legacy-capability-leaked")
+    equivalence_pareto = (
+        identity
+        == CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY)
+    if equivalence_pareto:
+        for candidate in candidates:
+            reason = candidate.get("calibration_prediction_reason")
+            improvements = candidate.get("strict_grounded_improvements")
+            if (not isinstance(reason, str) or not reason
+                    or not isinstance(improvements, list)
+                    or any(not isinstance(value, str) or not value
+                           for value in improvements)
+                    or improvements != sorted(set(improvements))):
+                errors.append(
+                    "scalar-baseline-equivalence-provenance-differs")
+                break
     parent_members = set(
         value.get("operation_id")
         for value in protected_parent.get("members", ())
@@ -178,21 +237,42 @@ def _validate_readout(details, payload, protected_parent):
     status = details.get("status")
     if status == "eligible-shadow":
         proposed = by_id.get(proposed_id)
+        expected_reason = details.get("reason")
         if (details.get("shadow_preference") is not True
                 or control is None or proposed is None
                 or proposed_id == baseline_id
-                or details.get("reason")
-                != "calibrated-and-grounded-dominance"):
+                or expected_reason not in (
+                    "calibrated-and-grounded-dominance",
+                    "calibrated-equivalence-and-grounded-pareto-dominance")):
             errors.append("scalar-baseline-eligible-binding-differs")
         if control is not None and proposed is not None:
             separation = (
                 0.0 if config is None
                 else config.minimum_interval_separation)
-            if not (
+            intervals_separated = (
                     proposed.get("interval_lower")
                     > control.get("interval_upper")
                     and proposed.get("interval_lower")
-                    >= control.get("interval_upper") + separation):
+                    >= control.get("interval_upper") + separation)
+            pareto_basis = bool(
+                equivalence_pareto
+                and expected_reason
+                == "calibrated-equivalence-and-grounded-pareto-dominance")
+            exact_calibration = all(
+                proposed.get(name) == control.get(name) for name in (
+                    "calibration_prediction_reason",
+                    "effective_lineages",
+                    "estimate",
+                    "interval_lower",
+                    "interval_upper",
+                ))
+            strict_improvements = _strict_grounded_improvements(
+                control, proposed)
+            if (not intervals_separated
+                    and not (pareto_basis and exact_calibration
+                             and strict_improvements
+                             and list(strict_improvements)
+                             == proposed.get("strict_grounded_improvements"))):
                 errors.append("scalar-baseline-intervals-are-not-separated")
             homecity_rank = {"none": 0, "other": 1, "target": 2}
             noninferior = (
@@ -235,7 +315,11 @@ def _validate_readout(details, payload, protected_parent):
                 errors.append("scalar-baseline-grounded-noninferiority-differs")
             if (set(proposed.get("noninferiority_checks", ()))
                     != required_checks
-                    or proposed.get("eligibility_reason") != "eligible"):
+                    or proposed.get("eligibility_reason") != (
+                        "eligible-calibrated-equivalence-pareto"
+                        if pareto_basis else
+                        "eligible-interval-separated"
+                        if equivalence_pareto else "eligible")):
                 errors.append("scalar-baseline-grounded-checks-differ")
     elif status == "abstained":
         if (details.get("shadow_preference") is not False

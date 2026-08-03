@@ -17,6 +17,7 @@ from audit_fdas_scalar_baseline_candidate_readout import (  # noqa: E402
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY,
     DEFENSIVE_CAPABILITY_IDENTITY,
     RULESET_DEFENSIVE_SCALAR_BASELINE_CANDIDATE_READOUT_IDENTITY,
 )
@@ -198,3 +199,43 @@ def test_scalar_baseline_audit_rejects_inferior_ruleset_defense():
     }, _parent())
 
     assert "scalar-baseline-grounded-noninferiority-differs" in errors
+
+
+def test_scalar_baseline_audit_accepts_calibrated_equivalence_pareto():
+    details = _details()
+    details["identity"] = (
+        CALIBRATED_EQUIVALENCE_PARETO_CANDIDATE_READOUT_IDENTITY)
+    details["reason"] = (
+        "calibrated-equivalence-and-grounded-pareto-dominance")
+    control, treatment = details["candidates"]
+    control["estimated_turns"] = 2
+    control["total_movement_cost"] = 6
+    control["defensive_capability"] = _capability("unit-control")
+    treatment["unit_type"] = "Alpine Troops"
+    treatment["estimated_turns"] = 1
+    treatment["total_movement_cost"] = 3
+    treatment["defensive_capability"] = _capability("unit-treatment")
+    treatment["estimate"] = control["estimate"] = 0.4
+    treatment["interval_lower"] = control["interval_lower"] = 0.2
+    treatment["interval_upper"] = control["interval_upper"] = 0.6
+    treatment["effective_lineages"] = control["effective_lineages"] = 17
+    for candidate in (control, treatment):
+        candidate["calibration_prediction_reason"] = "action-estimate"
+        candidate["strict_grounded_improvements"] = []
+    treatment["strict_grounded_improvements"] = [
+        "estimated-turns", "total-movement-cost"]
+    treatment["noninferiority_checks"] = sorted(
+        RULESET_DEFENSIVE_NONINFERIORITY_CHECKS)
+    treatment["eligibility_reason"] = (
+        "eligible-calibrated-equivalence-pareto")
+    semantic = copy.deepcopy(details)
+    semantic.pop("result_hash")
+    details["result_hash"] = structural_hash(semantic)
+
+    errors, measures = _validate_readout(details, {
+        "revision_id": "revision-test",
+        "snapshot_id": "snapshot-test",
+    }, _parent())
+
+    assert errors == ()
+    assert measures["shadow_preferences"] == 1
