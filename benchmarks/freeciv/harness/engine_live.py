@@ -6491,10 +6491,31 @@ async def _play(run_dir, manifest, context):
                                         and alternative_readout.status
                                         == "eligible-randomized-diagnostic"
                                     ) else ())))
+                        selected_episode_id = episode.episode_id
+                        if (alternative_readout is not None
+                                and alternative_readout.status
+                                == "eligible-randomized-diagnostic"):
+                            alternative_execution_event = (
+                                fdas_runtime
+                                .emit_alternative_outcome_execution(
+                                    writer, action_snapshot,
+                                    alternative_readout, True,
+                                    outcome.action_result_event_id
+                                    or outcome.result_event_id or parent,
+                                    episode_id=selected_episode_id,
+                                    caused_by=(parent,)))
+                            if alternative_execution_event is not None:
+                                parent = alternative_execution_event[
+                                    "event_id"]
+                            decision_stats[
+                                "fdas_alternative_collection_execution_"
+                                "accepted"] += 1
+                            decision_stats[
+                                "fdas_alternative_collection_episode_links"
+                            ] += 1
                         parent = publish_fdas_episode_revision(
                             action_snapshot, parent,
                             opened_episode_id=episode.episode_id)
-                        selected_episode_id = episode.episode_id
                         decision_stats["fdas_episode_opened"] += 1
                     elif (fdas_authority is not None
                             and fdas_authority.authorized):
@@ -6527,26 +6548,11 @@ async def _play(run_dir, manifest, context):
                         decision_stats["fdas_episode_opened"] += 1
                     if (alternative_readout is not None
                             and alternative_readout.status
-                            == "eligible-randomized-diagnostic"):
-                        if selected_episode_id is None:
-                            raise RuntimeError(
-                                "accepted FDAS randomized assignment lacks "
-                                "a linked episode")
-                        alternative_execution_event = (
-                            fdas_runtime.emit_alternative_outcome_execution(
-                                writer, action_snapshot,
-                                alternative_readout, True,
-                                outcome.action_result_event_id
-                                or outcome.result_event_id or parent,
-                                episode_id=selected_episode_id,
-                                caused_by=(parent,)))
-                        if alternative_execution_event is not None:
-                            parent = alternative_execution_event["event_id"]
-                        decision_stats[
-                            "fdas_alternative_collection_execution_accepted"
-                        ] += 1
-                        decision_stats[
-                            "fdas_alternative_collection_episode_links"] += 1
+                            == "eligible-randomized-diagnostic"
+                            and selected_episode_id is None):
+                        raise RuntimeError(
+                            "accepted FDAS randomized assignment lacks "
+                            "a linked episode")
                     if (candidate_choice_set is not None
                             and candidate_choice_set
                             .selected_operation_id is not None):
