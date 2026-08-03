@@ -98,6 +98,7 @@ class ShadowOperationCandidate:
                     "fdas-safe-alternative-outcome-collection/1.3",
                     "fdas-safe-alternative-outcome-collection/2.0",
                     "fdas-safe-alternative-outcome-collection/3.0",
+                    "fdas-safe-alternative-outcome-collection/4.0",
                 )))
             if not (
                     city_stability

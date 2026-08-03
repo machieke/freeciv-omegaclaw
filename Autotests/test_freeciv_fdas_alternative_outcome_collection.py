@@ -1,4 +1,5 @@
 import copy
+from dataclasses import replace
 import json
 import os
 
@@ -318,7 +319,8 @@ def test_alternative_collection_records_stable_safe_shadow_assignment(ir):
     assert first.selection_policy_kind == "stochastic"
     assert first.selection_propensity == 0.5
     assert first.assigned_arm in ("control", "treatment")
-    assert first.checks[-1] == "stable-propensity-recorded-assignment"
+    assert first.checks[-1] == (
+        "bookkeeping-invariant-propensity-recorded-assignment")
     assert tuple(value.arm for value in first.arms) == (
         "control", "treatment")
     assert first.arms[0].resource_keys != first.arms[1].resource_keys
@@ -366,7 +368,7 @@ def test_alternative_collection_preflights_matched_reinforcement_pair(ir):
     assert readout.checks[-3:] == (
         "control-exact-preflight",
         "treatment-exact-preflight",
-        "stable-propensity-recorded-assignment",
+        "bookkeeping-invariant-propensity-recorded-assignment",
     )
     assert all(
         value.target_ref == "city:3" for value in readout.arms)
@@ -414,6 +416,48 @@ def test_randomized_diagnostic_revalidates_one_exact_authority_readout(ir):
     assert "claim-ineligible-randomized-diagnostic" in authority.provenance
     assert any(value.startswith("selection-propensity:")
                for value in authority.provenance)
+
+
+def test_randomized_assignment_key_excludes_bookkeeping_hashes(ir):
+    case = _movement_case(ir)
+    evaluator = FdasAlternativeOutcomeCollectionEvaluator(
+        FdasAlternativeOutcomeCollectionConfig(
+            "fdas-reinforcement-randomized-pilot-v1", 1777,
+            allowed_action_type="unit_move",
+            alternative_source="bounded-nearest-score",
+            mode="randomized-diagnostic"))
+    assignment = evaluator.evaluate(*case)
+    control, treatment = assignment.arms
+
+    material = evaluator._assignment_material(
+        case[0], control, treatment)
+    changed_bookkeeping = evaluator._assignment_material(
+        case[0],
+        replace(
+            control,
+            operation_id="changed-control-operation",
+            pressure_evaluation_hash="changed-control-pressure",
+            resource_packet_artifact_hash="changed-control-packet",
+            commit_validation_hash="changed-control-commit"),
+        replace(
+            treatment,
+            operation_id="changed-treatment-operation",
+            pressure_evaluation_hash="changed-treatment-pressure",
+            resource_packet_artifact_hash="changed-treatment-packet",
+            commit_validation_hash="changed-treatment-commit"))
+
+    assert material == changed_bookkeeping
+    assert set(material) == {
+        "assignment_unit",
+        "control_action_key",
+        "experiment_id",
+        "game_id",
+        "policy_version",
+        "randomization_seed",
+        "treatment_action_key",
+        "turn",
+    }
+    assert structural_hash(material) == assignment.assignment_material_hash
 
 
 def test_shadow_assignment_cannot_be_exposed_as_action_authority(ir):

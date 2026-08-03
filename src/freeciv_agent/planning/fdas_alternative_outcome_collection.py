@@ -32,9 +32,10 @@ from .operations import (
 
 
 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY = (
-    "fdas-safe-alternative-outcome-collection/3.0")
+    "fdas-safe-alternative-outcome-collection/4.0")
 ALTERNATIVE_OUTCOME_POLICY_VERSION = (
-    "fdas-defense-nearest-score-randomized/3.0")
+    "fdas-defense-nearest-score-randomized/4.0")
+ALTERNATIVE_ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
 
 
 def _finite(value, name):
@@ -444,6 +445,19 @@ class FdasAlternativeOutcomeCollectionEvaluator:
         return FdasAlternativeOutcomeCollectionReadout(
             result_hash=structural_hash(semantic), **values)
 
+    def _assignment_material(self, snapshot, control_arm, treatment_arm):
+        """Build an exogenous key isolated from FDAS bookkeeping hashes."""
+        return {
+            "assignment_unit": ALTERNATIVE_ASSIGNMENT_UNIT,
+            "control_action_key": control_arm.action_key,
+            "experiment_id": self.config.experiment_id,
+            "game_id": snapshot.identity.game_id,
+            "policy_version": ALTERNATIVE_OUTCOME_POLICY_VERSION,
+            "randomization_seed": self.config.randomization_seed,
+            "treatment_action_key": treatment_arm.action_key,
+            "turn": snapshot.turn,
+        }
+
     @staticmethod
     def _promote(candidate, source_record):
         contract = {
@@ -768,17 +782,8 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 arms=(control_arm,), priority_regret=priority_regret,
                 risk_penalty_delta=risk_delta)
         checks.append("treatment-exact-preflight")
-        material = {
-            "control_operation_id": control_arm.operation_id,
-            "experiment_id": self.config.experiment_id,
-            "game_id": snapshot.identity.game_id,
-            "persistence_union_result_hash": persistence_union.result_hash,
-            "policy_version": ALTERNATIVE_OUTCOME_POLICY_VERSION,
-            "randomization_seed": self.config.randomization_seed,
-            "revision_id": revision.revision_id,
-            "snapshot_id": snapshot.snapshot_id,
-            "treatment_operation_id": treatment_arm.operation_id,
-        }
+        material = self._assignment_material(
+            snapshot, control_arm, treatment_arm)
         assignment_hash = structural_hash(material)
         draw = int(assignment_hash[:16], 16) / float(2 ** 64)
         assigned_arm = (
@@ -788,7 +793,8 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             self.config.treatment_probability
             if assigned_arm == "treatment"
             else 1.0 - self.config.treatment_probability)
-        checks.append("stable-propensity-recorded-assignment")
+        checks.append(
+            "bookkeeping-invariant-propensity-recorded-assignment")
         return self._readout(
             ("eligible-randomized-diagnostic"
              if self.config.mode == "randomized-diagnostic" else
