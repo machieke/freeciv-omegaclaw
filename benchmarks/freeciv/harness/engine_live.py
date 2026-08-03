@@ -77,6 +77,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
                                     EpisodeControlPrediction,
                                     FdasDefenseActorPersistenceLabeler,
+                                    FdasCoordinatedReplacementAdapter,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2687,6 +2688,33 @@ async def _play(run_dir, manifest, context):
             structural_hash(observability_ir.to_dict()))
     fdas_ruleset_digest = structural_hash(
         observability_ir.to_dict())
+    fdas_replacement_path = os.path.join(
+        run_dir, "fdas-coordinated-replacement-operations.json")
+    fdas_replacement_store = None
+    fdas_replacement_adapter = None
+    fdas_replacement_shadow = (
+        fdas_manifest["capabilities"].get(
+            "coordinated_replacement_lifecycle") == "shadow-live")
+    if fdas_replacement_shadow:
+        if not fdas_projection_config["operations"]:
+            raise RuntimeError(
+                "FDAS coordinated replacement requires operation projection")
+        fdas_replacement_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"],
+            "fdas-coordinated-replacement-operations/1.0",
+        ])
+        fdas_replacement_store = OperationStore.load(
+            fdas_replacement_path, fdas_replacement_identity)
+        if fdas_replacement_store.quarantined:
+            raise RuntimeError(
+                "FDAS coordinated replacement store is quarantined: {}"
+                .format(fdas_replacement_store.quarantine_reason))
+        fdas_replacement_adapter = FdasCoordinatedReplacementAdapter(
+            fdas_replacement_store, fdas_ruleset_digest)
+        # Persist the empty store as activation evidence even when a game has
+        # no exact coordinated-replacement opportunity.
+        fdas_replacement_store.save(fdas_replacement_path)
     fdas_transport_path = os.path.join(
         run_dir, "fdas-transport-lifecycle.json")
     fdas_transport_lifecycle = None
@@ -3713,6 +3741,8 @@ async def _play(run_dir, manifest, context):
             manifest["game_id"]))
         if fdas_expansion_store is not None:
             rows += fdas_expansion_store.records()
+        if fdas_replacement_store is not None:
+            rows += fdas_replacement_store.records()
         if fdas_transport_lifecycle is not None:
             rows += fdas_transport_lifecycle.store.records()
         operation_ids = tuple(value.spec.operation_id for value in rows)
@@ -3724,6 +3754,8 @@ async def _play(run_dir, manifest, context):
         rows = ()
         if fdas_expansion_adapter is not None:
             rows += fdas_expansion_adapter.bindings()
+        if fdas_replacement_adapter is not None:
+            rows += fdas_replacement_adapter.bindings()
         if fdas_transport_adapter is not None:
             rows += fdas_transport_adapter.bindings()
         operation_ids = tuple(value.operation_id for value in rows)
@@ -3735,6 +3767,8 @@ async def _play(run_dir, manifest, context):
         rows = ()
         if fdas_expansion_adapter is not None:
             rows += fdas_expansion_adapter.requirement_contexts()
+        if fdas_replacement_adapter is not None:
+            rows += fdas_replacement_adapter.requirement_contexts()
         if fdas_transport_adapter is not None:
             rows += fdas_transport_adapter.requirement_contexts()
         operation_ids = tuple(value.operation_id for value in rows)
@@ -3750,11 +3784,13 @@ async def _play(run_dir, manifest, context):
         operation_bindings_source=(
             None
             if (fdas_expansion_adapter is None
+                and fdas_replacement_adapter is None
                 and fdas_transport_adapter is None)
             else fdas_operation_bindings),
         operation_requirement_contexts_source=(
             None
             if (fdas_expansion_adapter is None
+                and fdas_replacement_adapter is None
                 and fdas_transport_adapter is None)
             else fdas_operation_requirement_contexts),
         episode_source=fdas_episode_store,
@@ -3767,6 +3803,45 @@ async def _play(run_dir, manifest, context):
                     fdas_candidate_impact_bundle.readout,
                     fdas_runtime.shadow_pressure_config),
                 candidate_impact_diagnostic["outcome_target"]))
+    reconcile_fdas_replacement = None
+    if fdas_replacement_adapter is not None:
+        def reconcile_fdas_replacement(current, candidates):
+            candidates = tuple(
+                value for value in candidates
+                if value.operation.operation_type
+                == "fdas-defense:coordinated-replacement")
+            before_ids = frozenset(
+                value.spec.operation_id
+                for value in fdas_replacement_store.records())
+            before_digest = fdas_replacement_store.store_digest
+            updates = fdas_replacement_adapter.reconcile(
+                current, candidates)
+            after_ids = frozenset(
+                value.spec.operation_id
+                for value in fdas_replacement_store.records())
+            changed = before_digest != fdas_replacement_store.store_digest
+            if changed:
+                fdas_replacement_store.save(fdas_replacement_path)
+                decision_stats[
+                    "fdas_replacement_reconciliations"] += len(updates)
+                decision_stats["fdas_replacement_operations"] += len(
+                    after_ids - before_ids)
+                decision_stats[
+                    "fdas_replacement_reservable"] += sum(
+                        value.disposition in ("reservable", "reconciled")
+                        for value in updates)
+                decision_stats["fdas_replacement_blocked"] += sum(
+                    value.disposition == "blocked" for value in updates)
+                decision_stats[
+                    "fdas_replacement_step_advances"] += sum(
+                        value.disposition == "step-advanced"
+                        for value in updates)
+                decision_stats["fdas_replacement_completions"] += sum(
+                    value.disposition == "completed" for value in updates)
+                decision_stats["fdas_replacement_expirations"] += sum(
+                    value.disposition == "expired" for value in updates)
+            decision_stats["fdas_replacement_candidates"] += len(candidates)
+            return updates, changed
     reconcile_fdas_expansion = None
     if fdas_expansion_adapter is not None:
         def reconcile_fdas_expansion(current, revision):
@@ -4042,6 +4117,14 @@ async def _play(run_dir, manifest, context):
         "fdas_expansion_expirations": 0,
         "fdas_expansion_failures": 0,
         "fdas_expansion_reconciliations": 0,
+        "fdas_replacement_candidates": 0,
+        "fdas_replacement_operations": 0,
+        "fdas_replacement_reconciliations": 0,
+        "fdas_replacement_reservable": 0,
+        "fdas_replacement_blocked": 0,
+        "fdas_replacement_step_advances": 0,
+        "fdas_replacement_completions": 0,
+        "fdas_replacement_expirations": 0,
         "fdas_belief_decay_revisions": 0,
         "fdas_belief_rematerializations": 0,
         "fdas_belief_conflict_model_priors": 0,
@@ -5897,6 +5980,48 @@ async def _play(run_dir, manifest, context):
                             snapshot,
                             impact_planner.last_candidate_catalog)
                         if evaluate_fdas_shadow else None)
+                    if (fdas_shadow is not None
+                            and reconcile_fdas_replacement is not None):
+                        replacement_updates, replacement_changed = (
+                            reconcile_fdas_replacement(
+                                snapshot, fdas_shadow.candidates))
+                        if replacement_changed:
+                            prior_fdas_revision = (
+                                fdas_store.current_dependent_revision(
+                                    manifest["game_id"], player_id))
+                            fdas_replacement_update = (
+                                fdas_runtime.rematerialize(
+                                    manifest["game_id"], player_id))
+                            fdas_events = fdas_runtime.emit_current(
+                                writer, snapshot, caused_by=(parent,),
+                                prior_revision=prior_fdas_revision)
+                            if fdas_events:
+                                parent = fdas_events[-1]["event_id"]
+                            for replacement_update in replacement_updates:
+                                replacement_event = (
+                                    fdas_runtime
+                                    .emit_coordinated_replacement_lifecycle(
+                                        writer, snapshot,
+                                        replacement_update,
+                                        fdas_replacement_store.store_digest,
+                                        caused_by=(parent,)))
+                                if replacement_event is not None:
+                                    parent = replacement_event["event_id"]
+                            parent = _metric(
+                                writer, snapshot.turn, parent,
+                                "fdas_replacement_projection_latency_ms",
+                                fdas_replacement_update.latency_ms,
+                                manifest,
+                                atoms=fdas_replacement_update.atom_count,
+                                candidates=sum(
+                                    value.operation.operation_type
+                                    == "fdas-defense:coordinated-replacement"
+                                    for value in fdas_shadow.candidates),
+                                scopes=fdas_replacement_update.scope_count,
+                                updates=len(replacement_updates))
+                            fdas_shadow = fdas_runtime.evaluate_shadow(
+                                snapshot,
+                                impact_planner.last_candidate_catalog)
                     if fdas_shadow is not None:
                         fdas_shadow_events = fdas_runtime.emit_shadow(
                             writer, snapshot, fdas_shadow,
@@ -8286,6 +8411,22 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_expansion_failures"]),
         ("fdas_expansion_reconciliations",
          decision_stats["fdas_expansion_reconciliations"]),
+        ("fdas_replacement_candidates",
+         decision_stats["fdas_replacement_candidates"]),
+        ("fdas_replacement_operations",
+         decision_stats["fdas_replacement_operations"]),
+        ("fdas_replacement_reconciliations",
+         decision_stats["fdas_replacement_reconciliations"]),
+        ("fdas_replacement_reservable",
+         decision_stats["fdas_replacement_reservable"]),
+        ("fdas_replacement_blocked",
+         decision_stats["fdas_replacement_blocked"]),
+        ("fdas_replacement_step_advances",
+         decision_stats["fdas_replacement_step_advances"]),
+        ("fdas_replacement_completions",
+         decision_stats["fdas_replacement_completions"]),
+        ("fdas_replacement_expirations",
+         decision_stats["fdas_replacement_expirations"]),
         ("fdas_belief_decay_revisions",
          decision_stats["fdas_belief_decay_revisions"]),
         ("fdas_belief_rematerializations",
@@ -8961,6 +9102,22 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_expansion_failures"]),
             "fdas_expansion_reconciliations": (
                 decision_stats["fdas_expansion_reconciliations"]),
+            "fdas_replacement_candidates": (
+                decision_stats["fdas_replacement_candidates"]),
+            "fdas_replacement_operations": (
+                decision_stats["fdas_replacement_operations"]),
+            "fdas_replacement_reconciliations": (
+                decision_stats["fdas_replacement_reconciliations"]),
+            "fdas_replacement_reservable": (
+                decision_stats["fdas_replacement_reservable"]),
+            "fdas_replacement_blocked": (
+                decision_stats["fdas_replacement_blocked"]),
+            "fdas_replacement_step_advances": (
+                decision_stats["fdas_replacement_step_advances"]),
+            "fdas_replacement_completions": (
+                decision_stats["fdas_replacement_completions"]),
+            "fdas_replacement_expirations": (
+                decision_stats["fdas_replacement_expirations"]),
             "fdas_belief_decay_revisions": (
                 decision_stats["fdas_belief_decay_revisions"]),
             "fdas_belief_rematerializations": (
@@ -9495,6 +9652,22 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_expansion_failures"]),
         "fdas_expansion_reconciliations": (
             decision_stats["fdas_expansion_reconciliations"]),
+        "fdas_replacement_candidates": (
+            decision_stats["fdas_replacement_candidates"]),
+        "fdas_replacement_operations": (
+            decision_stats["fdas_replacement_operations"]),
+        "fdas_replacement_reconciliations": (
+            decision_stats["fdas_replacement_reconciliations"]),
+        "fdas_replacement_reservable": (
+            decision_stats["fdas_replacement_reservable"]),
+        "fdas_replacement_blocked": (
+            decision_stats["fdas_replacement_blocked"]),
+        "fdas_replacement_step_advances": (
+            decision_stats["fdas_replacement_step_advances"]),
+        "fdas_replacement_completions": (
+            decision_stats["fdas_replacement_completions"]),
+        "fdas_replacement_expirations": (
+            decision_stats["fdas_replacement_expirations"]),
         "fdas_belief_decay_revisions": (
             decision_stats["fdas_belief_decay_revisions"]),
         "fdas_belief_rematerializations": (

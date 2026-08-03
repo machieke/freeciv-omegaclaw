@@ -1038,6 +1038,37 @@ class FdasRuntime(object):
             component_id="fdas-scalar-baseline-candidate-readout",
             component_version="1.0")
 
+    def emit_coordinated_replacement_lifecycle(
+            self, writer, snapshot, update, store_digest, caused_by=()):
+        """Emit one current, non-authorizing replacement lifecycle update."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        details = update.to_dict()
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or details.get("snapshot_id") != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS coordinated replacement update is not revision-current")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError(
+                "FDAS coordinated replacement store digest is required")
+        details.update({
+            "action_selection_changed": False,
+            "identity": "fdas-coordinated-replacement-lifecycle/1.0",
+            "policy_authority": False,
+            "readout_authority": False,
+            "store_digest": store_digest,
+            "truth_mutated": False,
+        })
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-coordinated-replacement-lifecycle",
+            component_version="1.0")
+
     def emit_decision_safe_candidate_filter(
             self, writer, snapshot, candidate_filter, caused_by=()):
         """Emit exact pre-union safety exclusions without action authority."""

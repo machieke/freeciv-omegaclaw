@@ -246,6 +246,51 @@ def test_scalar_baseline_readout_event_is_revision_bound_and_shadow_only(
             writer, snapshot, stale)
 
 
+def test_coordinated_replacement_event_is_revision_bound_and_shadow_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    update = SimpleNamespace(
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: {
+            "binding": None,
+            "disposition": "reservable",
+            "operation_id": "replacement-operation",
+            "previous_state": "proposed",
+            "reason": "current-coordinated-step-grounded",
+            "snapshot_id": snapshot.snapshot_id,
+            "state": "reservable",
+        })
+    path = os.path.join(str(tmp_path), "replacement-lifecycle-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_coordinated_replacement_lifecycle(
+        writer, snapshot, update, "replacement-store-digest")
+
+    details = event["payload"]["details"]
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-lifecycle")
+    assert details["identity"] == (
+        "fdas-coordinated-replacement-lifecycle/1.0")
+    assert details["store_digest"] == "replacement-store-digest"
+    assert details["action_selection_changed"] is False
+    assert details["policy_authority"] is False
+    assert details["readout_authority"] is False
+    assert details["truth_mutated"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        snapshot_id="snapshot-stale",
+        to_dict=lambda: {
+            "snapshot_id": "snapshot-stale",
+        })
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_coordinated_replacement_lifecycle(
+            writer, snapshot, stale, "replacement-store-digest")
+
+
 def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

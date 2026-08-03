@@ -1064,3 +1064,16 @@ coordinated replacement—not a wider calibrated union or looser equivalence
 gate. Randomized outcome collection remains premature until preference yield
 appears in at least two independent unseen game clusters. See
 `fdas-pr76-calibrated-equivalence-pareto-opportunity.md` and its JSON report.
+
+PR77 closes a live integration gap exposed by that opportunity analysis. The
+coordinated-replacement candidate, two-step adapter, operation projection,
+RequirementSets, and manifest capability existed, but `engine_live` never
+instantiated or reconciled the persistent replacement store. The harness now
+persists an identity-bound store, reconciles current candidates, rematerializes
+records/bindings/requirements into the current revision, emits explicitly
+non-authorizing lifecycle evidence, and reports exact counters. Logical
+replacement tuples are deduplicated across snapshot-specific candidate IDs so
+one active route cannot flood the store. A known rich-defense seed is frozen
+for a live wiring smoke; zero opportunity is accepted as activation evidence,
+not treated as success evidence. See
+`fdas-pr77-coordinated-replacement-live-wiring-preregistration.md`.

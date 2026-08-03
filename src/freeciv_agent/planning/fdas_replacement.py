@@ -103,6 +103,21 @@ class FdasCoordinatedReplacementAdapter(object):
         return dict(
             (value.role, int(value.actor_id)) for value in spec.participants)
 
+    @classmethod
+    def lifecycle_key(cls, spec):
+        """Identify one logical replacement route across snapshot bindings."""
+        if spec.operation_type != _OPERATION_TYPE:
+            raise ValueError("unsupported coordinated replacement operation")
+        participants = cls._participants_from_spec(spec)
+        if set(participants) != {"replacement", "reinforcement"}:
+            raise ValueError("replacement operation participants are invalid")
+        return (
+            participants["replacement"],
+            participants["reinforcement"],
+            spec.steps[0].target_ref,
+            spec.target_ref,
+        )
+
     @staticmethod
     def _legal_route_action(snapshot, actor_id, city):
         actor = snapshot.unit(actor_id)
@@ -347,9 +362,24 @@ class FdasCoordinatedReplacementAdapter(object):
             raise ValueError("replacement candidates must be unique")
         for candidate in candidates:
             self._validate_candidate(snapshot, candidate)
-        for candidate in candidates:
+        candidate_keys = tuple(
+            self.lifecycle_key(value.operation) for value in candidates)
+        if len(candidate_keys) != len(set(candidate_keys)):
+            raise ValueError(
+                "replacement candidates overlap one logical lifecycle")
+        active_keys = {
+            self.lifecycle_key(value.spec)
+            for value in self.store.nonterminal_records()
+            if value.spec.operation_type == _OPERATION_TYPE}
+        for candidate in sorted(
+                candidates,
+                key=lambda value: value.operation.operation_id):
+            key = self.lifecycle_key(candidate.operation)
+            if key in active_keys:
+                continue
             self.store.propose(
                 candidate.operation, snapshot.snapshot_id, int(snapshot.turn))
+            active_keys.add(key)
         updates = []
         for record in self.store.nonterminal_records():
             if record.spec.operation_type != _OPERATION_TYPE:

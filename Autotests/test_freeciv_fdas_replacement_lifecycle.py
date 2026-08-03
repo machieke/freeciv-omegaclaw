@@ -89,12 +89,11 @@ def _snapshot(payload, seq):
         "fdas-replacement-lifecycle", seq, payload).to_snapshot()
 
 
-def _candidate(snapshot):
+def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof"):
     participants = (
         OperationParticipant("replacement", "8", "unit", True),
         OperationParticipant("reinforcement", "7", "unit", True),
     )
-    operation_id = "fdas-coordinated-replacement-proof"
     steps = (
         OperationStep(
             "step-replacement", "unit_move", "replacement", "city:3",
@@ -123,6 +122,28 @@ def _candidate(snapshot):
         True, False, ("uncompiled-action-effect",),
         ("fdas-coordinated-replacement-shadow/1.0",),
         structural_hash(semantic))
+
+
+def test_replacement_deduplicates_snapshot_specific_operation_ids():
+    payload = _payload(12)
+    payload["legal_actions"] = [_move(8, 2)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 500)]
+    snapshot = _snapshot(payload, 500)
+    store = OperationStore("fdas-replacement:logical-deduplication")
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+
+    adapter.reconcile(snapshot, (_candidate(snapshot, "replacement-a"),))
+    first_digest = store.store_digest
+    updates = adapter.reconcile(
+        snapshot, (_candidate(snapshot, "replacement-b"),))
+
+    assert len(store.records()) == 1
+    assert store.records()[0].spec.operation_id == "replacement-a"
+    assert store.store_digest == first_digest
+    assert updates[-1].operation_id == "replacement-a"
+    assert adapter.lifecycle_key(store.records()[0].spec) == (
+        8, 7, "city:3", "city:4")
 
 
 def test_two_step_replacement_persists_refreshes_and_completes_exactly():
