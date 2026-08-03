@@ -729,3 +729,17 @@ remain broad. This remains in-sample and non-authorizing; the untouched
 confirmation cohort is the next gate. See
 `fdas-pr60-candidate-transition-calibration-discovery.md` and
 `fdas-pr60-candidate-transition-calibration-discovery.json`.
+
+PR60's untouched 12-game confirmation is preserved as a failed primary result.
+All games reached turn 161 with zero failures, resumes, or rejected actions,
+and the model passed every frozen predictive-quality gate: coverage `1.000`,
+candidate-specific fraction `0.700`, Brier `0.216`, log loss `0.624`,
+calibration error `0.013`, and a game-clustered Brier-improvement interval of
+`[+0.0063, +0.1005]`. The cohort nevertheless supplied only 10 held-out move
+lineages from four games, below the frozen minima of 12 lineages and six games.
+Neither favorable metrics nor sequential rows override those independent-yield
+requirements. The model remains excluded from live readout. The next gate is a
+new disjoint, prospectively sized replication that freezes the same model and
+thresholds; PR60's reserved seeds cannot be added post hoc. See
+`fdas-pr60-candidate-transition-calibration-confirmation.md` and
+`fdas-pr60-candidate-transition-calibration-confirmation.json`.
