@@ -1008,6 +1008,36 @@ class FdasRuntime(object):
             component_id="fdas-grounded-transition-candidate-union",
             component_version="1.0")
 
+    def emit_scalar_baseline_candidate_readout(
+            self, writer, snapshot, readout, caused_by=()):
+        """Emit a protected scalar-baseline preference without authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or readout.snapshot_id != snapshot.snapshot_id
+                or readout.revision_id != revision.revision_id):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout is not revision-current")
+        details = readout.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout grants undeclared authority")
+        if details.get("control_semantics") != (
+                "protected-fdas-scalar-top-1"):
+            raise RuntimeError(
+                "FDAS scalar-baseline control semantics differ")
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-scalar-baseline-candidate-readout",
+            component_version="1.0")
+
     def emit_probe_candidate_union(
             self, writer, snapshot, candidate_union, caused_by=()):
         """Emit corrected-probe membership without ranking authority."""

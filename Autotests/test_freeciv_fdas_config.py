@@ -166,6 +166,36 @@ def test_grounded_transition_readout_profile_is_bound_and_shadow_only():
         "action_selection_changed"] is False
 
 
+def test_scalar_baseline_readout_profile_has_distinct_control_semantics():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_scalar_baseline_readout_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest[
+        "scalar_baseline_candidate_readout_diagnostic"]
+
+    assert config.enabled is True
+    assert manifest["capabilities"].get(
+        "decision_safe_candidate_readout") is None
+    assert manifest["capabilities"][
+        "scalar_baseline_candidate_readout"] == "shadow-live"
+    assert manifest["capabilities"][
+        "grounded_transition_candidate_union"] == "shadow-live"
+    assert diagnostic["protected_candidate_union_required"] is True
+    assert diagnostic["action_selection_changed"] is False
+    assert diagnostic["policy_authority"] is False
+    assert diagnostic["readout_authority"] is False
+    assert diagnostic["truth_mutated"] is False
+
+
 def test_checked_observation_execution_profile_requires_authoritative_return():
     with open(os.path.join(
             REPO, "profile",

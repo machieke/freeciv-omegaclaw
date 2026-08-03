@@ -16,6 +16,7 @@ from freeciv_agent.planning import (
     FdasCalibratedCandidateUnion,
     FdasDecisionSafeCandidateReadoutConfig,
     FdasDecisionSafeCandidateReadoutEvaluator,
+    FdasScalarBaselineCandidateReadoutEvaluator,
     FdasPathPersistenceCandidateUnion,
     FdasPathPersistenceMember,
     FdasPathPersistenceReadout,
@@ -639,3 +640,49 @@ def test_decision_safe_readout_abstains_on_inferior_native_route(ir):
                and "total-movement-cost" in value
                for value in readout.rejected)
     assert readout.proposed_operation_id is None
+
+
+def test_scalar_baseline_readout_compares_protected_union_not_live_action(ir):
+    case = list(_decision_safe_case(ir))
+    case[0] = replace(case[0], movement_routes=tuple(
+        replace(value, source_seq=case[0].identity.source_seq - 1)
+        for value in case[0].movement_routes))
+    # The live action is intentionally unrelated. Scalar-baseline semantics
+    # consume only the protected union and leave the live action untouched.
+    case[3] = ImpactCandidate(
+        {"action_type": "unit_move", "actor_id": 999,
+         "target": {"x": 99, "y": 99}},
+        "unit_movement", 100.0, "unrelated live action")
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "eligible-shadow"
+    assert readout.control_semantics == "protected-fdas-scalar-top-1"
+    assert readout.baseline_operation_id == (
+        case[6].baseline_selected_operation_id)
+    assert readout.proposed_operation_id != readout.baseline_operation_id
+    assert readout.shadow_preference
+    assert readout.to_dict()["action_selection_changed"] is False
+    assert readout.to_dict()["policy_authority"] is False
+    assert readout.to_dict()["readout_authority"] is False
+    assert readout.to_dict()["truth_mutated"] is False
+
+
+def test_scalar_baseline_readout_abstains_on_interval_overlap(ir):
+    case = _decision_safe_case(
+        ir, control_interval=(0.30, 0.50, 0.70),
+        treatment_interval=(0.50, 0.70, 0.90))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    assert readout.status == "abstained"
+    assert readout.reason == (
+        "no-separated-grounded-noninferior-alternative")
+    assert len(readout.candidates) == 2
+    assert any(value.endswith(":calibrated-interval-overlap")
+               for value in readout.rejected)
+    assert not readout.shadow_preference

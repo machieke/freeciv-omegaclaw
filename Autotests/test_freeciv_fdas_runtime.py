@@ -206,6 +206,46 @@ def test_grounded_transition_union_event_is_revision_bound_and_shadow_only(
             "confirmation-report-hash")
 
 
+def test_scalar_baseline_readout_event_is_revision_bound_and_shadow_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "control_semantics": "protected-fdas-scalar-top-1",
+        "policy_authority": False,
+        "readout_authority": False,
+        "result_hash": "scalar-baseline-readout-result-hash",
+        "truth_mutated": False,
+    }
+    readout = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "scalar-baseline-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_scalar_baseline_candidate_readout(
+        writer, snapshot, readout)
+
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-scalar-baseline-candidate-readout")
+    assert event["payload"]["details"]["control_semantics"] == (
+        "protected-fdas-scalar-top-1")
+    assert event["payload"]["details"]["action_selection_changed"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        revision_id="fdas-revision-stale",
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_scalar_baseline_candidate_readout(
+            writer, snapshot, stale)
+
+
 def test_probe_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

@@ -65,6 +65,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasAlternativeOutcomeCollectionEvaluator,
                                     FdasDecisionSafeCandidateReadoutConfig,
                                     FdasDecisionSafeCandidateReadoutEvaluator,
+                                    FdasScalarBaselineCandidateReadoutEvaluator,
                                     FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
@@ -2780,6 +2781,18 @@ async def _play(run_dir, manifest, context):
         decision_safe_readout_capability is not None
         or decision_safe_readout_diagnostic is not None)
     fdas_decision_safe_readout_evaluator = None
+    scalar_baseline_readout_capability = fdas_manifest["capabilities"].get(
+        "scalar_baseline_candidate_readout")
+    scalar_baseline_readout_diagnostic = fdas_manifest.get(
+        "scalar_baseline_candidate_readout_diagnostic")
+    fdas_scalar_baseline_candidate_readout = bool(
+        scalar_baseline_readout_capability is not None
+        or scalar_baseline_readout_diagnostic is not None)
+    fdas_scalar_baseline_readout_evaluator = None
+    if (fdas_decision_safe_candidate_readout
+            and fdas_scalar_baseline_candidate_readout):
+        raise RuntimeError(
+            "FDAS candidate readout control semantics are mutually exclusive")
     probe_union_capability = fdas_manifest["capabilities"].get(
         "probe_candidate_reachability")
     probe_union_diagnostic = fdas_manifest.get(
@@ -3274,6 +3287,51 @@ async def _play(run_dir, manifest, context):
         fdas_decision_safe_readout_evaluator = (
             FdasDecisionSafeCandidateReadoutEvaluator(
                 decision_safe_config))
+    if fdas_scalar_baseline_candidate_readout:
+        expected_scalar_baseline_keys = {
+            "action_selection_changed",
+            "config",
+            "policy_authority",
+            "protected_candidate_union_required",
+            "readout_authority",
+            "truth_mutated",
+        }
+        if scalar_baseline_readout_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS scalar-baseline readout requires shadow-live manifest")
+        if (not isinstance(scalar_baseline_readout_diagnostic, dict)
+                or set(scalar_baseline_readout_diagnostic)
+                != expected_scalar_baseline_keys):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout declaration is incomplete")
+        if any(scalar_baseline_readout_diagnostic[name] is not False
+               for name in (
+                   "action_selection_changed", "policy_authority",
+                   "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout cannot grant authority")
+        if (scalar_baseline_readout_diagnostic[
+                    "protected_candidate_union_required"] is not True
+                or not fdas_grounded_transition_candidate_union
+                or fdas_candidate_calibration_model is None):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout requires grounded-transition "
+                "protected candidates")
+        try:
+            scalar_baseline_config = (
+                FdasDecisionSafeCandidateReadoutConfig.from_dict(
+                    scalar_baseline_readout_diagnostic["config"]))
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "FDAS scalar-baseline readout config is invalid: {}".format(
+                    error))
+        if scalar_baseline_config.to_dict() != (
+                scalar_baseline_readout_diagnostic["config"]):
+            raise RuntimeError(
+                "FDAS scalar-baseline readout config is not canonical")
+        fdas_scalar_baseline_readout_evaluator = (
+            FdasScalarBaselineCandidateReadoutEvaluator(
+                scalar_baseline_config))
     if fdas_probe_candidate_reachability:
         expected_probe_union_keys = {
             "action_selection_changed",
@@ -3786,6 +3844,12 @@ async def _play(run_dir, manifest, context):
         "fdas_decision_safe_candidate_readout_eligible": 0,
         "fdas_decision_safe_candidate_readout_abstentions": 0,
         "fdas_decision_safe_candidate_readout_counterfactual_changes": 0,
+        "fdas_scalar_baseline_candidate_readout_evaluations": 0,
+        "fdas_scalar_baseline_candidate_readout_eligible": 0,
+        "fdas_scalar_baseline_candidate_readout_abstentions": 0,
+        "fdas_scalar_baseline_candidate_readout_shadow_preferences": 0,
+        "fdas_scalar_baseline_candidate_readout_grounded_alternatives": 0,
+        "fdas_scalar_baseline_candidate_readout_interval_overlaps": 0,
         "fdas_probe_candidate_union_evaluations": 0,
         "fdas_probe_candidate_union_readouts": 0,
         "fdas_probe_candidate_union_members": 0,
@@ -6089,6 +6153,57 @@ async def _play(run_dir, manifest, context):
                                         if decision_safe_event is not None:
                                             parent = decision_safe_event[
                                                 "event_id"]
+                                    if fdas_scalar_baseline_candidate_readout:
+                                        scalar_baseline_readout = (
+                                            fdas_scalar_baseline_readout_evaluator
+                                            .evaluate(
+                                                snapshot,
+                                                choice_revision,
+                                                fdas_shadow,
+                                                surface_candidates,
+                                                calibrated_union))
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_evaluations"] += 1
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_eligible"] += int(
+                                                scalar_baseline_readout.status
+                                                == "eligible-shadow")
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_abstentions"] += int(
+                                                scalar_baseline_readout.status
+                                                == "abstained")
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_shadow_preferences"] += int(
+                                                scalar_baseline_readout
+                                                .shadow_preference)
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_grounded_alternatives"] += max(
+                                                0,
+                                                len(scalar_baseline_readout
+                                                    .candidates) - 1)
+                                        decision_stats[
+                                            "fdas_scalar_baseline_candidate_"
+                                            "readout_interval_overlaps"] += sum(
+                                                value.endswith(
+                                                    ":calibrated-interval-"
+                                                    "overlap")
+                                                for value in
+                                                scalar_baseline_readout.rejected)
+                                        scalar_baseline_event = (
+                                            fdas_runtime
+                                            .emit_scalar_baseline_candidate_readout(
+                                                writer,
+                                                snapshot,
+                                                scalar_baseline_readout,
+                                                caused_by=(parent,)))
+                                        if scalar_baseline_event is not None:
+                                            parent = scalar_baseline_event[
+                                                "event_id"]
                                     if fdas_probe_candidate_reachability:
                                         probe_union = build_probe_candidate_union(
                                             calibrated_union,
@@ -7772,6 +7887,24 @@ async def _play(run_dir, manifest, context):
         ("fdas_decision_safe_candidate_readout_counterfactual_changes",
          decision_stats[
              "fdas_decision_safe_candidate_readout_counterfactual_changes"]),
+        ("fdas_scalar_baseline_candidate_readout_evaluations",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_evaluations"]),
+        ("fdas_scalar_baseline_candidate_readout_eligible",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_eligible"]),
+        ("fdas_scalar_baseline_candidate_readout_abstentions",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_abstentions"]),
+        ("fdas_scalar_baseline_candidate_readout_shadow_preferences",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_shadow_preferences"]),
+        ("fdas_scalar_baseline_candidate_readout_grounded_alternatives",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_grounded_alternatives"]),
+        ("fdas_scalar_baseline_candidate_readout_interval_overlaps",
+         decision_stats[
+             "fdas_scalar_baseline_candidate_readout_interval_overlaps"]),
         ("fdas_probe_candidate_union_evaluations",
          decision_stats["fdas_probe_candidate_union_evaluations"]),
         ("fdas_probe_candidate_union_readouts",
@@ -8394,6 +8527,27 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_decision_safe_candidate_readout_"
                     "counterfactual_changes"]),
+            "fdas_scalar_baseline_candidate_readout_evaluations": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_evaluations"]),
+            "fdas_scalar_baseline_candidate_readout_eligible": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_eligible"]),
+            "fdas_scalar_baseline_candidate_readout_abstentions": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_abstentions"]),
+            "fdas_scalar_baseline_candidate_readout_shadow_preferences": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_"
+                    "shadow_preferences"]),
+            "fdas_scalar_baseline_candidate_readout_grounded_alternatives": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_"
+                    "grounded_alternatives"]),
+            "fdas_scalar_baseline_candidate_readout_interval_overlaps": (
+                decision_stats[
+                    "fdas_scalar_baseline_candidate_readout_"
+                    "interval_overlaps"]),
             "fdas_probe_candidate_union_evaluations": (
                 decision_stats["fdas_probe_candidate_union_evaluations"]),
             "fdas_probe_candidate_union_readouts": (
@@ -8880,6 +9034,25 @@ async def _play(run_dir, manifest, context):
             decision_stats[
                 "fdas_decision_safe_candidate_readout_"
                 "counterfactual_changes"]),
+        "fdas_scalar_baseline_candidate_readout_evaluations": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_evaluations"]),
+        "fdas_scalar_baseline_candidate_readout_eligible": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_eligible"]),
+        "fdas_scalar_baseline_candidate_readout_abstentions": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_abstentions"]),
+        "fdas_scalar_baseline_candidate_readout_shadow_preferences": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_shadow_preferences"]),
+        "fdas_scalar_baseline_candidate_readout_grounded_alternatives": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_"
+                "grounded_alternatives"]),
+        "fdas_scalar_baseline_candidate_readout_interval_overlaps": (
+            decision_stats[
+                "fdas_scalar_baseline_candidate_readout_interval_overlaps"]),
         "fdas_probe_candidate_union_evaluations": (
             decision_stats["fdas_probe_candidate_union_evaluations"]),
         "fdas_probe_candidate_union_readouts": (

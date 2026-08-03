@@ -834,3 +834,16 @@ identifies control alignment—not calibration coverage or uncertainty width—a
 the next semantic bottleneck. See
 `fdas-pr64-grounded-transition-readout-smoke.md` and
 `fdas-pr64-grounded-transition-readout-smoke.json`.
+
+PR65 implements a separate control-aligned readout rather than weakening the
+failed PR64 comparison contract. Its frozen control is the protected union's
+scalar top-1 FDAS candidate, and it considers only protected alternatives with
+the same reinforcement operation type and target, disjoint resources, strict
+interval separation, and exact grounded non-inferiority. The live selected
+action remains untouched, PR58's legacy-control component remains unchanged,
+and the two readout semantics are mutually exclusive in a manifest. Distinct
+events and counters expose evaluations, grounded alternatives, interval
+overlaps, abstentions, and shadow preferences. Eighty-four focused tests pass.
+Fresh seed `109009` is preregistered for a clean mechanics smoke that requires
+at least one grounded protected comparison but not a preference; see
+`fdas-pr65-scalar-baseline-readout-smoke-preregistration.md`.
