@@ -46,7 +46,10 @@ resumed to obtain a favorable path.
 | Output | `artifacts/freeciv/fdas-reprojection-mechanics-retry-v1` |
 
 The launch must use a clean documentation/configuration descendant of the
-implementation commit and `--no-resume`.
+implementation commit, `--limit-seeds 1`, and `--no-resume`. The harness
+requires every syntactically valid config to contain at least 30 unique seed
+entries; `105529` is first and the remaining 29 entries are inert validation
+fillers excluded by the frozen limit.
 
 ## Acceptance criteria
 
