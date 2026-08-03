@@ -365,3 +365,16 @@ quarantined, mechanically invalid, or progression-inadequate discovery data.
 This establishes implementation safety, not calibration or decision value;
 fresh discovery and disjoint confirmation remain required. See
 `fdas-pr39-candidate-calibration-artifact.md`.
+
+PR40 executed the first eligible ten-game calibration discovery cohort after
+freezing its seeds and gates. A discarded partial attempt exposed and repaired
+a monotonic episode-evidence bug; the complete cohort was then restarted from
+one clean corrected commit and contains 268,617 valid events with zero
+warnings, rejections, or failures. All progression gates passed: 73 selected
+outcomes have 46/27 contrast and collapse to 11 observed move plus 44 observed
+fortification lineages. The fitted action-level move estimate is `0.534` with
+a wide Wilson interval `[0.280, 0.787]`; fortify is `0.709` with interval
+`[0.582, 0.837]`. Sparse lifecycle bins remain wide and use frozen within-
+action backoff. This is an in-sample descriptive model only; it remains
+non-authorizing and may not rank candidates until a disjoint confirmation
+gate passes. See `fdas-pr40-candidate-calibration-discovery.md`.
