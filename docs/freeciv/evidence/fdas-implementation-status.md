@@ -946,3 +946,15 @@ rate and frozen before collection. The gate requires full parent safety-filter
 acceptance, at least one exact overlap, no generic reason, and no malformed
 reason; it does not relax scope or require a preference. See
 `fdas-pr69-pair-scope-diagnostic-preregistration.md`.
+
+PR69 is preserved as a failed primary diagnostic cohort from clean commit
+`5b854f5`. All eight games and the parent safety-filter audit pass, and the
+cohort generated four calibrated additions plus five grounded scalar controls.
+They never coincided in one readout, so no pair-scope predicate was exercised:
+zero exact reasons and zero resource overlaps were observed. The descriptive
+PR68 three-of-eight opportunity rate therefore did not replicate in the next
+eight games. No games will be appended. A separately labeled post-hoc
+sensitivity may deterministically reconstruct PR68's six stored candidate
+pairs, but it cannot change either primary result. See
+`fdas-pr69-pair-scope-diagnostic.md` and
+`fdas-pr69-pair-scope-diagnostic.json`.
