@@ -401,3 +401,40 @@ Brier `0.188`. This permits only a protected shadow candidate-union readout,
 with uncertainty and same-action abstention intact. It does not establish
 counterfactual ranking value, gameplay impact, score, or win rate. See
 `fdas-pr42-candidate-calibration-confirmation.md`.
+
+PR43 implements the permitted calibrated protected-union shadow. Scalar top-1
+is always protected, calibration may add at most one confidence-eligible
+candidate per action family, and wide or unsupported intervals abstain. The
+calibrated estimate never enters the final score and the event surface denies
+selection, truth, policy/readout, advection, and capacity authority. An
+outcome-blind replay over prior choice stores established useful engineering
+yield only. See `fdas-pr43-calibrated-candidate-union-shadow.md`.
+
+PR44 was the first fresh protected-union cohort and passed its progression
+counts, but it remains mechanically rejected because one genuine player
+elimination ended before the preregistered fixed horizon. Its 329 unions and
+20 additions cannot support the claim. See
+`fdas-pr44-calibrated-candidate-union.md`.
+
+PR45 repeated the cohort with terminal-aware completion frozen in advance and
+passed every gate. Across 390 unions it produced 15 calibrated additions in
+five of eight games, with a Wilson game-level lower bound of `0.306`, zero
+selection changes, and zero authority leakage. This establishes recurrent
+calibrated recall beyond scalar top-1, not ranking quality or gameplay. See
+`fdas-pr45-calibrated-candidate-union.md`.
+
+PR46 implements corrected forward/backward probes over an exact legal-action
+factor graph as a second membership-only layer. Graph, batch, selection,
+signal-ledger, revision, and result hashes are explicit; incomplete or
+unhealthy probes return the calibrated union unchanged. A claim-ineligible
+engineering smoke motivated tightening the live cap from four probe regions
+to one before confirmation. See `fdas-pr46-probe-candidate-union-shadow.md`.
+
+PR47 passed the preregistered eight-game corrected-probe confirmation. All 445
+probe evaluations were healthy and all factor graphs complete; 949 readouts
+produced 161 bounded additions in all eight games. The Wilson game-level lower
+bound was `0.676`, with zero fallbacks, rejections, or selection changes. This
+establishes recurrent probe-informed candidate recall beyond the calibrated
+union while preserving scalar authority. It does not establish candidate
+precision, ranking, score, or win rate. See
+`fdas-pr47-probe-candidate-union.md`.
