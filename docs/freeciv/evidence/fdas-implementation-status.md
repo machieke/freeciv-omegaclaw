@@ -659,5 +659,14 @@ non-inferior. Missing groundings, interval overlap, and any mechanical
 regression abstain with an explicit reason. The component cannot change the
 selected action or truth and has a separately bound manifest/profile. Unit
 tests cover separated acceptance, interval-overlap abstention, and native-route
-inferiority abstention. A clean one-game engine mechanics smoke remains the
-next gate; see `fdas-pr58-decision-safe-candidate-readout.md`.
+inferiority abstention. The clean engine mechanics smoke from commit `5c0bccb`
+reached observed turn 161 with zero failures, rejections, or resumes, and its
+audit passes all gates. All 95 shadow evaluations correctly abstained. Only two
+were matched in-slice choices; every candidate in each choice set received the
+same broad lifecycle-backoff estimate and interval from three effective
+lineages, making safe interval separation impossible. Relaxing the interval
+width would not change that result. The next gate is therefore a separately
+specified candidate-specific calibration design with fresh held-out evidence,
+not a looser PR58 readout. See
+`fdas-pr58-decision-safe-candidate-readout.md` and
+`fdas-pr58-decision-safe-readout-smoke.json`.

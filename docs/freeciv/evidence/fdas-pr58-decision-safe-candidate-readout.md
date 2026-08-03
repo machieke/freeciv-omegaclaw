@@ -68,10 +68,10 @@ alternative-collection and harness tests remain the compatibility boundary.
 
 ## Clean engine smoke
 
-The first post-commit execution will run unseen seed `108013` for 160 turns
+The post-commit execution ran unseen seed `108013` for 160 turns
 with `--limit-seeds 1`, `--condition e_full_loop`, `--main-only`, and
 `--no-resume`. The only required ambient value is the pinned local
-`FREECIV_RULESET_ROOT`. Output will be written to
+`FREECIV_RULESET_ROOT`. Output was written to
 `artifacts/freeciv/fdas-pr58-decision-safe-readout-smoke-v1`.
 
 The smoke passes only if:
@@ -93,3 +93,19 @@ abstention is the expected result when the frozen model cannot separate the
 pair. A later unseen-seed yield design may proceed only if the smoke is clean.
 No randomized intervention, candidate-value, gameplay, score, or win-rate
 claim is permitted by PR58.
+
+The clean source commit `5c0bccbf4638e600fd2d85f9949e48df42764e19`
+reached observed turn 161 with zero infrastructure failures, rejected actions,
+or resumes. Audit report
+`fdas-pr58-decision-safe-readout-smoke.json` passes every gate with report hash
+`6332149507d256a645560b605b167821ceffd2303ec004212adbb9cd06715254`.
+All 95 evaluations abstained and no action changed. Eighty-two evaluations were
+outside the unique routed-action domain, 11 active actions were not
+reinforcement moves, and the two matched in-slice choices were
+`control-unestimated-or-out-of-slice`. Both matched choices had lifecycle
+backoff estimates derived from only three effective lineages; every alternative
+received the same estimate `0.5730838280` and interval
+`[0.2076596008, 0.9385080553]`. The intervals therefore cannot separate even
+if the maximum-width gate is relaxed. This closes the mechanics smoke and
+identifies candidate-specific calibrated support—not readout permissiveness—as
+the next scientific bottleneck.
