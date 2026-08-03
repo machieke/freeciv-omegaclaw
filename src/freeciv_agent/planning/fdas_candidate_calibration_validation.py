@@ -41,6 +41,48 @@ def load_candidate_calibration_model(path):
         raw["calibration_model"]), claimed_hash
 
 
+def load_candidate_calibration_confirmation(path):
+    """Load a passing, internally bound held-out confirmation artifact."""
+    with open(path, encoding="utf-8") as stream:
+        raw = json.load(stream)
+    claimed_hash = raw.get("report_hash")
+    semantic = dict(raw)
+    semantic.pop("report_hash", None)
+    if not isinstance(claimed_hash, str) or (
+            claimed_hash != structural_hash(semantic)):
+        raise ValueError("candidate calibration confirmation hash differs")
+    if raw.get("schema_version") != (
+            "fdas-candidate-calibration-confirmation/1.0"):
+        raise ValueError("candidate calibration confirmation schema differs")
+    if raw.get("passed") is not True or any(
+            raw.get(name) is not False for name in (
+                "policy_authority", "readout_authority", "truth_mutated")):
+        raise ValueError(
+            "candidate calibration confirmation is not passing shadow evidence")
+    validation = raw.get("validation")
+    if not isinstance(validation, dict):
+        raise ValueError("candidate calibration confirmation lacks validation")
+    validation_hash = validation.get("report_hash")
+    validation_semantic = dict(validation)
+    validation_semantic.pop("report_hash", None)
+    if (not isinstance(validation_hash, str)
+            or validation_hash != structural_hash(validation_semantic)):
+        raise ValueError("candidate calibration validation hash differs")
+    if (validation.get("passed") is not True
+            or validation.get("model_result_hash")
+            != raw.get("model_result_hash")
+            or validation.get("claim_scope") != raw.get("claim_scope")
+            or any(validation.get(name) is not False for name in (
+                "policy_authority", "readout_authority", "truth_mutated"))):
+        raise ValueError(
+            "candidate calibration validation differs from confirmation")
+    for name in ("calibration_artifact_hash", "model_result_hash"):
+        if not isinstance(raw.get(name), str) or not raw[name]:
+            raise ValueError(
+                "candidate calibration confirmation lacks {}".format(name))
+    return raw, claimed_hash
+
+
 def _single_prefixed(values, prefix, name):
     matches = tuple(
         value[len(prefix):] for value in values if value.startswith(prefix))

@@ -899,6 +899,47 @@ class FdasRuntime(object):
             component_id="fdas-induced-rule-candidate-choice-set",
             component_version="1.0")
 
+    def emit_calibrated_candidate_union(
+            self, writer, snapshot, candidate_union,
+            calibration_artifact_hash, confirmation_report_hash,
+            caused_by=()):
+        """Emit calibrated recall membership without selection authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or candidate_union.snapshot_id != snapshot.snapshot_id
+                or candidate_union.revision_id != revision.revision_id):
+            raise RuntimeError(
+                "FDAS calibrated candidate union is not revision-current")
+        for value, name in (
+                (calibration_artifact_hash, "calibration artifact hash"),
+                (confirmation_report_hash, "confirmation report hash")):
+            if not isinstance(value, str) or not value:
+                raise ValueError("FDAS {} is required".format(name))
+        details = candidate_union.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "capacity_solver_enabled",
+                "flow_advection_enabled", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS calibrated candidate union grants undeclared authority")
+        if details.get("scalar_final_score_authority") is not True:
+            raise RuntimeError(
+                "FDAS calibrated candidate union displaced scalar authority")
+        details.update({
+            "calibration_artifact_hash": calibration_artifact_hash,
+            "confirmation_report_hash": confirmation_report_hash,
+        })
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-calibrated-candidate-union",
+            component_version="1.0")
+
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
                   operation_records_source=None,

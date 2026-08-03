@@ -21,6 +21,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasCandidateChoiceCalibrationExport,
     evaluate_candidate_calibration,
     fit_candidate_calibration,
+    load_candidate_calibration_confirmation,
     load_candidate_calibration_model,
 )
 from freeciv_agent.pressure import InductionEpisode  # noqa: E402
@@ -177,3 +178,42 @@ def test_calibration_artifact_loader_rejects_wrapper_and_model_tampering():
             json.dump(artifact, stream)
         with pytest.raises(ValueError, match="artifact hash differs"):
             load_candidate_calibration_model(path)
+
+
+def test_confirmation_loader_binds_passing_nested_validation():
+    model = fit_candidate_calibration(
+        _discovery(), "validation-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    validation = evaluate_candidate_calibration(
+        model, _confirmation(), "confirmation-test", _thresholds(),
+        bootstrap_samples=200, bootstrap_seed=91)
+    semantic = {
+        "calibration_artifact_hash": "discovery-artifact-hash",
+        "claim_scope": validation["claim_scope"],
+        "model_result_hash": model.result_hash,
+        "passed": True,
+        "policy_authority": False,
+        "readout_authority": False,
+        "schema_version": "fdas-candidate-calibration-confirmation/1.0",
+        "truth_mutated": False,
+        "validation": validation,
+    }
+    artifact = dict(semantic)
+    artifact["report_hash"] = structural_hash(semantic)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "confirmation.json")
+        with open(path, "wb") as stream:
+            stream.write(canonical_json_bytes(artifact) + b"\n")
+        loaded, artifact_hash = load_candidate_calibration_confirmation(path)
+        assert loaded == artifact
+        assert artifact_hash == artifact["report_hash"]
+
+        artifact["validation"]["passed"] = False
+        artifact_semantic = dict(artifact)
+        artifact_semantic.pop("report_hash")
+        artifact["report_hash"] = structural_hash(artifact_semantic)
+        with open(path, "wb") as stream:
+            stream.write(canonical_json_bytes(artifact) + b"\n")
+        with pytest.raises(ValueError, match="validation hash differs"):
+            load_candidate_calibration_confirmation(path)

@@ -74,7 +74,10 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
                                     FdasPromotedRuleCandidateImpactShadow,
+                                    build_calibrated_candidate_union,
                                     causal_induction_feature_query,
+                                    load_candidate_calibration_confirmation,
+                                    load_candidate_calibration_model,
                                     unambiguous_defense_choice_surface_candidates,
                                     INDUCTION_FEATURE_SCHEMA,
                                     FdasExpansionOperationAdapter,
@@ -2715,6 +2718,9 @@ async def _play(run_dir, manifest, context):
         run_dir, "fdas-candidate-choice-sets.json")
     fdas_candidate_choice_store = None
     fdas_candidate_choice_recorder = None
+    fdas_candidate_calibration_model = None
+    fdas_candidate_calibration_artifact_hash = None
+    fdas_candidate_calibration_confirmation_hash = None
     candidate_impact_capability = fdas_manifest["capabilities"].get(
         "induced_rule_candidate_impact_shadow")
     candidate_impact_diagnostic = fdas_manifest.get(
@@ -2726,6 +2732,13 @@ async def _play(run_dir, manifest, context):
     fdas_defense_choice_surface = bool(
         defense_choice_surface_capability is not None
         or defense_choice_surface_diagnostic is not None)
+    calibrated_union_capability = fdas_manifest["capabilities"].get(
+        "calibrated_candidate_union")
+    calibrated_union_diagnostic = fdas_manifest.get(
+        "calibrated_candidate_union_diagnostic")
+    fdas_calibrated_candidate_union = bool(
+        calibrated_union_capability is not None
+        or calibrated_union_diagnostic is not None)
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -2947,6 +2960,106 @@ async def _play(run_dir, manifest, context):
                 fdas_candidate_choice_recorder.observe_outcome(
                     prior_choice.selected_episode_id, recovered_label)
         fdas_candidate_choice_store.save(fdas_candidate_choice_path)
+    if fdas_calibrated_candidate_union:
+        expected_calibrated_union_keys = {
+            "action_selection_changed",
+            "calibrated_per_action",
+            "calibration_artifact_hash",
+            "calibration_model_path",
+            "calibration_model_result_hash",
+            "capacity_solver_enabled",
+            "confirmation_report_hash",
+            "confirmation_report_path",
+            "flow_advection_enabled",
+            "maximum_interval_width",
+            "policy_authority",
+            "readout_authority",
+            "scalar_top_k",
+            "truth_mutated",
+        }
+        if calibrated_union_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS calibrated candidate union requires shadow-live manifest")
+        if (not isinstance(calibrated_union_diagnostic, dict)
+                or set(calibrated_union_diagnostic)
+                != expected_calibrated_union_keys):
+            raise RuntimeError(
+                "FDAS calibrated candidate union declaration is incomplete")
+        if any(calibrated_union_diagnostic[name] is not False for name in (
+                "action_selection_changed", "capacity_solver_enabled",
+                "flow_advection_enabled", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS calibrated candidate union cannot grant authority")
+        for name in ("scalar_top_k", "calibrated_per_action"):
+            value = calibrated_union_diagnostic[name]
+            if (isinstance(value, bool) or not isinstance(value, int)
+                    or value < 1):
+                raise RuntimeError(
+                    "FDAS calibrated candidate union {} is invalid".format(
+                        name))
+        maximum_interval_width = calibrated_union_diagnostic[
+            "maximum_interval_width"]
+        if (isinstance(maximum_interval_width, bool)
+                or not isinstance(maximum_interval_width, (int, float))
+                or not math.isfinite(float(maximum_interval_width))
+                or not 0.0 < float(maximum_interval_width) <= 1.0):
+            raise RuntimeError(
+                "FDAS calibrated candidate union interval width is invalid")
+        if (not fdas_defense_choice_surface
+                or fdas_candidate_choice_recorder is None
+                or fdas_learning_config["induced_rule_readout_enabled"]
+                or fdas_learning_config["contextual_conductance_enabled"]
+                or fdas_learning_config[
+                    "contextual_conductance_authority_enabled"]):
+            raise RuntimeError(
+                "FDAS calibrated candidate union requires the non-authorizing "
+                "defense choice surface")
+
+        def declared_calibrated_union_path(name):
+            relative = calibrated_union_diagnostic[name]
+            if (not isinstance(relative, str) or not relative
+                    or os.path.isabs(relative)):
+                raise RuntimeError(
+                    "FDAS calibrated candidate artifact path must be "
+                    "repository-relative")
+            absolute = os.path.abspath(os.path.join(REPO_ROOT, relative))
+            if os.path.commonpath((REPO_ROOT, absolute)) != REPO_ROOT:
+                raise RuntimeError(
+                    "FDAS calibrated candidate artifact escapes repository")
+            return absolute
+
+        (fdas_candidate_calibration_model,
+         fdas_candidate_calibration_artifact_hash) = (
+            load_candidate_calibration_model(
+                declared_calibrated_union_path("calibration_model_path")))
+        (calibration_confirmation,
+         fdas_candidate_calibration_confirmation_hash) = (
+            load_candidate_calibration_confirmation(
+                declared_calibrated_union_path(
+                    "confirmation_report_path")))
+        expected_artifact_bindings = {
+            "calibration_artifact_hash": (
+                fdas_candidate_calibration_artifact_hash),
+            "calibration_model_result_hash": (
+                fdas_candidate_calibration_model.result_hash),
+            "confirmation_report_hash": (
+                fdas_candidate_calibration_confirmation_hash),
+        }
+        for name, actual in expected_artifact_bindings.items():
+            if calibrated_union_diagnostic[name] != actual:
+                raise RuntimeError(
+                    "FDAS calibrated candidate {} differs from manifest"
+                    .format(name))
+        if (calibration_confirmation["calibration_artifact_hash"]
+                != fdas_candidate_calibration_artifact_hash
+                or calibration_confirmation["model_result_hash"]
+                != fdas_candidate_calibration_model.result_hash
+                or set(fdas_candidate_calibration_model.source_store_digests)
+                .intersection(calibration_confirmation["validation"][
+                    "source_store_digests"])):
+            raise RuntimeError(
+                "FDAS calibrated candidate confirmation differs or overlaps")
     if (candidate_impact_capability is not None
             or candidate_impact_diagnostic is not None):
         if candidate_impact_capability != "shadow-live":
@@ -3264,6 +3377,11 @@ async def _play(run_dir, manifest, context):
         "fdas_candidate_impact_abstentions": 0,
         "fdas_candidate_impact_complete_coverages": 0,
         "fdas_candidate_impact_counterfactual_winner_changes": 0,
+        "fdas_calibrated_candidate_union_readouts": 0,
+        "fdas_calibrated_candidate_union_members": 0,
+        "fdas_calibrated_candidate_union_additions": 0,
+        "fdas_calibrated_candidate_union_abstentions": 0,
+        "fdas_calibrated_candidate_union_selection_changes": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5372,6 +5490,63 @@ async def _play(run_dir, manifest, context):
                                                     "snapshot-id:" +
                                                     snapshot.snapshot_id,
                                                 )))
+                                if fdas_candidate_calibration_model is not None:
+                                    surface_scores = tuple(
+                                        score_by_id[
+                                            candidate.operation.operation_id]
+                                        for candidate in surface_candidates)
+                                    calibrated_union = (
+                                        build_calibrated_candidate_union(
+                                            fdas_candidate_calibration_model,
+                                            surface_candidates,
+                                            surface_scores,
+                                            surface_queries,
+                                            snapshot.snapshot_id,
+                                            choice_revision.revision_id,
+                                            scalar_top_k=(
+                                                calibrated_union_diagnostic[
+                                                    "scalar_top_k"]),
+                                            calibrated_per_action=(
+                                                calibrated_union_diagnostic[
+                                                    "calibrated_per_action"]),
+                                            maximum_interval_width=(
+                                                calibrated_union_diagnostic[
+                                                    "maximum_interval_width"])))
+                                    calibrated_union_details = (
+                                        calibrated_union.to_dict())
+                                    decision_stats[
+                                        "fdas_calibrated_candidate_union_"
+                                        "readouts"] += 1
+                                    decision_stats[
+                                        "fdas_calibrated_candidate_union_"
+                                        "members"] += len(
+                                            calibrated_union.members)
+                                    decision_stats[
+                                        "fdas_calibrated_candidate_union_"
+                                        "additions"] += len(
+                                            calibrated_union
+                                            .calibrated_added_operation_ids)
+                                    decision_stats[
+                                        "fdas_calibrated_candidate_union_"
+                                        "abstentions"] += len(
+                                            calibrated_union
+                                            .abstained_operation_ids)
+                                    decision_stats[
+                                        "fdas_calibrated_candidate_union_"
+                                        "selection_changes"] += int(
+                                            calibrated_union_details[
+                                                "action_selection_changed"])
+                                    calibrated_union_event = (
+                                        fdas_runtime
+                                        .emit_calibrated_candidate_union(
+                                            writer, snapshot,
+                                            calibrated_union,
+                                            fdas_candidate_calibration_artifact_hash,
+                                            fdas_candidate_calibration_confirmation_hash,
+                                            caused_by=(parent,)))
+                                    if calibrated_union_event is not None:
+                                        parent = calibrated_union_event[
+                                            "event_id"]
                                 prior_choice_ids = frozenset(
                                     value.choice_set_id for value in
                                     fdas_candidate_choice_store.choice_sets())
@@ -6620,6 +6795,17 @@ async def _play(run_dir, manifest, context):
         ("fdas_candidate_impact_counterfactual_winner_changes",
          decision_stats[
              "fdas_candidate_impact_counterfactual_winner_changes"]),
+        ("fdas_calibrated_candidate_union_readouts",
+         decision_stats["fdas_calibrated_candidate_union_readouts"]),
+        ("fdas_calibrated_candidate_union_members",
+         decision_stats["fdas_calibrated_candidate_union_members"]),
+        ("fdas_calibrated_candidate_union_additions",
+         decision_stats["fdas_calibrated_candidate_union_additions"]),
+        ("fdas_calibrated_candidate_union_abstentions",
+         decision_stats["fdas_calibrated_candidate_union_abstentions"]),
+        ("fdas_calibrated_candidate_union_selection_changes",
+         decision_stats[
+             "fdas_calibrated_candidate_union_selection_changes"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -7119,6 +7305,21 @@ async def _play(run_dir, manifest, context):
             "fdas_candidate_impact_counterfactual_winner_changes": (
                 decision_stats[
                     "fdas_candidate_impact_counterfactual_winner_changes"]),
+            "fdas_calibrated_candidate_union_readouts": (
+                decision_stats[
+                    "fdas_calibrated_candidate_union_readouts"]),
+            "fdas_calibrated_candidate_union_members": (
+                decision_stats[
+                    "fdas_calibrated_candidate_union_members"]),
+            "fdas_calibrated_candidate_union_additions": (
+                decision_stats[
+                    "fdas_calibrated_candidate_union_additions"]),
+            "fdas_calibrated_candidate_union_abstentions": (
+                decision_stats[
+                    "fdas_calibrated_candidate_union_abstentions"]),
+            "fdas_calibrated_candidate_union_selection_changes": (
+                decision_stats[
+                    "fdas_calibrated_candidate_union_selection_changes"]),
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (

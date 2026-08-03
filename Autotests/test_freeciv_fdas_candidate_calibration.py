@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from dataclasses import replace
@@ -16,11 +17,20 @@ from freeciv_agent.planning import (  # noqa: E402
     DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
     FdasCandidateCalibrationModel,
     FdasCandidateChoiceCalibrationExport,
+    OperationParticipant,
+    OperationSpec,
+    OperationStep,
+    ShadowOperationCandidate,
+    build_calibrated_candidate_union,
     fit_candidate_calibration,
 )
 from freeciv_agent.pressure import (  # noqa: E402
+    CostVector,
+    GoalEffect,
     InductionEpisode,
     InductionFeatureQuery,
+    Operation,
+    OperationScore,
 )
 
 
@@ -186,3 +196,98 @@ def test_candidate_calibration_rejects_tampering_overlap_and_missing_lineage():
             exports[0].selected_pending_or_censored_count,
             exports[0].no_in_scope_selection_count,
             exports[0].result_hash)
+
+
+def _candidate(operation_id, operation_type, actor_id):
+    spec = OperationSpec(
+        1, operation_id, operation_type, ("goal-defense",),
+        (OperationParticipant(
+            "actor", "unit:{}".format(actor_id), "unit", True),),
+        "city:3",
+        (OperationStep(
+            operation_id + "-step", operation_type.rsplit(":", 1)[-1],
+            "actor", "city:3", "requirements", "complete", 1),),
+        0, 2, 0.0, ("calibrated-union-test",), "ruleset-test")
+    action_type = operation_type.rsplit(":", 1)[-1]
+    action = {"action_type": action_type, "actor_id": actor_id}
+    action_key = json.dumps(
+        action, sort_keys=True, separators=(",", ":"))
+    return ShadowOperationCandidate(
+        spec, action, action_key, ("unit:{}".format(actor_id),),
+        True, False, (), ("calibrated-union-test",),
+        "candidate-hash-" + operation_id)
+
+
+def _score(candidate, priority):
+    operation = Operation(
+        candidate.operation.operation_id,
+        "atom-" + candidate.operation.operation_id, "act",
+        CostVector(compute=1.0), causal_kind="causal")
+    return OperationScore(
+        operation, True, None, priority, priority, priority, 0.0,
+        (GoalEffect("goal-defense", 1.0, 1.0, 1.0, 1.0),))
+
+
+def test_calibrated_union_enlarges_recall_without_changing_scalar_winner():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "candidate-union-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    candidates = (
+        _candidate("fortify-a", FORTIFY, 7),
+        _candidate("move-a", MOVE, 8),
+        _candidate("fortify-b", FORTIFY, 9),
+        _candidate("move-b", MOVE, 10),
+    )
+    priorities = (1.0, 0.9, 0.8, 0.7)
+    scores = tuple(
+        _score(candidate, priority)
+        for candidate, priority in zip(candidates, priorities))
+    queries = dict(
+        (candidate.operation.operation_id,
+         _query(candidate.operation.operation_type, "0-31"))
+        for candidate in candidates)
+
+    union = build_calibrated_candidate_union(
+        model, candidates, scores, queries, "snapshot-test",
+        "revision-test", scalar_top_k=1, calibrated_per_action=1,
+        maximum_interval_width=1.0)
+
+    assert union.baseline_selected_operation_id == "fortify-a"
+    assert union.operation_ids == ("fortify-a", "move-a")
+    assert union.calibrated_added_operation_ids == ("move-a",)
+    assert dict((value.operation_id, value.baseline_priority)
+                for value in union.readouts) == dict(zip(
+                    ("fortify-a", "move-a", "fortify-b", "move-b"),
+                    priorities))
+    assert union.to_dict()["action_selection_changed"] is False
+    assert union.to_dict()["scalar_final_score_authority"] is True
+    assert union.to_dict()["flow_advection_enabled"] is False
+    assert union.to_dict()["capacity_solver_enabled"] is False
+    assert union.to_dict()["policy_authority"] is False
+    assert union.to_dict()["readout_authority"] is False
+    assert union.to_dict()["truth_mutated"] is False
+
+    conservative = build_calibrated_candidate_union(
+        model, candidates, scores, queries, "snapshot-test",
+        "revision-test", scalar_top_k=1, calibrated_per_action=1,
+        maximum_interval_width=0.1)
+    assert conservative.operation_ids == ("fortify-a",)
+    assert conservative.calibrated_added_operation_ids == ()
+
+
+def test_calibrated_union_keeps_abstained_action_only_if_scalar_protected():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "sparse-union-model",
+        minimum_action_lineages=20, minimum_lifecycle_lineages=10)
+    move = _candidate("move-only", MOVE, 8)
+    query = _query(MOVE, "0-31")
+
+    union = build_calibrated_candidate_union(
+        model, (move,), (_score(move, 1.0),),
+        {"move-only": query}, "snapshot-test", "revision-test",
+        scalar_top_k=1, maximum_interval_width=1.0)
+
+    assert union.operation_ids == ("move-only",)
+    assert union.abstained_operation_ids == ("move-only",)
+    assert union.calibrated_added_operation_ids == ()
+    assert union.readouts[0].eligible_for_calibrated_recall is False
