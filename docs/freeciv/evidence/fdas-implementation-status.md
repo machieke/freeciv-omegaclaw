@@ -481,3 +481,16 @@ assignment was executed, no winner changed, and all 406 engine actions were
 accepted. The observed yield is about one opportunity per game and is far too
 sparse for a score claim. A small claim-ineligible execution-and-attribution
 pilot is the next gate; see `fdas-pr51-safe-alternative-shadow.md`.
+
+PR52 through PR52d exercised the first bounded randomized alternative action
+through progressively hardened startup, authority-event, and episode-revision
+ordering. PR52d finally completed the 160-turn game with one accepted treatment
+selection and exact assignment/action/episode/choice linkage, but exposed a
+scientifically consequential label defect: the alternative's first movement
+effect had no immediate goal relief, so it received no delayed label and its
+choice remained pending without a due turn. PR52d is mechanically rejected and
+excluded from fitting. Commit `6774edd` now indexes the selected-actor outcome
+at accepted selection for both relief and no-relief actions, persists its turn
+for restart recovery, and opens the 32-turn label immediately. The frozen PR52e
+retry is the next gate; see
+`fdas-pr52e-randomized-execution-pilot-preregistration.md`.
