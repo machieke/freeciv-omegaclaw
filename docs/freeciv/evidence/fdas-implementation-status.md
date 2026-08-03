@@ -468,3 +468,16 @@ valid control, so the result is imprecise and claim-ineligible, but its directio
 fails the source--sink-flow entry gate. The next bottleneck is authoritative
 alternative-candidate value, not faster transport. See
 `fdas-pr50-path-persistence-relevance-discovery.md`.
+
+PR51 begins that alternative-value program with a strictly non-executing,
+propensity-recorded assignment shadow. Persistence-only alternatives produced
+zero eligible interventions in the engineering smoke, so the frozen
+correction uses an exact bounded nearest-score garrison alternative. One clean
+160-turn game produced one fully preflighted pair across 166 evaluations: both
+arms shared unit class, movement cost, destination, target city, deficit atom,
+priority, and risk while retaining distinct actor resources and independent
+pressure/packet/commit proofs. The stable 50/50 draw selected control; no
+assignment was executed, no winner changed, and all 406 engine actions were
+accepted. The observed yield is about one opportunity per game and is far too
+sparse for a score claim. A small claim-ineligible execution-and-attribution
+pilot is the next gate; see `fdas-pr51-safe-alternative-shadow.md`.
