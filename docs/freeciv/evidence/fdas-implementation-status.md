@@ -958,3 +958,12 @@ sensitivity may deterministically reconstruct PR68's six stored candidate
 pairs, but it cannot change either primary result. See
 `fdas-pr69-pair-scope-diagnostic.md` and
 `fdas-pr69-pair-scope-diagnostic.json`.
+
+PR70 specifies a deterministic, explicitly post-hoc sensitivity over PR68's
+six aggregate scope rows. It hash-binds the original failed report, joins each
+readout to its protected union and causal safety-filter parent, and reconstructs
+ordinary unit resources using the committed actor-resource rule. This avoids
+consuming more fresh seeds merely to reproduce a sparse diagnostic event. A
+pass can identify the stored conjuncts and motivate a future contract, but it
+cannot repair PR68 or PR69 or establish alternative value. See
+`fdas-pr70-pr68-pair-scope-sensitivity-specification.md`.
