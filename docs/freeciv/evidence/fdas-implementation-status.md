@@ -626,3 +626,25 @@ authority from replaying stale unit scope. A 294-test state/harness/Impact suite
 passes. The exact two known failure seeds are preregistered for a permanently
 claim-ineligible engineering replay before further candidate-value design; see
 `fdas-pr57-execution-hardening-replay-preregistration.md`.
+
+PR57c closes that engineering replay after two intentionally preserved launch
+corrections: PR57 omitted the local ruleset binding, and PR57b exposed that the
+randomized FDAS paths had also been ambient rather than configuration-bound.
+Strict seed overlay 1.1 now permits only the exact FDAS config/manifest path
+pair, and the replay profile declares both. From clean commit `1091c93`, both
+known seeds reached turn 161 with no failure or rejection. Audit 1.5 passes all
+randomized lifecycle gates across 17 resolved assignments. A separate trace
+audit checks 640 snapshots, 86,166 spatial legal actions, and 640 accepted
+submissions: no coordinate is off-map, no accepted snapshot/action pair is
+replayed, and no unit action follows an accepted unit action on the same
+snapshot. All 142 spatial actions at seed `106417` turn 135 are canonical.
+Seed `107123` completed three safe catalog reprojections, although its
+non-deterministic refresh timeout did not recur and therefore did not increment
+the new guard counter. This closes the frozen engineering gate only. PR56's
+adverse, under-yield candidate-value result remains unchanged; the next
+scientific task is a mechanically defined alternative whose grounded
+transition-value criterion differs from bounded nearest scalar score, not a
+repeat of that intervention. See
+`fdas-pr57c-execution-hardening-replay-preregistration.md`,
+`fdas-pr57c-execution-hardening-replay.json`, and
+`fdas-pr57c-execution-hardening-trace.json`.

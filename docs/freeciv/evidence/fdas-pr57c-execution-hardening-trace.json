@@ -1,0 +1,93 @@
+{
+  "audit_identity": "fdas-execution-hardening-trace-audit/1.0",
+  "claim_scope": "known-seed execution mechanics only; no candidate-value, gameplay, score, or win-rate claim",
+  "games": [
+    {
+      "accepted_actions": 264,
+      "actions_sent": 264,
+      "artifacts": {
+        "events_sha256": "772d976ed27aa871db0cc66cc73652e7e9f0d1aa16a14bb7f5ffae9c98322a1f",
+        "manifest_sha256": "be086713a03b7d149c972f2312e162d5b4489808284a79ecd20e8741a42310a6",
+        "status_sha256": "50c7c96dff06ee2b79dff5ea47467846306e4c47b2afc4406cb50c05badd675a"
+      },
+      "duplicate_after_acceptance": [],
+      "game_id": "m7-main-e_full_loop-106417-00",
+      "gates": {
+        "completed_without_infrastructure_failure": true,
+        "historical_boundary_observed": true,
+        "no_accepted_snapshot_action_pair_replayed": true,
+        "no_spatial_action_outside_canonical_map": true,
+        "no_unit_action_after_accepted_unit_on_same_snapshot": true,
+        "stale_unit_guard_counter_is_valid": true,
+        "zero_rejected_engine_actions": true
+      },
+      "historical_snapshots_checked": 1,
+      "historical_spatial_actions_checked": 142,
+      "passed": true,
+      "seed": 106417,
+      "snapshots_checked": 264,
+      "source": {
+        "commit": "1091c93e1d46aeb6e005b6826d05afec0f2e0e16",
+        "dirty": false,
+        "implementation_sha256": "1aa3ccc7a09703ad3bae3f7ba8b3d70be798a9f7c012ad387f7e90795a233c8b",
+        "source_files": 283
+      },
+      "spatial_actions_checked": 26669,
+      "spatial_violations": [],
+      "stale_unit_scope_followups": [],
+      "stale_unit_scope_followups_blocked": 0
+    },
+    {
+      "accepted_actions": 376,
+      "actions_sent": 376,
+      "artifacts": {
+        "events_sha256": "6ed443b51dc0d6afc5d3e46b13d60dceafc50e46cc155e1b0a8c18989e3ec572",
+        "manifest_sha256": "6d2cffdcf45fed7e09ccd4855fe0ebc5d97b732f85171256ba14b76172cf2650",
+        "status_sha256": "64c91b5626eb464e31cc3878e022a0f1643dbc02b42691b40f8c42e3f3fbca25"
+      },
+      "duplicate_after_acceptance": [],
+      "game_id": "m7-main-e_full_loop-107123-00",
+      "gates": {
+        "completed_without_infrastructure_failure": true,
+        "historical_boundary_observed": true,
+        "no_accepted_snapshot_action_pair_replayed": true,
+        "no_spatial_action_outside_canonical_map": true,
+        "no_unit_action_after_accepted_unit_on_same_snapshot": true,
+        "stale_unit_guard_counter_is_valid": true,
+        "zero_rejected_engine_actions": true
+      },
+      "historical_snapshots_checked": 0,
+      "historical_spatial_actions_checked": 0,
+      "passed": true,
+      "seed": 107123,
+      "snapshots_checked": 376,
+      "source": {
+        "commit": "1091c93e1d46aeb6e005b6826d05afec0f2e0e16",
+        "dirty": false,
+        "implementation_sha256": "1aa3ccc7a09703ad3bae3f7ba8b3d70be798a9f7c012ad387f7e90795a233c8b",
+        "source_files": 283
+      },
+      "spatial_actions_checked": 59497,
+      "spatial_violations": [],
+      "stale_unit_scope_followups": [],
+      "stale_unit_scope_followups_blocked": 0
+    }
+  ],
+  "gates": {
+    "all_game_trace_gates_pass": true,
+    "exact_randomized_audit_seeds": true,
+    "randomized_ledger_audit_passed": true,
+    "source_identity_is_identical": true
+  },
+  "historical_boundary": {
+    "seed": 106417,
+    "turn": 135
+  },
+  "passed": true,
+  "randomized_audit": {
+    "audit_identity": "fdas-randomized-alternative-live-audit/1.5",
+    "report_hash": "f5894d6bb299eaac4543c0cc834ca207893983d993b576242ec3a8ae23733a6e",
+    "sha256": "49e656aa892596665718504d6fe38df8f55cf0a7ac8d449cc78cf7a6b5b59c32"
+  },
+  "report_hash": "f5183c0c90765b8986747d022a7f8ea02ac2edc5e42e3d8a4fd040d93be92b89"
+}
