@@ -702,3 +702,17 @@ feature collection only. Candidate-specific fitting still requires a separate
 preregistered discovery and untouched confirmation design; see
 `fdas-pr59-candidate-transition-features.md` and
 `fdas-pr59-candidate-transition-feature-smoke.json`.
+
+PR60 freezes the next non-authorizing scientific gate before collecting any
+new outcomes. A separate move-only model fits ten hierarchical levels from
+action through full transition signature + lifecycle, collapses repeated rows
+to durable lineages, shrinks child centers toward exact parents with a fixed
+strength of four, and keeps interval width at actual child N. Unsupported,
+incomplete, non-move, and unseen strata abstain or back off explicitly. A
+disjoint held-out evaluator freezes coverage, discrimination, Brier, log-loss,
+calibration, empirical-interval, and game-clustered noninferiority gates.
+Synthetic tests prove separated supported strata, sparse backoff, lineage
+collapse, abstention, artifact tamper rejection, discovery/confirmation source
+separation, passing aligned holdout, and failing adverse holdout. No model is
+loaded into live readout. See
+`fdas-pr60-candidate-transition-calibration-preregistration.md`.

@@ -190,6 +190,26 @@ def test_config_seed_overlay_can_bind_exact_fdas_profiles():
         "randomized_pilot.json")
 
 
+def test_config_accepts_pr60_transition_calibration_partition():
+    config = load(os.path.join(
+        REPO, "profile",
+        "freeciv_harness_fdas_pr60_transition_calibration_160_turn.yaml"))
+
+    assert len(config["seeds"]) == 30
+    assert config["seeds"][:12] == [
+        108023, 108037, 108041, 108053, 108061, 108079,
+        108089, 108107, 108109, 108127, 108131, 108139,
+    ]
+    assert config["seeds"][12:24] == [
+        108161, 108179, 108187, 108191, 108193, 108203,
+        108211, 108217, 108223, 108233, 108247, 108263,
+    ]
+    assert config["dependent_atomspace"]["config_source"] == (
+        "profile/dependent_atomspace_defense_choice_surface_shadow.yaml")
+    assert config["dependent_atomspace"]["manifest_source"] == (
+        "profile/fdas_manifest_defense_decision_safe_readout_shadow.json")
+
+
 def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
         monkeypatch):
     path = os.path.join(
