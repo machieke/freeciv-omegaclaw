@@ -1023,3 +1023,16 @@ abstention. Because the seed was previously observed and the scalar roles
 reversed relative to PR71, this is integration evidence only. An unseen-seed
 opportunity and interval-separation cohort remains the next scientific gate.
 See `fdas-pr73-ruleset-defensive-readout-confirmation.md` and its JSON report.
+
+PR74 then measures the correction on 16 fixed unseen seeds. All 16 games and
+the full parent safety audit pass, with 4,686 accepted engine actions and 350
+exclusive readout-`1.1` events. Target-scoped recall now yields 50 grounded
+alternatives across four games; 30 are noninferior on every grounded check,
+and both cross-type pairs pass the ruleset defensive comparator. None of the
+50 comparisons has separated calibrated intervals, so all readouts abstain.
+Median marginal interval width is 0.4287 while the best separation margin is
+still -0.4142. Moreover, 28 of 30 grounded-noninferior pairs receive exactly
+the same estimate and interval, including ten with strict grounded Pareto
+improvement. The next bottleneck is therefore comparative uncertainty and
+decision-safe tie readout, not recall or unit semantics. See
+`fdas-pr74-ruleset-defensive-opportunity.md` and its JSON report.
