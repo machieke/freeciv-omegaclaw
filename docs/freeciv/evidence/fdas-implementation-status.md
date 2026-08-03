@@ -752,3 +752,29 @@ six-game minimum. All PR60 model, yield, validation, endpoint, and non-authority
 contracts remain fixed. PR60 data cannot be pooled, and its reserved seeds stay
 excluded. See
 `fdas-pr61-candidate-transition-calibration-replication-preregistration.md`.
+
+PR61 is preserved as a failed primary replication despite passing every
+outcome-yield and predictive gate. The 30 clean games supplied 75 outcomes, 32
+lineages across 14 games, 100% coverage, Brier `0.243`, log loss `0.679`, and a
+clustered Brier-improvement interval `[-0.0024, +0.0139]`. Feature audit 1.0
+rejected four mechanically valid sparse games because each game, including one
+with only fortify choices, was required to contain a multi-move choice and
+multiple grounded signatures. Cohort-wide mechanics were strong: all 2,951
+move rows were completely grounded and frozen-model compatible, with 640
+diverse multi-move sets and no feature errors. Because the per-game audit rule
+was frozen, this cannot be repaired post hoc. The next step is a versioned
+prospective audit that keeps row invariants per-game and moves opportunity
+yield to cohort scope, followed by another disjoint replication. See
+`fdas-pr61-candidate-transition-calibration-replication.md` and
+`fdas-pr61-candidate-transition-calibration-replication.json`.
+
+PR62 versions the audit correction prospectively. Audit 2.0 keeps store,
+schema, grounding, frozen-prediction, fortify, error, and parent-mechanics
+requirements per game while measuring chance move competition and signature
+diversity across the complete cohort. It consumes and hash-binds the full 1.0
+report, and the original validator remains unchanged by default. An explicitly
+post-hoc PR61 sensitivity passes audit 2.0 plus every frozen yield and
+predictive gate, confirming the implementation but not changing PR61's primary
+failure or granting activation. Fresh disjoint evidence remains required. See
+`fdas-pr62-transition-feature-cohort-audit.md` and
+`fdas-pr61-candidate-transition-calibration-cohort-audit-sensitivity.json`.

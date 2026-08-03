@@ -55,11 +55,19 @@ def confirmation_report(
         run_root, model_path, confirmation_id, expected_seeds,
         expected_source_commit, yield_thresholds=None,
         validation_thresholds=None, bootstrap_samples=2000,
-        bootstrap_seed=16061):
+        bootstrap_seed=16061, feature_auditor=None,
+        report_schema_version=(
+            "fdas-candidate-transition-calibration-confirmation/1.0")):
     seeds = tuple(int(value) for value in expected_seeds)
     if not seeds or len(seeds) != len(set(seeds)):
         raise ValueError("transition confirmation requires unique seeds")
-    feature_report = audit_features(
+    if feature_auditor is None:
+        feature_auditor = audit_features
+    if not callable(feature_auditor):
+        raise TypeError("transition confirmation feature auditor is invalid")
+    if not isinstance(report_schema_version, str) or not report_schema_version:
+        raise ValueError("transition confirmation report schema is required")
+    feature_report = feature_auditor(
         run_root,
         os.path.join(
             REPO, "docs", "freeciv", "evidence",
@@ -99,8 +107,7 @@ def confirmation_report(
         "passed": passed,
         "policy_authority": False,
         "readout_authority": False,
-        "schema_version": (
-            "fdas-candidate-transition-calibration-confirmation/1.0"),
+        "schema_version": report_schema_version,
         "source_store_paths": [
             os.path.relpath(path, REPO).replace(os.sep, "/")
             for path in paths],
