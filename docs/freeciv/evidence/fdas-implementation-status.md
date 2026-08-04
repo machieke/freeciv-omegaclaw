@@ -1156,3 +1156,17 @@ All eight audit gates pass with deterministic hash
 The next gate is a chain-completion-specific outcome target, not further flow
 retuning. See `fdas-pr80-replacement-terminal-reproposal-hardening.md` and its
 JSON report.
+
+PR81 implements that chain-specific target without silently granting execution
+authority. A label opens only after the durable coordinated-replacement
+operation completes both authoritative steps, then observes exact source-city,
+target-city, replacement, and reinforcement survival/placement conjuncts after
+32 turns. Persistent identity, restart recovery, event/counter reconciliation,
+and positive/negative mechanics pass focused tests. A clean 160-turn seed
+`109633` run passes all nine live audit gates with zero rejected actions, 59
+replacement operations, 717 reproposal suppressions, and 218 grounded pairs.
+It has zero completed chains and therefore correctly produces zero labels. This
+is activation evidence only: the next prerequisite is a separately gated,
+bounded chain-execution treatment capable of generating completion-indexed
+outcomes. See `fdas-pr81-replacement-chain-outcome-contract.md` and its JSON
+report.

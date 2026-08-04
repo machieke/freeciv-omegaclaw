@@ -1,0 +1,56 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "completed_operations_and_labels_are_one_to_one": true,
+      "event_labels_match_persisted_lifecycle": true,
+      "events_are_revision_current_non_authorizing_and_store_bound": true,
+      "events_have_exact_transition_and_authority_contract": true,
+      "manifest_freezes_completion_indexed_non_authority": true,
+      "outcome_store_is_valid_unquarantined_and_identity_bound": true,
+      "parent_replacement_lifecycle_and_readout_audit_passes": true,
+      "source_is_clean_and_expected_commit": true,
+      "status_and_terminal_counters_match_store": true
+    }
+  },
+  "claim_scope": "completion-indexed coordinated-replacement outcome lifecycle only; zero completions are activation evidence, not value data; no transition value, preference, action, score, or win-rate claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr81-replacement-chain-outcome-v1/games/main/e_full_loop/109633-00/events.jsonl",
+      "sha256": "8039d08d03025f598fe3cdc8fbf1676e39e4a5e42d040a45ebb0bdf99492de3e"
+    },
+    "fdas-coordinated-replacement-operations.json": {
+      "path": "artifacts/freeciv/fdas-pr81-replacement-chain-outcome-v1/games/main/e_full_loop/109633-00/fdas-coordinated-replacement-operations.json",
+      "sha256": "ac4744a5f46cd185c99f54ca84d3cc425a767150f41caba6132d861d7200ef5c"
+    },
+    "fdas-coordinated-replacement-outcome-labels.json": {
+      "path": "artifacts/freeciv/fdas-pr81-replacement-chain-outcome-v1/games/main/e_full_loop/109633-00/fdas-coordinated-replacement-outcome-labels.json",
+      "sha256": "3c7f33ce017950bff503c2d056392936ef91f489a07232440f59ca546fa8fc8f"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr81-replacement-chain-outcome-v1/games/main/e_full_loop/109633-00/manifest.json",
+      "sha256": "1263720f5de3e45926b86b45a910e9afac0af044d4b5fe4ea2ca739ae1e47ad6"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr81-replacement-chain-outcome-v1/games/main/e_full_loop/109633-00/status.json",
+      "sha256": "76090e8a439da1e2e0d05fdb142f2d74c7bdfc472e12444e71085d8dfbf96a09"
+    }
+  },
+  "parent_audit_hash": "dc480b1c674c84b9fa24dcfd1e7774a5f772247426f08ca2085103a03dce185a",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "6c7cf12cba3a76d80117ef9d13fb21af9da4e031",
+    "dirty": false,
+    "implementation_sha256": "1cd3c32ec445fc9d4b43051774c457bdf04a52d044978aca42f89ced9562f72d",
+    "source_files": 299
+  },
+  "structural_hash": "0f1854f437ea935a1b077fdbffa24671d4b6201f3f1de057e3e76096b405a2e2",
+  "summary": {
+    "completed_operations": 0,
+    "labels": 0,
+    "negative": 0,
+    "observed": 0,
+    "pending": 0,
+    "positive": 0
+  }
+}
