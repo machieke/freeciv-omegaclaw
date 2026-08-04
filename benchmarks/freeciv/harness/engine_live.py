@@ -4871,19 +4871,34 @@ async def _play(run_dir, manifest, context):
         """Record terminal queue evidence and due durable relief exactly once."""
         if retained_capacity_outcome_labeler is None:
             return cause
-        revision = fdas_store.current_dependent_revision(
-            manifest["game_id"], player_id)
-        if revision is None or revision.snapshot_id != current.snapshot_id:
-            if not events:
-                return cause
-            raise RuntimeError(
-                "FDAS retained capacity outcome lacks current revision")
         terminal_types = frozenset((
             "operation_completed", "operation_abandoned",
             "operation_expired", "operation_failed"))
-        for event in events:
-            if event.get("type") not in terminal_types:
-                continue
+        terminal_events = tuple(
+            event for event in events
+            if event.get("type") in terminal_types)
+        revision = fdas_store.current_dependent_revision(
+            manifest["game_id"], player_id)
+        refreshed_for_terminal = False
+        if revision is None or revision.snapshot_id != current.snapshot_id:
+            if not terminal_events:
+                return cause
+            prior_revision = revision
+            update = fdas_runtime.replace(current)
+            revision_events = fdas_runtime.emit_current(
+                writer, current, caused_by=(cause,),
+                prior_revision=prior_revision)
+            if revision_events:
+                cause = revision_events[-1]["event_id"]
+            revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            if (revision is None
+                    or revision.snapshot_id != current.snapshot_id
+                    or update.snapshot_id != current.snapshot_id):
+                raise RuntimeError(
+                    "FDAS retained capacity terminal refresh failed")
+            refreshed_for_terminal = True
+        for event in terminal_events:
             operation_id = event.get("payload", {}).get("operation_id")
             prior = retained_capacity_outcome_store.for_operation(operation_id)
             if prior is None:
@@ -4902,7 +4917,8 @@ async def _play(run_dir, manifest, context):
             emitted = fdas_runtime.emit_retained_capacity_outcome(
                 writer, current, observed, transition,
                 retained_capacity_outcome_store.store_digest,
-                caused_by=(event["event_id"],))
+                caused_by=((cause,) if refreshed_for_terminal
+                           else (event["event_id"],)))
             if emitted is not None:
                 cause = emitted["event_id"]
             decision_stats[
