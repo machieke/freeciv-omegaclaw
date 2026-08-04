@@ -1,0 +1,36 @@
+schema_version: "1.0"
+seed_overlay_base: profile/freeciv_harness_fdas_pr49_160_turn.yaml
+dependent_atomspace:
+  config_path: profile/dependent_atomspace_defense_choice_surface_shadow.yaml
+  manifest_path: profile/fdas_manifest_defense_replacement_execution_pilot.json
+seeds:
+  - 109459
+  - 109601
+  - 109603
+  - 109607
+  - 109609
+  - 109613
+  - 109617
+  - 109619
+  - 109621
+  - 109623
+  - 109627
+  - 109631
+  - 109633
+  - 109637
+  - 109639
+  - 109643
+  - 109647
+  - 109649
+  - 109651
+  - 109653
+  - 109657
+  - 109659
+  - 109661
+  - 109663
+  - 109667
+  - 109669
+  - 109671
+  - 109673
+  - 109677
+  - 109679

@@ -14,10 +14,13 @@ if SRC not in sys.path:
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     FdasCoordinatedReplacementAdapter,
+    FdasCoordinatedReplacementExecutionPilot,
     FdasCoordinatedReplacementReadoutEvaluator,
     FdasReplacementChainOutcomeLabel,
     FdasReplacementChainOutcomeLabeler,
     FdasReplacementChainOutcomeStore,
+    FdasReplacementExecutionAssignment,
+    FdasReplacementExecutionStore,
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
     OperationSpec,
@@ -440,6 +443,169 @@ def test_replacement_readout_recalls_grounded_chain_without_value_claim():
     assert pair.combined_movement_cost == 2
     assert pair.to_dict()["direct_unsafe_reason"] == (
         "protected-source-garrison")
+
+
+def test_bounded_replacement_execution_persists_one_chain_and_completes(
+        tmp_path):
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2), _move(7, 3)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 530),
+        _route(7, 82, 84, 83, 12, 530),
+    ]
+    first = _snapshot(first_payload, 530)
+    operation_store = OperationStore("fdas-replacement:execution-operation")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    replacement = _candidate(first, "replacement-execution-proof")
+    direct = _direct_candidate(first)
+    adapter.reconcile(first, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(first)
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(first, revision, (replacement, direct))
+    execution_identity = "fdas-replacement:execution-treatment"
+    execution_store = FdasReplacementExecutionStore(execution_identity)
+    pilot = FdasCoordinatedReplacementExecutionPilot(
+        adapter, execution_store, "replacement-pilot-test",
+        first.identity.game_id, first.player_id)
+
+    first_decision = pilot.evaluate(first, readout)
+
+    assert first_decision.status == "authorized"
+    assert first_decision.assignment_created is True
+    assert tuple(value.disposition for value in
+                 first_decision.lifecycle_updates) == (
+                     "execution-reserved", "execution-activated")
+    assert first_decision.authority.action_key == replacement.action_key
+    assert operation_store.get(
+        replacement.operation.operation_id).progress.state == (
+            OperationState.ACTIVE)
+
+    assignment, attempt, update = pilot.record_outcome(
+        first, replacement.action, True, "action-result-first")
+    assert attempt.step_index == 0
+    assert attempt.accepted is True
+    assert update.disposition == "execution-attempt-accepted"
+    assert len(assignment.attempts) == 1
+
+    blocked_payload = _payload(
+        13, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=82, reinforcement_x=2)
+    blocked_payload["legal_actions"] = []
+    blocked_payload["authoritative"]["movement_routes"] = []
+    blocked = _snapshot(blocked_payload, 531)
+    adapter.reconcile(blocked)
+    blocked_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(blocked)
+    blocked_readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(blocked, blocked_revision, ())
+
+    blocked_decision = pilot.evaluate(blocked, blocked_readout)
+
+    assert blocked_decision.status == "abstained"
+    assert blocked_decision.reason == "selected-operation-blocked"
+    assert blocked_decision.authority is None
+    assert operation_store.get(
+        replacement.operation.operation_id).progress.state == (
+            OperationState.BLOCKED)
+    path = tmp_path / "replacement-execution.json"
+    execution_store.save(str(path))
+
+    restarted_store = FdasReplacementExecutionStore.load(
+        str(path), execution_identity)
+    assert restarted_store.quarantined is False
+    assert restarted_store.assignment == assignment
+    restarted_pilot = FdasCoordinatedReplacementExecutionPilot(
+        adapter, restarted_store, "replacement-pilot-test",
+        first.identity.game_id, first.player_id)
+
+    second_payload = _payload(
+        14, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=82, reinforcement_x=2)
+    second_payload["legal_actions"] = [_move(7, 3)]
+    second_payload["authoritative"]["movement_routes"] = [
+        _route(7, 82, 84, 83, 14, 532)]
+    second = _snapshot(second_payload, 532)
+    adapter.reconcile(second)
+    second_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(second)
+    empty_readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(second, second_revision, ())
+
+    second_decision = restarted_pilot.evaluate(second, empty_readout)
+
+    assert second_decision.status == "authorized"
+    assert second_decision.assignment_created is False
+    assert second_decision.authority.action["actor_id"] == 7
+    assert tuple(value.disposition for value in
+                 second_decision.lifecycle_updates) == (
+                     "execution-reserved", "execution-activated")
+    second_assignment, second_attempt, _update = (
+        restarted_pilot.record_outcome(
+            second, second_decision.authority.action, True,
+            "action-result-second"))
+    assert second_attempt.step_index == 1
+    assert len(second_assignment.attempts) == 2
+
+    completed_payload = _payload(
+        15, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=84, reinforcement_x=4)
+    completed = _snapshot(completed_payload, 533)
+    adapter.reconcile(completed)
+    completed_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(completed)
+    completed_readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(completed, completed_revision, ())
+
+    terminal = restarted_pilot.evaluate(completed, completed_readout)
+
+    assert terminal.status == "terminal"
+    assert terminal.assignment.terminal_state == "completed"
+    assert len(restarted_store.assignment.attempts) == 2
+    other_material = dict(terminal.assignment.identity_material)
+    other_material.update({
+        "operation_id": "different-replacement-operation",
+        "operation_spec_digest": "different-replacement-spec",
+    })
+    other = FdasReplacementExecutionAssignment(
+        **{**terminal.assignment.__dict__,
+           "assignment_id": "replacement-execution-assignment-" +
+           structural_hash(other_material)[:24],
+           "operation_id": "different-replacement-operation",
+           "operation_spec_digest": "different-replacement-spec",
+           "attempts": (), "terminal_state": None,
+           "terminal_reason": None})
+    with pytest.raises(ValueError, match="cannot reassign"):
+        restarted_store.record(other)
+
+    outcome_store = FdasReplacementChainOutcomeStore(
+        "fdas-replacement:execution-outcome")
+    label = FdasReplacementChainOutcomeLabeler(outcome_store).open(
+        operation_store.get(replacement.operation.operation_id),
+        completed.identity.game_id, completed.player_id)
+    assert label.completion_turn == 15
+    assert label.operation_id == terminal.assignment.operation_id
+
+
+def test_bounded_replacement_execution_tamper_quarantines_restart(tmp_path):
+    path = tmp_path / "replacement-execution.json"
+    store = FdasReplacementExecutionStore("execution-store-original")
+    store.save(str(path))
+
+    restarted = FdasReplacementExecutionStore.load(
+        str(path), "execution-store-different")
+
+    assert restarted.quarantined is True
+    assert "identity differs" in restarted.quarantine_reason
 
 
 def test_replacement_readout_abstains_when_source_coverage_is_not_current():

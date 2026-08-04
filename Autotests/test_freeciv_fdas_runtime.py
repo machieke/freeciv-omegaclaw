@@ -376,6 +376,40 @@ def test_coordinated_replacement_chain_outcome_events_have_zero_authority(
             writer, snapshot, label, "invalid", "store-digest")
 
 
+def test_coordinated_replacement_execution_event_is_pilot_bounded(tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    details = {
+        "claim_eligible": False,
+        "identity": (
+            "fdas-coordinated-replacement-bounded-execution-pilot/1.0"),
+        "policy_authority": True,
+        "randomized": False,
+        "status": "authorized",
+        "truth_mutated": False,
+    }
+    decision = SimpleNamespace(to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "replacement-execution-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_coordinated_replacement_execution(
+        writer, snapshot, decision, "authorized", "execution-store-digest")
+
+    assert event["type"] == "atomspace_authority_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-execution-pilot")
+    assert event["payload"]["details"]["claim_eligible"] is False
+    assert event["payload"]["details"]["randomized"] is False
+    assert validate_file(path).valid
+
+    invalid = SimpleNamespace(to_dict=lambda: {
+        **details, "claim_eligible": True})
+    with pytest.raises(RuntimeError, match="pilot boundary"):
+        runtime.emit_coordinated_replacement_execution(
+            writer, snapshot, invalid, "authorized", "store-digest")
+
+
 def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

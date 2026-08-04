@@ -60,6 +60,103 @@ class FdasCoordinatedReplacementAdapter(object):
     def requirement_contexts(self):
         return tuple(self._contexts[key] for key in sorted(self._contexts))
 
+    def activate_for_execution(self, operation_id, snapshot):
+        """Durably reserve one current exact step for an external pilot."""
+        record = self.store.get(str(operation_id))
+        if record is None:
+            raise ValueError("replacement execution operation is unavailable")
+        binding = self.binding(operation_id)
+        context = self.requirement_context(operation_id)
+        if (record.progress.state != OperationState.RESERVABLE
+                or binding is None or context is None
+                or binding.snapshot_id != snapshot.snapshot_id
+                or binding.legal_actions_digest
+                != snapshot.legal_actions_digest
+                or binding.action_key not in snapshot.legal_action_json
+                or not binding.legal_bound
+                or context.snapshot_id != snapshot.snapshot_id
+                or context.blocked_premises):
+            raise ValueError(
+                "replacement execution step is not exactly reservable")
+        previous = record.progress.state
+        record = self.store.transition(
+            record.spec.operation_id, OperationState.RESERVED,
+            snapshot.snapshot_id, int(snapshot.turn))
+        reserved = self._update(
+            record, previous, "execution-reserved",
+            "bounded-pilot-current-step-reserved", snapshot, binding)
+        previous = record.progress.state
+        record = self.store.transition(
+            record.spec.operation_id, OperationState.ACTIVE,
+            snapshot.snapshot_id, int(snapshot.turn))
+        active = self._update(
+            record, previous, "execution-activated",
+            "bounded-pilot-current-step-activated", snapshot, binding)
+        return reserved, active
+
+    def reactivate_for_execution(self, operation_id, snapshot):
+        """Recover a selected step after an exact temporary block clears."""
+        record = self.store.get(str(operation_id))
+        if record is None:
+            raise ValueError("replacement execution operation is unavailable")
+        if record.progress.state == OperationState.RESERVABLE:
+            return self.activate_for_execution(operation_id, snapshot)
+        if record.progress.state != OperationState.RESERVED:
+            raise ValueError("replacement execution operation cannot reactivate")
+        binding = self.binding(operation_id)
+        context = self.requirement_context(operation_id)
+        if (binding is None or context is None
+                or binding.snapshot_id != snapshot.snapshot_id
+                or binding.legal_actions_digest
+                != snapshot.legal_actions_digest
+                or binding.action_key not in snapshot.legal_action_json
+                or not binding.legal_bound
+                or context.snapshot_id != snapshot.snapshot_id
+                or context.blocked_premises):
+            raise ValueError(
+                "replacement execution step is not exactly recoverable")
+        previous = record.progress.state
+        record = self.store.transition(
+            record.spec.operation_id, OperationState.ACTIVE,
+            snapshot.snapshot_id, int(snapshot.turn))
+        return (self._update(
+            record, previous, "execution-reactivated",
+            "bounded-pilot-current-step-reactivated", snapshot, binding),)
+
+    def record_execution_outcome(
+            self, operation_id, snapshot, action, accepted, reason=None):
+        """Record an exact submitted step without asserting its world effect."""
+        record = self.store.get(str(operation_id))
+        binding = self.binding(operation_id)
+        action_key = canonical_json_bytes(action).decode("utf-8")
+        if (record is None or record.progress.state != OperationState.ACTIVE
+                or binding is None
+                or binding.snapshot_id != snapshot.snapshot_id
+                or binding.legal_actions_digest
+                != snapshot.legal_actions_digest
+                or binding.action_key != action_key
+                or action_key not in snapshot.legal_action_json
+                or not binding.legal_bound):
+            raise ValueError(
+                "replacement execution outcome lacks exact active binding")
+        previous = record.progress.state
+        if accepted:
+            record = self.store.record_attempt(
+                record.spec.operation_id, snapshot.snapshot_id,
+                int(snapshot.turn))
+            return self._update(
+                record, previous, "execution-attempt-accepted",
+                "accepted-action-awaiting-authoritative-step-predicate",
+                snapshot, binding)
+        failure = str(reason or "replacement-step-action-rejected")
+        record = self.store.transition(
+            record.spec.operation_id, OperationState.FAILED,
+            snapshot.snapshot_id, int(snapshot.turn), reason=failure)
+        self._clear(record.spec.operation_id)
+        return self._update(
+            record, previous, "execution-attempt-rejected", failure,
+            snapshot, binding)
+
     def reproposal_suppressions(self):
         """Return candidate ID, prior operation ID, and release turn."""
         return self._reproposal_suppressions

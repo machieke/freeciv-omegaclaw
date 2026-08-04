@@ -299,6 +299,16 @@ from .fdas_replacement_outcomes import (
     FdasReplacementChainOutcomeLabeler,
     FdasReplacementChainOutcomeStore,
 )
+from .fdas_replacement_execution import (
+    REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
+    REPLACEMENT_EXECUTION_SCHEMA_VERSION,
+    REPLACEMENT_EXECUTION_TREATMENT_ID,
+    FdasCoordinatedReplacementExecutionPilot,
+    FdasReplacementExecutionAssignment,
+    FdasReplacementExecutionAttempt,
+    FdasReplacementExecutionDecision,
+    FdasReplacementExecutionStore,
+)
 from .fdas_replacement_readout import (
     COORDINATED_REPLACEMENT_READOUT_IDENTITY,
     FdasCoordinatedReplacementPair,

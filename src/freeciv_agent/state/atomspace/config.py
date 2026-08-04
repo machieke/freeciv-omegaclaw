@@ -8,6 +8,7 @@ _ACTIVATION_LEVELS = {
     "component-only": 1,
     "shadow-live": 2,
     "bounded-authority": 3,
+    "bounded-pilot": 3,
     "engine-live": 4,
 }
 

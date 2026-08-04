@@ -1134,6 +1134,41 @@ class FdasRuntime(object):
             component_id="fdas-coordinated-replacement-chain-outcome",
             component_version="1.0")
 
+    def emit_coordinated_replacement_execution(
+            self, writer, snapshot, value, transition, store_digest,
+            caused_by=()):
+        """Emit the claim-ineligible one-chain execution-pilot boundary."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS replacement execution evidence is not revision-current")
+        if transition not in (
+                "unassigned", "authorized", "abstained", "terminal",
+                "attempt-accepted", "attempt-rejected"):
+            raise ValueError("FDAS replacement execution transition differs")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError("FDAS replacement execution store digest is required")
+        details = value.to_dict()
+        if (details.get("claim_eligible") is not False
+                or details.get("randomized") is not False
+                or details.get("truth_mutated") is not False):
+            raise RuntimeError(
+                "FDAS replacement execution escaped pilot boundary")
+        details.update({
+            "store_digest": store_digest,
+            "transition": transition,
+        })
+        return self.event_emitter.emit_component(
+            writer, "atomspace_authority_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-coordinated-replacement-execution-pilot",
+            component_version="1.0")
+
     def emit_decision_safe_candidate_filter(
             self, writer, snapshot, candidate_filter, caused_by=()):
         """Emit exact pre-union safety exclusions without action authority."""

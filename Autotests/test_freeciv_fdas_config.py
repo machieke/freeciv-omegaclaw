@@ -114,6 +114,33 @@ def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
         "shadow-live")
 
 
+def test_replacement_execution_pilot_manifest_is_explicitly_bounded():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_execution_pilot.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    diagnostic = manifest[
+        "coordinated_replacement_execution_diagnostic"]
+    assert config.authority_enabled is True
+    assert config.section("domain_authority")["city_defense"] is True
+    assert manifest["status"] == "bounded-authority"
+    assert manifest["capabilities"][
+        "coordinated_replacement_execution"] == "bounded-pilot"
+    assert diagnostic["maximum_assigned_operations"] == 1
+    assert diagnostic["claim_eligible"] is False
+    assert diagnostic["randomized"] is False
+    assert diagnostic["truth_mutated"] is False
+
+
 def test_causal_induction_profile_is_explicit_and_readout_disabled():
     with open(os.path.join(
             REPO, "profile",

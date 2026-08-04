@@ -78,9 +78,13 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     EpisodeControlPrediction,
                                     FdasDefenseActorPersistenceLabeler,
                                     FdasCoordinatedReplacementAdapter,
+                                    FdasCoordinatedReplacementExecutionPilot,
                                     FdasCoordinatedReplacementReadoutEvaluator,
                                     FdasReplacementChainOutcomeLabeler,
                                     FdasReplacementChainOutcomeStore,
+                                    FdasReplacementExecutionStore,
+                                    REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
+                                    REPLACEMENT_EXECUTION_TREATMENT_ID,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
@@ -2802,6 +2806,59 @@ async def _play(run_dir, manifest, context):
         # Empty activation remains durable evidence when no chain completes.
         fdas_replacement_outcome_store.save(
             fdas_replacement_outcome_path)
+    fdas_replacement_execution_capability = fdas_manifest["capabilities"].get(
+        "coordinated_replacement_execution")
+    fdas_replacement_execution_diagnostic = fdas_manifest.get(
+        "coordinated_replacement_execution_diagnostic")
+    fdas_replacement_execution = bool(
+        fdas_replacement_execution_capability is not None
+        or fdas_replacement_execution_diagnostic is not None)
+    fdas_replacement_execution_path = os.path.join(
+        run_dir, "fdas-coordinated-replacement-execution.json")
+    fdas_replacement_execution_store = None
+    fdas_replacement_execution_pilot = None
+    if fdas_replacement_execution:
+        expected_replacement_execution = {
+            "assignment_unit": REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
+            "claim_eligible": False,
+            "experiment_id": "fdas-replacement-bounded-execution-pilot-v1",
+            "forced_arm": "treatment",
+            "maximum_assigned_operations": 1,
+            "outcome_target": REPLACEMENT_CHAIN_OUTCOME_TARGET,
+            "planner_rematerialization_required": True,
+            "policy_authority": True,
+            "randomized": False,
+            "treatment_id": REPLACEMENT_EXECUTION_TREATMENT_ID,
+            "truth_mutated": False,
+        }
+        if (fdas_replacement_execution_capability != "bounded-pilot"
+                or fdas_replacement_execution_diagnostic
+                != expected_replacement_execution
+                or fdas_replacement_adapter is None
+                or fdas_replacement_readout_evaluator is None
+                or fdas_replacement_outcome_labeler is None
+                or not manifest["dependent_atomspace"]["config"][
+                    "authority_enabled"]
+                or not manifest["dependent_atomspace"]["config"][
+                    "domain_authority"]["city_defense"]):
+            raise RuntimeError(
+                "FDAS coordinated replacement execution pilot differs")
+        fdas_replacement_execution_identity = structural_hash([
+            fdas_replacement_identity,
+            REPLACEMENT_EXECUTION_TREATMENT_ID,
+            fdas_replacement_execution_diagnostic["experiment_id"],
+        ])
+        fdas_replacement_execution_store = (
+            FdasReplacementExecutionStore.load(
+                fdas_replacement_execution_path,
+                fdas_replacement_execution_identity))
+        if fdas_replacement_execution_store.quarantined:
+            raise RuntimeError(
+                "FDAS coordinated replacement execution store is "
+                "quarantined: {}".format(
+                    fdas_replacement_execution_store.quarantine_reason))
+        fdas_replacement_execution_store.save(
+            fdas_replacement_execution_path)
     fdas_transport_path = os.path.join(
         run_dir, "fdas-transport-lifecycle.json")
     fdas_transport_lifecycle = None
@@ -4221,6 +4278,31 @@ async def _play(run_dir, manifest, context):
         "fdas_alternative_collection_execution_rejected": 0,
         "fdas_alternative_collection_episode_links": 0,
         "fdas_alternative_collection_authority_catalog_reprojections": 0,
+        "fdas_replacement_execution_evaluations": 0,
+        "fdas_replacement_execution_assignments": int(
+            fdas_replacement_execution_store is not None
+            and fdas_replacement_execution_store.assignment is not None),
+        "fdas_replacement_execution_authorizations": 0,
+        "fdas_replacement_execution_abstentions": 0,
+        "fdas_replacement_execution_terminal": 0,
+        "fdas_replacement_execution_selection_changes": 0,
+        "fdas_replacement_execution_attempts": (
+            len(fdas_replacement_execution_store.assignment.attempts)
+            if (fdas_replacement_execution_store is not None
+                and fdas_replacement_execution_store.assignment is not None)
+            else 0),
+        "fdas_replacement_execution_accepted": (
+            sum(value.accepted for value in
+                fdas_replacement_execution_store.assignment.attempts)
+            if (fdas_replacement_execution_store is not None
+                and fdas_replacement_execution_store.assignment is not None)
+            else 0),
+        "fdas_replacement_execution_rejected": (
+            sum(not value.accepted for value in
+                fdas_replacement_execution_store.assignment.attempts)
+            if (fdas_replacement_execution_store is not None
+                and fdas_replacement_execution_store.assignment is not None)
+            else 0),
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -4577,6 +4659,13 @@ async def _play(run_dir, manifest, context):
         if not ready or ready.get("type") != "game_ready":
             raise RuntimeError("game_ready not received: {}".format(ready))
         player_id = int(auth["player_id"])
+        if fdas_replacement_execution_store is not None:
+            fdas_replacement_execution_pilot = (
+                FdasCoordinatedReplacementExecutionPilot(
+                    fdas_replacement_adapter,
+                    fdas_replacement_execution_store,
+                    fdas_replacement_execution_diagnostic["experiment_id"],
+                    manifest["game_id"], player_id))
 
         async def submit(action):
             await ws.send(json.dumps({"type": "action", "action": action}))
@@ -6106,6 +6195,9 @@ async def _play(run_dir, manifest, context):
                     alternative_readout = None
                     alternative_authority = None
                     alternative_authority_catalog_reprojected = False
+                    replacement_readout = None
+                    replacement_execution_decision = None
+                    replacement_execution_authority = None
                     legacy_decision_action_key = (
                         None if decision is None
                         else decision.candidate.action_key)
@@ -6115,6 +6207,12 @@ async def _play(run_dir, manifest, context):
                         and decision is not None
                         and decision.candidate.action.get("action_type")
                         in DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES)
+                    replacement_execution_pending = bool(
+                        fdas_replacement_execution_store is not None
+                        and fdas_replacement_execution_store.assignment
+                        is not None
+                        and fdas_replacement_execution_store.assignment
+                        .terminal_state is None)
                     evaluate_fdas_shadow = bool(
                         (not fdas_turn_sampled
                          or snapshot.turn not in fdas_shadow_evaluated_turns)
@@ -6122,7 +6220,8 @@ async def _play(run_dir, manifest, context):
                              or fdas_runtime.authority_relevant(
                                  None if decision is None
                                  else decision.candidate)
-                             or defense_choice_surface_relevant))
+                             or defense_choice_surface_relevant
+                             or replacement_execution_pending))
                     if (evaluate_fdas_shadow
                             and (fdas_turn_sampled
                                  or fdas_authority_scoped)):
@@ -6208,8 +6307,10 @@ async def _play(run_dir, manifest, context):
                             value for value in fdas_shadow.candidates
                             if value.operation.operation_type
                             == "fdas-defense:coordinated-replacement"))
-                    if (replacement_candidates
-                            and fdas_replacement_readout_evaluator is not None):
+                    if ((replacement_candidates
+                         or fdas_replacement_execution_pilot is not None)
+                            and fdas_replacement_readout_evaluator is not None
+                            and fdas_shadow is not None):
                         replacement_revision = (
                             fdas_store.current_dependent_revision(
                                 manifest["game_id"], player_id))
@@ -6242,6 +6343,106 @@ async def _play(run_dir, manifest, context):
                                 caused_by=(parent,)))
                         if replacement_readout_event is not None:
                             parent = replacement_readout_event["event_id"]
+                        if fdas_replacement_execution_pilot is not None:
+                            before_execution_digest = (
+                                fdas_replacement_execution_store.store_digest)
+                            before_operation_digest = (
+                                fdas_replacement_store.store_digest)
+                            replacement_execution_decision = (
+                                fdas_replacement_execution_pilot.evaluate(
+                                    snapshot, replacement_readout,
+                                    impact_planner.last_candidate_catalog))
+                            execution_store_changed = bool(
+                                before_execution_digest
+                                != fdas_replacement_execution_store.store_digest)
+                            operation_store_changed = bool(
+                                before_operation_digest
+                                != fdas_replacement_store.store_digest)
+                            if execution_store_changed:
+                                fdas_replacement_execution_store.save(
+                                    fdas_replacement_execution_path)
+                            if operation_store_changed:
+                                fdas_replacement_store.save(
+                                    fdas_replacement_path)
+                                prior_fdas_revision = (
+                                    fdas_store.current_dependent_revision(
+                                        manifest["game_id"], player_id))
+                                fdas_runtime.rematerialize(
+                                    manifest["game_id"], player_id)
+                                fdas_events = fdas_runtime.emit_current(
+                                    writer, snapshot, caused_by=(parent,),
+                                    prior_revision=prior_fdas_revision)
+                                if fdas_events:
+                                    parent = fdas_events[-1]["event_id"]
+                                for execution_update in (
+                                        replacement_execution_decision
+                                        .lifecycle_updates):
+                                    lifecycle_event = (
+                                        fdas_runtime
+                                        .emit_coordinated_replacement_lifecycle(
+                                            writer, snapshot, execution_update,
+                                            fdas_replacement_store.store_digest,
+                                            caused_by=(parent,)))
+                                    if lifecycle_event is not None:
+                                        parent = lifecycle_event["event_id"]
+                                fdas_shadow = fdas_runtime.evaluate_shadow(
+                                    snapshot,
+                                    impact_planner.last_candidate_catalog)
+                            execution_event = (
+                                fdas_runtime
+                                .emit_coordinated_replacement_execution(
+                                    writer, snapshot,
+                                    replacement_execution_decision,
+                                    replacement_execution_decision.status,
+                                    fdas_replacement_execution_store
+                                    .store_digest,
+                                    caused_by=(parent,)))
+                            if execution_event is not None:
+                                parent = execution_event["event_id"]
+                            decision_stats[
+                                "fdas_replacement_execution_evaluations"] += 1
+                            decision_stats[
+                                "fdas_replacement_execution_assignments"] += int(
+                                    replacement_execution_decision
+                                    .assignment_created)
+                            decision_stats[
+                                "fdas_replacement_execution_authorizations"] += int(
+                                    replacement_execution_decision.status
+                                    == "authorized")
+                            decision_stats[
+                                "fdas_replacement_execution_abstentions"] += int(
+                                    replacement_execution_decision.status
+                                    in ("unassigned", "abstained"))
+                            decision_stats[
+                                "fdas_replacement_execution_terminal"] += int(
+                                    replacement_execution_decision.status
+                                    == "terminal")
+                            if replacement_execution_decision.authority is not None:
+                                if decision is None:
+                                    raise RuntimeError(
+                                        "replacement execution lacks baseline "
+                                        "planner decision")
+                                replacement_execution_authority = (
+                                    replacement_execution_decision.authority)
+                                baseline_action_key = decision.candidate.action_key
+                                decision = (
+                                    impact_planner
+                                    .rematerialize_exact_authority(
+                                        snapshot, decision,
+                                        replacement_execution_authority,
+                                        diagnostics=(
+                                            impact_planning_diagnostics)))
+                                if (decision.candidate.action_key
+                                        != replacement_execution_authority
+                                        .action_key):
+                                    raise RuntimeError(
+                                        "replacement execution changed during "
+                                        "planner materialization")
+                                decision_stats[
+                                    "fdas_replacement_execution_selection_changes"
+                                ] += int(
+                                    baseline_action_key
+                                    != decision.candidate.action_key)
                     if fdas_shadow is not None:
                         fdas_shadow_events = fdas_runtime.emit_shadow(
                             writer, snapshot, fdas_shadow,
@@ -6400,7 +6601,8 @@ async def _play(run_dir, manifest, context):
                                 if choice_event is not None:
                                     parent = choice_event["event_id"]
                         if (fdas_defense_choice_surface
-                                and defense_choice_surface_relevant):
+                                and defense_choice_surface_relevant
+                                and replacement_execution_authority is None):
                             score_by_id = dict(
                                 (value.operation_id, value)
                                 for value in typed_scores)
@@ -7199,7 +7401,9 @@ async def _play(run_dir, manifest, context):
                                     dict)
                                 and decision
                                 .operation_authority
-                                .get("applied"))
+                                .get("applied")
+                                and decision.operation_authority.get(
+                                    "readout") == operation_authority)
                     ):
                         abandoned_events = (
                             control_event_emitter
@@ -7287,8 +7491,11 @@ async def _play(run_dir, manifest, context):
                         # revision-bound authority assignment.  It has no GDO
                         # operation payload and must not enter that unrelated
                         # event adapter's retained-payload lifecycle.
-                        if (alternative_authority is None
-                                or selected_readout != alternative_authority):
+                        if ((alternative_authority is None
+                             or selected_readout != alternative_authority)
+                                and (replacement_execution_authority is None
+                                     or selected_readout
+                                     != replacement_execution_authority)):
                             authority_events = (
                                 control_event_emitter
                                 .emit_operation_authority_selection(
@@ -7356,6 +7563,9 @@ async def _play(run_dir, manifest, context):
                         decision_stats[
                             "fdas_alternative_collection_execution_attempts"
                         ] += 1
+                    if replacement_execution_authority is not None:
+                        decision_stats[
+                            "fdas_replacement_execution_attempts"] += 1
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
                         impact_action, parent, attempted_count, decision.plan,
@@ -7420,6 +7630,57 @@ async def _play(run_dir, manifest, context):
                             combat_operation_events[
                                 -1][
                                     "event_id"])
+                    if replacement_execution_authority is not None:
+                        (_replacement_assignment,
+                         replacement_attempt,
+                         replacement_execution_update) = (
+                            fdas_replacement_execution_pilot.record_outcome(
+                                action_snapshot, impact_action,
+                                outcome.status == "accepted",
+                                outcome.action_result_event_id
+                                or outcome.result_event_id or parent,
+                                outcome.reason))
+                        fdas_replacement_execution_store.save(
+                            fdas_replacement_execution_path)
+                        fdas_replacement_store.save(
+                            fdas_replacement_path)
+                        prior_fdas_revision = (
+                            fdas_store.current_dependent_revision(
+                                manifest["game_id"], player_id))
+                        fdas_runtime.rematerialize(
+                            manifest["game_id"], player_id)
+                        fdas_events = fdas_runtime.emit_current(
+                            writer, action_snapshot, caused_by=(parent,),
+                            prior_revision=prior_fdas_revision)
+                        if fdas_events:
+                            parent = fdas_events[-1]["event_id"]
+                        lifecycle_event = (
+                            fdas_runtime
+                            .emit_coordinated_replacement_lifecycle(
+                                writer, action_snapshot,
+                                replacement_execution_update,
+                                fdas_replacement_store.store_digest,
+                                caused_by=(parent,)))
+                        if lifecycle_event is not None:
+                            parent = lifecycle_event["event_id"]
+                        execution_event = (
+                            fdas_runtime
+                            .emit_coordinated_replacement_execution(
+                                writer, action_snapshot,
+                                replacement_attempt,
+                                ("attempt-accepted"
+                                 if outcome.status == "accepted"
+                                 else "attempt-rejected"),
+                                fdas_replacement_execution_store.store_digest,
+                                caused_by=(parent,)))
+                        if execution_event is not None:
+                            parent = execution_event["event_id"]
+                        decision_stats[
+                            "fdas_replacement_execution_accepted"] += int(
+                                outcome.status == "accepted")
+                        decision_stats[
+                            "fdas_replacement_execution_rejected"] += int(
+                                outcome.status != "accepted")
                     if outcome.status != "accepted":
                         if (candidate_choice_set is not None
                                 and candidate_choice_set
@@ -8599,6 +8860,24 @@ async def _play(run_dir, manifest, context):
         ("fdas_alternative_collection_authority_catalog_reprojections",
          decision_stats[
              "fdas_alternative_collection_authority_catalog_reprojections"]),
+        ("fdas_replacement_execution_evaluations",
+         decision_stats["fdas_replacement_execution_evaluations"]),
+        ("fdas_replacement_execution_assignments",
+         decision_stats["fdas_replacement_execution_assignments"]),
+        ("fdas_replacement_execution_authorizations",
+         decision_stats["fdas_replacement_execution_authorizations"]),
+        ("fdas_replacement_execution_abstentions",
+         decision_stats["fdas_replacement_execution_abstentions"]),
+        ("fdas_replacement_execution_terminal",
+         decision_stats["fdas_replacement_execution_terminal"]),
+        ("fdas_replacement_execution_selection_changes",
+         decision_stats["fdas_replacement_execution_selection_changes"]),
+        ("fdas_replacement_execution_attempts",
+         decision_stats["fdas_replacement_execution_attempts"]),
+        ("fdas_replacement_execution_accepted",
+         decision_stats["fdas_replacement_execution_accepted"]),
+        ("fdas_replacement_execution_rejected",
+         decision_stats["fdas_replacement_execution_rejected"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -9317,6 +9596,24 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_alternative_collection_authority_catalog_"
                     "reprojections"]),
+            "fdas_replacement_execution_evaluations": decision_stats[
+                "fdas_replacement_execution_evaluations"],
+            "fdas_replacement_execution_assignments": decision_stats[
+                "fdas_replacement_execution_assignments"],
+            "fdas_replacement_execution_authorizations": decision_stats[
+                "fdas_replacement_execution_authorizations"],
+            "fdas_replacement_execution_abstentions": decision_stats[
+                "fdas_replacement_execution_abstentions"],
+            "fdas_replacement_execution_terminal": decision_stats[
+                "fdas_replacement_execution_terminal"],
+            "fdas_replacement_execution_selection_changes": decision_stats[
+                "fdas_replacement_execution_selection_changes"],
+            "fdas_replacement_execution_attempts": decision_stats[
+                "fdas_replacement_execution_attempts"],
+            "fdas_replacement_execution_accepted": decision_stats[
+                "fdas_replacement_execution_accepted"],
+            "fdas_replacement_execution_rejected": decision_stats[
+                "fdas_replacement_execution_rejected"],
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -9896,6 +10193,24 @@ async def _play(run_dir, manifest, context):
             decision_stats[
                 "fdas_alternative_collection_authority_catalog_"
                 "reprojections"]),
+        "fdas_replacement_execution_evaluations": decision_stats[
+            "fdas_replacement_execution_evaluations"],
+        "fdas_replacement_execution_assignments": decision_stats[
+            "fdas_replacement_execution_assignments"],
+        "fdas_replacement_execution_authorizations": decision_stats[
+            "fdas_replacement_execution_authorizations"],
+        "fdas_replacement_execution_abstentions": decision_stats[
+            "fdas_replacement_execution_abstentions"],
+        "fdas_replacement_execution_terminal": decision_stats[
+            "fdas_replacement_execution_terminal"],
+        "fdas_replacement_execution_selection_changes": decision_stats[
+            "fdas_replacement_execution_selection_changes"],
+        "fdas_replacement_execution_attempts": decision_stats[
+            "fdas_replacement_execution_attempts"],
+        "fdas_replacement_execution_accepted": decision_stats[
+            "fdas_replacement_execution_accepted"],
+        "fdas_replacement_execution_rejected": decision_stats[
+            "fdas_replacement_execution_rejected"],
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (
