@@ -1358,3 +1358,26 @@ retained-queue selection and terminal observation mechanics only. The next
 bounded target is exact delayed capacity-goal relief/no-progress attribution,
 not controller retuning or an outcome claim. See
 `fdas-pr91-replacement-capacity-retained-queue.md` and its JSON report.
+
+PR92 closes that next attribution boundary without retuning the controller.
+Each retained-queue operation opens one durable label; exact product identity
+is recorded separately from a seven-conjunct durable relief assessment 32
+turns later, while pre-product lifecycle divergence closes immediately as
+terminal no-progress. The fixed diagnostic cohort completed 16/16 clean games
+with seven labels in four games, three exact products, two durable positives,
+one delayed negative, and four immediate no-progress outcomes. Zero-yield
+games remained in the denominator and no labels were pending at the horizon.
+
+The initial aggregate audit correctly remained rejected until an audit-only
+composition error was diagnosed: real terminal events received during
+same-turn action refresh causally precede the exact FDAS revision materialized
+for attribution, so the terminal lifecycle event is an ancestor through four
+bounded revision events rather than the label's direct parent. Commit
+`9e64b26` accepts only that exact linear refresh chain and rejects unrelated,
+wrong-operation, and cyclic chains. No engine evidence or threshold changed.
+The corrected report passes twice byte-identically with structural hash
+`e061c529bb31153316ab7947810ae3e35f25c4fa76a04e49dd411e8cb008528f`.
+This proves delayed outcome mechanics, not causal value, score, or win rate.
+See `fdas-pr92-retained-capacity-outcome.md` and its JSON report. The next
+bounded target is common decision-episode encoding with all learning/readout
+authority still disabled.
