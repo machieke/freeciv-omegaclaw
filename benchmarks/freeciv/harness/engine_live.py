@@ -2843,6 +2843,35 @@ async def _play(run_dir, manifest, context):
         ):
             raise RuntimeError(
                 "FDAS replacement capacity production operation differs")
+    replacement_capacity_production_lifecycle_capability = (
+        fdas_manifest["capabilities"].get(
+            "replacement_capacity_production_lifecycle"))
+    replacement_capacity_production_lifecycle_diagnostic = fdas_manifest.get(
+        "replacement_capacity_production_lifecycle_diagnostic")
+    replacement_capacity_production_lifecycle_enabled = bool(
+        replacement_capacity_production_lifecycle_capability is not None
+        or replacement_capacity_production_lifecycle_diagnostic is not None)
+    if replacement_capacity_production_lifecycle_enabled:
+        expected_replacement_capacity_production_lifecycle = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "match_semantics": (
+                "exactly-one-grounded-candidate-matches-existing-policy-"
+                "action"),
+            "observation_authority": "later-authoritative-snapshot",
+            "policy_authority": False,
+            "queue_acceptance_separate_from_product_observation": True,
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_production_operation_enabled
+                or replacement_capacity_production_lifecycle_capability
+                != "shadow-live"
+                or replacement_capacity_production_lifecycle_diagnostic
+                != expected_replacement_capacity_production_lifecycle
+        ):
+            raise RuntimeError(
+                "FDAS replacement capacity production lifecycle differs")
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4565,6 +4594,15 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_production_candidates": 0,
         "fdas_replacement_capacity_grounded_production_operations": 0,
         "fdas_replacement_capacity_production_model_abstentions": 0,
+        "fdas_replacement_capacity_lifecycle_match_evaluations": 0,
+        "fdas_replacement_capacity_lifecycle_exact_matches": 0,
+        "fdas_replacement_capacity_lifecycle_no_matches": 0,
+        "fdas_replacement_capacity_lifecycle_ambiguous_matches": 0,
+        "fdas_replacement_capacity_lifecycle_operations_registered": 0,
+        "fdas_replacement_capacity_lifecycle_queue_acceptances": 0,
+        "fdas_replacement_capacity_lifecycle_queue_observations": 0,
+        "fdas_replacement_capacity_lifecycle_product_observations": 0,
+        "fdas_replacement_capacity_lifecycle_terminal_failures": 0,
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -4608,6 +4646,40 @@ async def _play(run_dir, manifest, context):
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
     }
+
+    def record_replacement_capacity_lifecycle_events(events):
+        """Reconcile the shadow lifecycle counters from emitted evidence."""
+        for event in events:
+            payload = event.get("payload", {})
+            if payload.get("mechanism") != (
+                    "fdas-replacement-capacity-production-lifecycle"):
+                continue
+            event_type = event.get("type")
+            if event_type == "operation_proposed":
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_operations_"
+                    "registered"] += 1
+            elif event_type == "operation_step_committed":
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_queue_acceptances"
+                ] += 1
+            elif (
+                    event_type == "operation_step_revalidated"
+                    and payload.get("reason_code") ==
+                    "queue-target-observed-awaiting-product"):
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_queue_observations"
+                ] += 1
+            elif event_type == "operation_completed":
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_product_"
+                    "observations"] += 1
+            elif event_type in (
+                    "operation_failed", "operation_abandoned",
+                    "operation_expired"):
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_terminal_failures"
+                ] += 1
 
     def advance_fdas_beliefs(current, cause):
         if not fdas_belief_shadow:
@@ -5903,18 +5975,30 @@ async def _play(run_dir, manifest, context):
                     enabling_events[-1]["event_id"]
                     if enabling_events
                     else fdas_parent)
+                capacity_lifecycle_events = (
+                    control_event_emitter
+                    .resolve_replacement_capacity_production_operations(
+                        writer, next_snapshot,
+                        caused_by=(enabling_parent,))
+                    if replacement_capacity_production_lifecycle_enabled
+                    else ())
+                record_replacement_capacity_lifecycle_events(
+                    capacity_lifecycle_events)
+                capacity_lifecycle_parent = (
+                    capacity_lifecycle_events[-1]["event_id"]
+                    if capacity_lifecycle_events else enabling_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer,
                         next_snapshot,
                         caused_by=(
-                            enabling_parent,)))
+                            capacity_lifecycle_parent,)))
                 combat_parent = (
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else enabling_parent)
+                    else capacity_lifecycle_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(
@@ -6024,17 +6108,29 @@ async def _play(run_dir, manifest, context):
                     enabling_events[-1]["event_id"]
                     if enabling_events
                     else fdas_parent)
+                capacity_lifecycle_events = (
+                    control_event_emitter
+                    .resolve_replacement_capacity_production_operations(
+                        writer, snapshot,
+                        caused_by=(enabling_parent,))
+                    if replacement_capacity_production_lifecycle_enabled
+                    else ())
+                record_replacement_capacity_lifecycle_events(
+                    capacity_lifecycle_events)
+                capacity_lifecycle_parent = (
+                    capacity_lifecycle_events[-1]["event_id"]
+                    if capacity_lifecycle_events else enabling_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer, snapshot,
                         caused_by=(
-                            enabling_parent,)))
+                            capacity_lifecycle_parent,)))
                 operation_parent = (
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else fdas_parent)
+                    else capacity_lifecycle_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(
@@ -7906,6 +8002,46 @@ async def _play(run_dir, manifest, context):
                     if enabling_events:
                         parent = enabling_events[
                             -1]["event_id"]
+                    replacement_capacity_lifecycle_match = None
+                    if (
+                            replacement_capacity_production_lifecycle_enabled
+                            and impact_action.get("action_type") ==
+                            "city_production"
+                    ):
+                        decision_stats[
+                            "fdas_replacement_capacity_lifecycle_match_"
+                            "evaluations"] += 1
+                        capacity_lifecycle_matches = (
+                            control_event_emitter
+                            .replacement_capacity_production_matches(
+                                () if fdas_shadow is None
+                                else fdas_shadow.candidates,
+                                decision.candidate.action_key))
+                        if len(capacity_lifecycle_matches) == 1:
+                            replacement_capacity_lifecycle_match = (
+                                capacity_lifecycle_matches[0])
+                            decision_stats[
+                                "fdas_replacement_capacity_lifecycle_exact_"
+                                "matches"] += 1
+                            capacity_lifecycle_events = (
+                                control_event_emitter
+                                .prepare_replacement_capacity_production_operation(
+                                    writer, action_snapshot,
+                                    replacement_capacity_lifecycle_match,
+                                    caused_by=(parent,)))
+                            record_replacement_capacity_lifecycle_events(
+                                capacity_lifecycle_events)
+                            if capacity_lifecycle_events:
+                                parent = capacity_lifecycle_events[
+                                    -1]["event_id"]
+                        elif capacity_lifecycle_matches:
+                            decision_stats[
+                                "fdas_replacement_capacity_lifecycle_"
+                                "ambiguous_matches"] += 1
+                        else:
+                            decision_stats[
+                                "fdas_replacement_capacity_lifecycle_no_"
+                                "matches"] += 1
                     (parent,
                      observation_binding,
                      observation_validation) = (
@@ -7954,6 +8090,21 @@ async def _play(run_dir, manifest, context):
                         parent = (
                             enabling_outcome_events[
                                 -1]["event_id"])
+                    capacity_lifecycle_outcome_events = (
+                        control_event_emitter
+                        .emit_replacement_capacity_production_action_outcome(
+                            writer,
+                            action_snapshot,
+                            impact_action,
+                            outcome,
+                            caused_by=(parent,))
+                        if replacement_capacity_lifecycle_match is not None
+                        else ())
+                    record_replacement_capacity_lifecycle_events(
+                        capacity_lifecycle_outcome_events)
+                    if capacity_lifecycle_outcome_events:
+                        parent = capacity_lifecycle_outcome_events[
+                            -1]["event_id"]
                     operation_events = (
                         control_event_emitter
                         .emit_city_defense_action_outcome(
@@ -9355,6 +9506,33 @@ async def _play(run_dir, manifest, context):
         ("fdas_replacement_capacity_production_model_abstentions",
          decision_stats[
              "fdas_replacement_capacity_production_model_abstentions"]),
+        ("fdas_replacement_capacity_lifecycle_match_evaluations",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_match_evaluations"]),
+        ("fdas_replacement_capacity_lifecycle_exact_matches",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_exact_matches"]),
+        ("fdas_replacement_capacity_lifecycle_no_matches",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_no_matches"]),
+        ("fdas_replacement_capacity_lifecycle_ambiguous_matches",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_ambiguous_matches"]),
+        ("fdas_replacement_capacity_lifecycle_operations_registered",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_operations_registered"]),
+        ("fdas_replacement_capacity_lifecycle_queue_acceptances",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_queue_acceptances"]),
+        ("fdas_replacement_capacity_lifecycle_queue_observations",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_queue_observations"]),
+        ("fdas_replacement_capacity_lifecycle_product_observations",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_product_observations"]),
+        ("fdas_replacement_capacity_lifecycle_terminal_failures",
+         decision_stats[
+             "fdas_replacement_capacity_lifecycle_terminal_failures"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10123,6 +10301,35 @@ async def _play(run_dir, manifest, context):
             "fdas_replacement_capacity_production_model_abstentions": (
                 decision_stats[
                     "fdas_replacement_capacity_production_model_abstentions"]),
+            "fdas_replacement_capacity_lifecycle_match_evaluations": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_match_evaluations"]),
+            "fdas_replacement_capacity_lifecycle_exact_matches": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_exact_matches"]),
+            "fdas_replacement_capacity_lifecycle_no_matches": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_no_matches"]),
+            "fdas_replacement_capacity_lifecycle_ambiguous_matches": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_ambiguous_matches"]),
+            "fdas_replacement_capacity_lifecycle_operations_registered": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_operations_"
+                    "registered"]),
+            "fdas_replacement_capacity_lifecycle_queue_acceptances": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_queue_acceptances"]),
+            "fdas_replacement_capacity_lifecycle_queue_observations": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_queue_observations"]),
+            "fdas_replacement_capacity_lifecycle_product_observations": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_product_"
+                    "observations"]),
+            "fdas_replacement_capacity_lifecycle_terminal_failures": (
+                decision_stats[
+                    "fdas_replacement_capacity_lifecycle_terminal_failures"]),
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -10750,6 +10957,33 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_production_model_abstentions": (
             decision_stats[
                 "fdas_replacement_capacity_production_model_abstentions"]),
+        "fdas_replacement_capacity_lifecycle_match_evaluations": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_match_evaluations"]),
+        "fdas_replacement_capacity_lifecycle_exact_matches": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_exact_matches"]),
+        "fdas_replacement_capacity_lifecycle_no_matches": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_no_matches"]),
+        "fdas_replacement_capacity_lifecycle_ambiguous_matches": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_ambiguous_matches"]),
+        "fdas_replacement_capacity_lifecycle_operations_registered": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_operations_registered"]),
+        "fdas_replacement_capacity_lifecycle_queue_acceptances": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_queue_acceptances"]),
+        "fdas_replacement_capacity_lifecycle_queue_observations": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_queue_observations"]),
+        "fdas_replacement_capacity_lifecycle_product_observations": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_product_observations"]),
+        "fdas_replacement_capacity_lifecycle_terminal_failures": (
+            decision_stats[
+                "fdas_replacement_capacity_lifecycle_terminal_failures"]),
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

@@ -1560,6 +1560,34 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         ):
             raise FdasRuntimeConfigurationError(
                 "replacement capacity production operation declaration differs")
+    replacement_capacity_lifecycle_capability = manifest[
+        "capabilities"].get("replacement_capacity_production_lifecycle")
+    replacement_capacity_lifecycle_diagnostic = manifest.get(
+        "replacement_capacity_production_lifecycle_diagnostic")
+    replacement_capacity_lifecycle_enabled = bool(
+        replacement_capacity_lifecycle_capability is not None
+        or replacement_capacity_lifecycle_diagnostic is not None)
+    if replacement_capacity_lifecycle_enabled:
+        expected_replacement_capacity_lifecycle = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "match_semantics": (
+                "exactly-one-grounded-candidate-matches-existing-policy-"
+                "action"),
+            "observation_authority": "later-authoritative-snapshot",
+            "policy_authority": False,
+            "queue_acceptance_separate_from_product_observation": True,
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_production_enabled
+                or replacement_capacity_lifecycle_capability != "shadow-live"
+                or replacement_capacity_lifecycle_diagnostic
+                != expected_replacement_capacity_lifecycle
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity production lifecycle declaration "
+                "differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:
         projectors.append(CityEconomyProjector(ruleset_ir, digest))

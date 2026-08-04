@@ -596,6 +596,120 @@ def test_live_shadow_observer_attributes_queue_and_product_completion():
         for row in report.errors]
 
 
+def test_capacity_production_lifecycle_isolated_from_generic_observer():
+    intent = _intent(
+        emergency=False,
+        operation_type=(
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+    before = _snapshot(intent)
+    assembly = _assembly(before, intent)
+    candidate = SimpleNamespace(
+        action=intent.action(),
+        action_key=canonical_json_bytes(
+            intent.action()).decode("utf-8"),
+        authority_eligible=False,
+        blockers=("delayed-production-completion-unobserved",),
+        candidate_hash="capacity-candidate-hash",
+        production_assembly=assembly)
+    outcome = SimpleNamespace(
+        submitted=True,
+        status="accepted",
+        reason=None,
+        action_id="capacity-production-action")
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(
+            path, "capacity-production-lifecycle", durable=False)
+        emitter = ControlEventEmitter()
+        prepared = emitter.prepare_replacement_capacity_production_operation(
+            writer, before, candidate)
+        committed = (
+            emitter.emit_replacement_capacity_production_action_outcome(
+                writer, before, intent.action(), outcome,
+                caused_by=(prepared[-1]["event_id"],)))
+        selected = _snapshot(
+            intent, turn=73,
+            current_kind=6,
+            current_value=10,
+            advertise=False,
+            snapshot_suffix="capacity-selected")
+        waiting = (
+            emitter.resolve_replacement_capacity_production_operations(
+                writer, selected,
+                caused_by=(committed[-1]["event_id"],)))
+        completed_snapshot = _snapshot(
+            intent, turn=80,
+            current_kind=6,
+            current_value=10,
+            units=(_unit(901, "Riflemen"),),
+            advertise=False,
+            snapshot_suffix="capacity-completed")
+        completed = (
+            emitter.resolve_replacement_capacity_production_operations(
+                writer, completed_snapshot,
+                caused_by=(waiting[-1]["event_id"],)))
+        generic = emitter._production_lifecycle_for(writer)
+        capacity = emitter._replacement_capacity_production_lifecycle_for(
+            writer)
+        writer.sync()
+        report = validate_file(path)
+
+    proposed = next(row for row in prepared
+                    if row["type"] == "operation_proposed")
+    completion = next(row for row in completed
+                      if row["type"] == "operation_completed")
+    assert proposed["payload"]["mechanism"] == (
+        "fdas-replacement-capacity-production-lifecycle")
+    assert proposed["payload"]["policy_authority"] is False
+    assert proposed["payload"]["expected_prevented_loss"] == 0.0
+    assert "domain_estimate_request_id" not in proposed["payload"]
+    assert "legacy-selected-action-byte-exact-match" in (
+        proposed["payload"]["provenance"])
+    assert "queue-acceptance-is-not-product-observation" in (
+        proposed["payload"]["provenance"])
+    assert any(row["type"] == "operation_step_committed"
+               for row in committed)
+    assert any(row["type"] == "operation_step_revalidated"
+               for row in waiting)
+    assert completion["payload"]["product_ref"] == "unit:901"
+    assert generic.store.records() == ()
+    assert capacity.store.get(
+        assembly.spec.operation_id).progress.state == OperationState.COMPLETED
+    assert report.valid, [row.to_dict() for row in report.errors]
+
+
+def test_capacity_production_lifecycle_match_preserves_ambiguity():
+    matching = SimpleNamespace(
+        action_key="selected-action",
+        operation=SimpleNamespace(operation_type=(
+            "fdas-shadow:city-replacement-capacity-deficit:"
+            "city_production")),
+        production_assembly=object())
+    duplicate = SimpleNamespace(
+        action_key="selected-action",
+        operation=matching.operation,
+        production_assembly=object())
+    ungrounded = SimpleNamespace(
+        action_key="selected-action",
+        operation=matching.operation,
+        production_assembly=None)
+    unrelated = SimpleNamespace(
+        action_key="selected-action",
+        operation=SimpleNamespace(operation_type="other"),
+        production_assembly=object())
+
+    matches = ControlEventEmitter.replacement_capacity_production_matches(
+        (matching, duplicate, ungrounded, unrelated), "selected-action")
+
+    assert matches == (matching, duplicate)
+    assert len(matches) != 1
+    assert ControlEventEmitter.replacement_capacity_production_matches(
+        (matching,), "selected-action") == (matching,)
+    assert ControlEventEmitter.replacement_capacity_production_matches(
+        (matching,), "other-action") == ()
+
+
 def test_bounded_persistence_guard_excludes_only_competing_safe_switches():
     intent = _intent(
         emergency=False)

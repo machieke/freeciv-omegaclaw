@@ -178,6 +178,56 @@ def test_replacement_capacity_production_declaration_fails_closed_on_relief():
         build_runtime(declaration)
 
 
+def test_replacement_capacity_production_lifecycle_fails_closed_on_authority():
+    declaration = _enabled_city_declaration()
+    manifest = declaration["manifest"]
+    manifest["capabilities"]["replacement_capacity_demand"] = "shadow-live"
+    manifest["replacement_capacity_demand_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "policy_authority": False,
+        "precondition": "cross-city-critical-reinforcement-without-spare",
+        "truth_mutated": False,
+    }
+    manifest["capabilities"][
+        "replacement_capacity_production_operation"] = "shadow-live"
+    manifest["replacement_capacity_production_operation_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "completion_semantics": (
+            "queue-selection-then-authoritative-product-observation"),
+        "maximum_observation_horizon_turns": 64,
+        "policy_authority": False,
+        "queue_selection_is_goal_relief": False,
+        "resource_semantics": (
+            "exact-current-and-conditional-future-claims"),
+        "truth_mutated": False,
+    }
+    manifest["capabilities"][
+        "replacement_capacity_production_lifecycle"] = "shadow-live"
+    manifest["replacement_capacity_production_lifecycle_diagnostic"] = {
+        "action_selection_changed": True,
+        "candidate_authority": False,
+        "match_semantics": (
+            "exactly-one-grounded-candidate-matches-existing-policy-action"),
+        "observation_authority": "later-authoritative-snapshot",
+        "policy_authority": False,
+        "queue_acceptance_separate_from_product_observation": True,
+        "truth_mutated": False,
+    }
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+
+    with pytest.raises(
+            FdasRuntimeConfigurationError,
+            match=(
+                "replacement capacity production lifecycle declaration "
+                "differs")):
+        build_runtime(declaration)
+
+
 def test_calibrated_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

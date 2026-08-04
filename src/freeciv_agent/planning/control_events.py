@@ -205,6 +205,7 @@ class ControlEventEmitter:
         self._operation_event_ids = {}
         self._combat_lifecycles = {}
         self._production_lifecycles = {}
+        self._replacement_capacity_production_lifecycles = {}
         self._research_lifecycles = {}
         self._prepared_enabling_actions = set()
         self._emitted_production_persistence_guards = set()
@@ -284,6 +285,20 @@ class ControlEventEmitter:
             lifecycle = ProductionOperationLifecycle(
                 game_id)
             self._production_lifecycles[
+                game_id] = lifecycle
+        return lifecycle
+
+    def _replacement_capacity_production_lifecycle_for(
+            self, writer):
+        from .production_lifecycle import ProductionOperationLifecycle
+
+        game_id = str(writer.game_id)
+        lifecycle = self._replacement_capacity_production_lifecycles.get(
+            game_id)
+        if lifecycle is None:
+            lifecycle = ProductionOperationLifecycle(
+                "fdas-replacement-capacity:{}".format(game_id))
+            self._replacement_capacity_production_lifecycles[
                 game_id] = lifecycle
         return lifecycle
 
@@ -2435,7 +2450,7 @@ class ControlEventEmitter:
             snapshot, selected, reason):
         spec = assembly.spec
         participant = spec.participants[0]
-        return {
+        payload = {
             "actor_id": participant.actor_id,
             "assignment_digest": None,
             "bid": float(
@@ -2445,8 +2460,6 @@ class ControlEventEmitter:
                 for claim in
                 assembly.resource_request.claims],
             "deadline_turn": spec.expiry_turn,
-            "domain_estimate_request_id":
-                request.request_id,
             "event_schema_version":
                 CONTROL_EVENT_SCHEMA_VERSION,
             "expected_prevented_loss": 0.0,
@@ -2485,6 +2498,127 @@ class ControlEventEmitter:
                 if hasattr(assembly, "queue_action")
                 else "gdo7b-research-enabling"),
         }
+        if request is not None:
+            payload["domain_estimate_request_id"] = request.request_id
+        return payload
+
+    def prepare_replacement_capacity_production_operation(
+            self, writer, snapshot, candidate, caused_by=()):
+        """Register one exact legacy-selected capacity route in isolation."""
+        assembly = getattr(candidate, "production_assembly", None)
+        if (
+                snapshot is None
+                or assembly is None
+                or assembly.spec.operation_type != (
+                    "fdas-shadow:city-replacement-capacity-deficit:"
+                    "city_production")
+                or getattr(candidate, "authority_eligible", True)
+                or getattr(candidate, "action_key", None)
+                    not in snapshot.legal_action_json
+                or candidate.action != assembly.queue_action()
+                or "delayed-production-completion-unobserved"
+                    not in getattr(candidate, "blockers", ())
+        ):
+            return ()
+        lifecycle = self._replacement_capacity_production_lifecycle_for(
+            writer)
+        updates = lifecycle.register(assembly, snapshot)
+        if not updates:
+            return ()
+        selected = updates[0].disposition != "blocked"
+        payload = self._grounded_enabling_payload(
+            assembly, None, assembly.spec.goal_ids[0],
+            snapshot, selected, updates[0].reason)
+        payload["mechanism"] = (
+            "fdas-replacement-capacity-production-lifecycle")
+        payload["provenance"] = list(payload["provenance"]) + [
+            "fdas-capacity-candidate:{}".format(candidate.candidate_hash),
+            "legacy-selected-action-byte-exact-match",
+            "queue-acceptance-is-not-product-observation",
+            "zero-immediate-capacity-goal-relief",
+        ]
+        proposed = writer.emit(
+            "operation_proposed", int(snapshot.turn), payload,
+            caused_by=list(caused_by))
+        self._operation_payloads[assembly.spec.operation_id] = dict(payload)
+        self._operation_event_ids[assembly.spec.operation_id] = (
+            proposed["event_id"])
+        emitted = [proposed]
+        parents = (proposed["event_id"],)
+        for update in updates:
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle, update,
+                "fdas-replacement-capacity-production-lifecycle",
+                caused_by=parents)
+            emitted.extend(events)
+            if events:
+                parents = (events[-1]["event_id"],)
+        return tuple(emitted)
+
+    @staticmethod
+    def replacement_capacity_production_matches(candidates, action_key):
+        """Return every grounded capacity route matching one policy action."""
+        if not isinstance(action_key, str) or not action_key:
+            return ()
+        return tuple(
+            value for value in candidates
+            if getattr(value, "production_assembly", None) is not None
+            and getattr(value, "action_key", None) == action_key
+            and getattr(
+                getattr(value, "operation", None),
+                "operation_type", None) == (
+                    "fdas-shadow:city-replacement-capacity-deficit:"
+                    "city_production"))
+
+    def emit_replacement_capacity_production_action_outcome(
+            self, writer, snapshot, action, outcome, caused_by=()):
+        """Separate engine queue acceptance from later product observation."""
+        if (
+                snapshot is None
+                or not isinstance(action, dict)
+                or action.get("action_type") != "city_production"
+                or outcome is None
+        ):
+            return ()
+        lifecycle = self._replacement_capacity_production_lifecycle_for(
+            writer)
+        accepted = bool(
+            getattr(outcome, "submitted", False)
+            and getattr(outcome, "status", None) == "accepted")
+        updates = lifecycle.commit_matching_action(
+            snapshot, action, accepted=accepted,
+            reason=getattr(outcome, "reason", None))
+        emitted = []
+        parents = tuple(caused_by)
+        for update in updates:
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle, update,
+                "fdas-replacement-capacity-production-lifecycle",
+                caused_by=parents,
+                action_id=getattr(outcome, "action_id", None))
+            emitted.extend(events)
+            if events:
+                parents = (events[-1]["event_id"],)
+        return tuple(emitted)
+
+    def resolve_replacement_capacity_production_operations(
+            self, writer, snapshot, caused_by=()):
+        """Observe queue and product identity from later authoritative state."""
+        if snapshot is None:
+            return ()
+        lifecycle = self._replacement_capacity_production_lifecycle_for(
+            writer)
+        emitted = []
+        parents = tuple(caused_by)
+        for update in lifecycle.observe(snapshot):
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle, update,
+                "fdas-replacement-capacity-production-lifecycle",
+                caused_by=parents)
+            emitted.extend(events)
+            if events:
+                parents = (events[-1]["event_id"],)
+        return tuple(emitted)
 
     def _apply_grounded_enabling_update(
             self, lifecycle, update):
