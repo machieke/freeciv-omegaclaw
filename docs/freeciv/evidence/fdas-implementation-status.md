@@ -1401,3 +1401,21 @@ byte-identically, with structural hash
 `be3a3e511f6af619c11daadaf1bd37263f83b4f256570aa1d9cc7ee519a1a786`.
 This proves episode encoding and isolation mechanics, not causal value, score,
 or win rate. See `fdas-pr93-retained-capacity-episode.md` and its JSON report.
+
+PR94 performs the preregistered offline adequacy audit before any attempt to
+learn from those episodes. The complete immutable PR92 cohort exports twice
+byte-identically into seven exact common-vocabulary episodes across four of 16
+games: four no-effect, one exact effect without durable relief, and two durable
+goal-relief observations. All eight mechanical gates pass, including exact
+parent composition, full zero-yield game retention, production-bridge
+recomputation, complete RequirementSet/resource/deficit/revision provenance,
+and identity uniqueness.
+
+The frozen adequacy decision is `insufficient-evidence`: 7 terminal episodes
+versus 30 required, 4 contributing games versus 20, and status counts 4/1/2
+versus 10/10/10. There is also no disjoint confirmation cohort. The widest
+scientifically relevant symptom is the fixed-cohort durable-relief Wilson
+interval, 8.2% to 64.1%. No model was fitted and no learning/readout path was
+enabled. The deterministic dataset hash is
+`bb9971c39a114a035bbc3894a29b939b642ea7e1f25fbe955dec4a05f226824e`.
+See `fdas-pr94-retained-capacity-episode-dataset.md` and its JSON report.
