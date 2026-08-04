@@ -1130,3 +1130,15 @@ games must contain a grounded safe chain. The descriptive opportunity rate is
 game-level with a Wilson interval; no seed replacement or append is allowed.
 This is a transfer gate only, not value or outcome evidence. See
 `fdas-pr79-coordinated-replacement-readout-fresh-cohort-preregistration.md`.
+
+The PR79 primary audit fails and is preserved as such. All 16 fixed games
+completed from clean commit `ace3fe4` without infrastructure failure, and
+fresh recall occurred in 7/16 games (Wilson 95% interval 0.23099 to 0.66821).
+Seed `109607` was legitimately eliminated at turn 147, so its inherited PR77
+full-horizon audit failed even though it had zero rejected actions and no
+replacement rows to invalidate. It remains a zero-opportunity failure in the
+fixed denominator. The cohort also exposed terminal-lifecycle churn: seed
+`109633` supplied 729/806 pair rows, accumulated 208 replacement operations,
+and emitted 508,032 events. PR80 must harden terminal-chain reproposal before
+chain-value work proceeds. See
+`fdas-pr79-coordinated-replacement-readout-fresh-cohort.md` and its JSON report.

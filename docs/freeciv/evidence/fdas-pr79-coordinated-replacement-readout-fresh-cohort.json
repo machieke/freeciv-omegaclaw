@@ -1,0 +1,169 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "checks": {
+      "all_expected_games_complete_without_infrastructure_failure": true,
+      "all_game_level_lifecycle_and_readout_audits_pass": false,
+      "all_sources_are_clean_and_commit_bound": true,
+      "grounded_recall_occurs_in_two_independent_games": true
+    }
+  },
+  "claim_scope": "fresh-seed game-level coordinated-replacement recall rate and mechanical transfer only; no transition value, preference, action, outcome, score, or win-rate improvement claim",
+  "evidence": {
+    "run-summary.json": {
+      "path": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/run-summary.json",
+      "sha256": "27e2c3ea2dc027ff78d8dc9390acb59c63c49e57896d8aeac8f4fec067a527a0"
+    }
+  },
+  "games": [
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109601-00",
+      "grounded_pairs": 0,
+      "report_hash": "055628054326d3a40a800ccbf19cd4afc1333b6491168a2f6241b914de3e46a4",
+      "seed": 109601,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109603-00",
+      "grounded_pairs": 0,
+      "report_hash": "e85caa14faabcb3baf8ee27da6f6893157a08ba9a4c29ae49d49bb68aada2e8d",
+      "seed": 109603,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": false,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109607-00",
+      "grounded_pairs": 0,
+      "report_hash": "f52eb291bf5acece9d97a19e422f7e89a7a5686c2547b43e2e4dff8e4eab4aa3",
+      "seed": 109607,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109609-00",
+      "grounded_pairs": 0,
+      "report_hash": "c387501785ccb20e17131baaf394a3a4da67ae52141dfed1c992384afbe2b802",
+      "seed": 109609,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109613-00",
+      "grounded_pairs": 0,
+      "report_hash": "614295c1fe046a1187e3493fe12fb69ef9a0218e4c96fb79fffcf49da65c442b",
+      "seed": 109613,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109617-00",
+      "grounded_pairs": 0,
+      "report_hash": "d37d01ad460f40b00dd84ffc04fd2259bff438e9045652b9d949039a90328de4",
+      "seed": 109617,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109619-00",
+      "grounded_pairs": 19,
+      "report_hash": "2f5ebffa2382a3d2c2b7aa503cc5b5ed099c35d643a0739227d63cae6567b7bb",
+      "seed": 109619,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109621-00",
+      "grounded_pairs": 0,
+      "report_hash": "dafc2a973e29bb4af5c631ff49dc025e0934e60b03b7f3dbfdd7cb5de7472b9e",
+      "seed": 109621,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109623-00",
+      "grounded_pairs": 0,
+      "report_hash": "55ef671cb7518be2dc0012428ef901505662041b3912ea438b8a83004684a045",
+      "seed": 109623,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109627-00",
+      "grounded_pairs": 12,
+      "report_hash": "ba0b857ae9c69fedecdb16d255b7826fa41b70f480ea7b985d7f1c8423d37ae6",
+      "seed": 109627,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109631-00",
+      "grounded_pairs": 12,
+      "report_hash": "c2ebcff723e4ed12f9bc701b93af34b74e9d29b4548b6be59d36ffa4cb142f42",
+      "seed": 109631,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109633-00",
+      "grounded_pairs": 729,
+      "report_hash": "ccea80095d4c83ecbff3ca42649747f3576f62d5ca25ae47de4699e71191714d",
+      "seed": 109633,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109637-00",
+      "grounded_pairs": 2,
+      "report_hash": "77e6b65a4cdff22a47c0f4718c0f543d94e9a6c9b7ec3fe76cfcdd035a360817",
+      "seed": 109637,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109639-00",
+      "grounded_pairs": 18,
+      "report_hash": "c31fdb395835423e5070c0828aa8d721e1f2693869561024730ba8be4a80e928",
+      "seed": 109639,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109643-00",
+      "grounded_pairs": 0,
+      "report_hash": "504817a0b4dc32ddbb215f043db439f6b7fe22cbc40dacdfeef9820208457033",
+      "seed": 109643,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    },
+    {
+      "accepted": true,
+      "game_dir": "artifacts/freeciv/fdas-pr79-coordinated-replacement-readout-fresh-cohort-v1/games/main/e_full_loop/109647-00",
+      "grounded_pairs": 14,
+      "report_hash": "37623ad299b0a1ca7dafd25217b44aee42c71c52bf66c776a3d98fa56539fd40",
+      "seed": 109647,
+      "source_commit": "ace3fe4734bbb2ba4cf271996b57937efd9ed76d"
+    }
+  ],
+  "schema_version": "1.0",
+  "structural_hash": "f35b2b92ee1b4508a6021141fc128a1a0d08b6316981f048a6ece0791250ae02",
+  "summary": {
+    "game_count": 16,
+    "grounded_pair_count": 806,
+    "opportunity_game_count": 7,
+    "opportunity_game_rate": 0.4375,
+    "opportunity_game_rate_wilson_95": {
+      "lower": 0.23098652405492354,
+      "upper": 0.6682144360118811
+    },
+    "opportunity_seeds": [
+      109619,
+      109627,
+      109631,
+      109633,
+      109637,
+      109639,
+      109647
+    ]
+  }
+}
