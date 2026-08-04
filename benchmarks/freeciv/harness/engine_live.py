@@ -84,6 +84,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     FdasReplacementChainOutcomeStore,
                                     FdasRetainedCapacityOutcomeLabeler,
                                     FdasRetainedCapacityOutcomeStore,
+                                    FdasRetainedCapacityEpisodeBridge,
                                     FdasReplacementExecutionStore,
                                     FdasReplacementIntentionStore,
                                     FdasReplacementIntentionTracker,
@@ -98,6 +99,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     REPLACEMENT_INTENTION_TREATMENT_ID,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     RETAINED_CAPACITY_OUTCOME_TARGET,
+                                    RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2954,6 +2956,104 @@ async def _play(run_dir, manifest, context):
                 retained_capacity_outcome_store))
         retained_capacity_outcome_store.save(
             retained_capacity_outcome_path)
+    retained_capacity_episode_capability = fdas_manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_episode_bridge")
+    retained_capacity_episode_diagnostic = fdas_manifest.get(
+        "replacement_capacity_retained_queue_episode_bridge_diagnostic")
+    retained_capacity_episode_enabled = bool(
+        retained_capacity_episode_capability is not None
+        or retained_capacity_episode_diagnostic is not None)
+    retained_capacity_episode_path = os.path.join(
+        run_dir, "fdas-retained-capacity-decision-episodes.json")
+    retained_capacity_episode_store = None
+    retained_capacity_episode_bridge = None
+    retained_capacity_episode_proposals = {}
+    retained_capacity_episode_emitted_ids = set()
+    retained_capacity_outcome_observed_event_ids = {}
+    if retained_capacity_episode_enabled:
+        expected_retained_capacity_episode = {
+            "action_selection_changed": False,
+            "action_submitted": False,
+            "episode_store": "separate-observation-only",
+            "learning_authority": False,
+            "mapping": {
+                "durable-negative": "effect-without-goal-relief",
+                "durable-positive": "goal-relief-observed",
+                "terminal-no-progress": "no-effect-observed",
+            },
+            "policy_authority": False,
+            "prediction_ids_required_empty": True,
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_capacity_outcome_enabled
+                or retained_capacity_episode_capability != "shadow-live"
+                or retained_capacity_episode_diagnostic
+                != expected_retained_capacity_episode
+                or not fdas_learning_config["episode_attribution_enabled"]
+        ):
+            raise RuntimeError(
+                "FDAS retained capacity episode bridge contract differs")
+        retained_capacity_episode_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"],
+            RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+        ])
+        retained_capacity_episode_store = DecisionEpisodeStore.load(
+            retained_capacity_episode_path,
+            retained_capacity_episode_identity)
+        if retained_capacity_episode_store.quarantined:
+            raise RuntimeError(
+                "FDAS retained capacity episode store is quarantined: {}"
+                .format(retained_capacity_episode_store.quarantine_reason))
+        retained_capacity_episode_bridge = (
+            FdasRetainedCapacityEpisodeBridge(
+                retained_capacity_episode_store))
+        retained_capacity_episode_store.save(
+            retained_capacity_episode_path)
+        if os.path.exists(events_path):
+            with open(events_path, encoding="utf-8") as stream:
+                for line in stream:
+                    if not line.strip():
+                        continue
+                    prior_event = json.loads(line)
+                    prior_payload = prior_event.get("payload", {})
+                    if (prior_event.get("type") == "operation_proposed"
+                            and prior_payload.get("mechanism") == (
+                                "fdas-replacement-capacity-retained-queue-"
+                                "lifecycle")):
+                        operation_id = prior_payload.get("operation_id")
+                        existing = retained_capacity_episode_proposals.get(
+                            operation_id)
+                        if (existing is not None
+                                and existing != prior_event):
+                            raise RuntimeError(
+                                "FDAS retained capacity proposal replay differs")
+                        retained_capacity_episode_proposals[operation_id] = (
+                            prior_event)
+                    if (prior_event.get("type") == "episode_opened"
+                            and prior_payload.get("component_id") == (
+                                "fdas-retained-capacity-episode-bridge")):
+                        episode_id = prior_payload.get(
+                            "details", {}).get("episode", {}).get(
+                                "episode_id")
+                        if not isinstance(episode_id, str) or not episode_id:
+                            raise RuntimeError(
+                                "FDAS retained capacity episode replay differs")
+                        retained_capacity_episode_emitted_ids.add(episode_id)
+                    if (prior_event.get("type") == (
+                            "operation_outcome_label_observed")
+                            and prior_payload.get("component_id") == (
+                                "fdas-retained-capacity-outcome")):
+                        label_id = prior_payload.get(
+                            "details", {}).get("label_id")
+                        if not isinstance(label_id, str) or not label_id:
+                            raise RuntimeError(
+                                "FDAS retained capacity outcome replay differs")
+                        retained_capacity_outcome_observed_event_ids[
+                            label_id] = prior_event["event_id"]
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4726,6 +4826,21 @@ async def _play(run_dir, manifest, context):
                 and value.outcome is False
                 for value in retained_capacity_outcome_store.labels())
             if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_episodes_encoded": (
+            len(retained_capacity_episode_store.episodes())
+            if retained_capacity_episode_store is not None else 0),
+        "fdas_retained_capacity_episodes_no_effect": (
+            sum(value.outcome_status == "no-effect-observed"
+                for value in retained_capacity_episode_store.episodes())
+            if retained_capacity_episode_store is not None else 0),
+        "fdas_retained_capacity_episodes_effect_without_relief": (
+            sum(value.outcome_status == "effect-without-goal-relief"
+                for value in retained_capacity_episode_store.episodes())
+            if retained_capacity_episode_store is not None else 0),
+        "fdas_retained_capacity_episodes_goal_relief": (
+            sum(value.outcome_status == "goal-relief-observed"
+                for value in retained_capacity_episode_store.episodes())
+            if retained_capacity_episode_store is not None else 0),
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -4834,6 +4949,48 @@ async def _play(run_dir, manifest, context):
                     "fdas_replacement_retained_queue_lifecycle_terminal_"
                     "failures"] += 1
 
+    def encode_retained_capacity_episode(current, label, cause):
+        """Persist and emit one terminal common-vocabulary episode."""
+        if (retained_capacity_episode_bridge is None
+                or label.status != "observed"):
+            return cause
+        proposal = retained_capacity_episode_proposals.get(label.operation_id)
+        if proposal is None:
+            raise RuntimeError(
+                "FDAS retained capacity episode lacks proposal evidence")
+        existing = tuple(
+            value for value in retained_capacity_episode_store.episodes()
+            if value.operation_id == label.operation_id)
+        if len(existing) > 1:
+            raise RuntimeError(
+                "FDAS retained capacity operation has ambiguous episodes")
+        prior = existing[0] if existing else None
+        episode = retained_capacity_episode_bridge.encode(label, proposal)
+        if prior is None:
+            retained_capacity_episode_store.save(
+                retained_capacity_episode_path)
+            decision_stats["fdas_retained_capacity_episodes_encoded"] += 1
+            decision_stats["fdas_retained_capacity_episodes_no_effect"] += int(
+                episode.outcome_status == "no-effect-observed")
+            decision_stats[
+                "fdas_retained_capacity_episodes_effect_without_relief"] += int(
+                    episode.outcome_status == "effect-without-goal-relief")
+            decision_stats[
+                "fdas_retained_capacity_episodes_goal_relief"] += int(
+                    episode.outcome_status == "goal-relief-observed")
+        if episode.episode_id in retained_capacity_episode_emitted_ids:
+            return cause
+        parent = retained_capacity_outcome_observed_event_ids.get(
+            label.label_id, cause)
+        event = fdas_runtime.emit_retained_capacity_episode(
+            writer, current, episode,
+            retained_capacity_episode_store.store_digest,
+            caused_by=(parent,))
+        if event is not None:
+            cause = event["event_id"]
+            retained_capacity_episode_emitted_ids.add(episode.episode_id)
+        return cause
+
     def open_retained_capacity_outcomes(current, events, cause):
         """Open one outcome label only for a newly registered observer."""
         if retained_capacity_outcome_labeler is None:
@@ -4849,6 +5006,13 @@ async def _play(run_dir, manifest, context):
             if event.get("type") != "operation_proposed":
                 continue
             operation_id = event.get("payload", {}).get("operation_id")
+            if retained_capacity_episode_bridge is not None:
+                existing_proposal = retained_capacity_episode_proposals.get(
+                    operation_id)
+                if existing_proposal is not None and existing_proposal != event:
+                    raise RuntimeError(
+                        "FDAS retained capacity proposal identity changed")
+                retained_capacity_episode_proposals[operation_id] = event
             prior = retained_capacity_outcome_store.for_operation(operation_id)
             label = retained_capacity_outcome_labeler.open(
                 event, revision, manifest["game_id"], player_id)
@@ -4921,6 +5085,9 @@ async def _play(run_dir, manifest, context):
                            else (event["event_id"],)))
             if emitted is not None:
                 cause = emitted["event_id"]
+                if observed.status == "observed":
+                    retained_capacity_outcome_observed_event_ids[
+                        observed.label_id] = emitted["event_id"]
             decision_stats[
                 "fdas_retained_capacity_outcomes_pending_product"] -= 1
             if observed.status == "pending_relief":
@@ -4931,6 +5098,8 @@ async def _play(run_dir, manifest, context):
             else:
                 decision_stats[
                     "fdas_retained_capacity_outcomes_terminal_no_progress"] += 1
+                cause = encode_retained_capacity_episode(
+                    current, observed, cause)
         for prior in tuple(
                 value for value in retained_capacity_outcome_store.labels()
                 if value.status == "pending_relief"
@@ -4947,6 +5116,8 @@ async def _play(run_dir, manifest, context):
                 caused_by=(cause,))
             if emitted is not None:
                 cause = emitted["event_id"]
+                retained_capacity_outcome_observed_event_ids[
+                    observed.label_id] = emitted["event_id"]
             decision_stats[
                 "fdas_retained_capacity_outcomes_pending_relief"] -= 1
             decision_stats[
@@ -4957,6 +5128,13 @@ async def _play(run_dir, manifest, context):
             decision_stats[
                 "fdas_retained_capacity_outcomes_relief_negative"] += int(
                     observed.outcome is False)
+            cause = encode_retained_capacity_episode(
+                current, observed, cause)
+        for observed in tuple(
+                value for value in retained_capacity_outcome_store.labels()
+                if value.status == "observed"):
+            cause = encode_retained_capacity_episode(
+                current, observed, cause)
         return cause
 
     def advance_fdas_beliefs(current, cause):
@@ -9923,6 +10101,15 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_retained_capacity_outcomes_relief_positive"]),
         ("fdas_retained_capacity_outcomes_relief_negative",
          decision_stats["fdas_retained_capacity_outcomes_relief_negative"]),
+        ("fdas_retained_capacity_episodes_encoded",
+         decision_stats["fdas_retained_capacity_episodes_encoded"]),
+        ("fdas_retained_capacity_episodes_no_effect",
+         decision_stats["fdas_retained_capacity_episodes_no_effect"]),
+        ("fdas_retained_capacity_episodes_effect_without_relief",
+         decision_stats[
+             "fdas_retained_capacity_episodes_effect_without_relief"]),
+        ("fdas_retained_capacity_episodes_goal_relief",
+         decision_stats["fdas_retained_capacity_episodes_goal_relief"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10767,6 +10954,15 @@ async def _play(run_dir, manifest, context):
                 "fdas_retained_capacity_outcomes_relief_positive"],
             "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
                 "fdas_retained_capacity_outcomes_relief_negative"],
+            "fdas_retained_capacity_episodes_encoded": decision_stats[
+                "fdas_retained_capacity_episodes_encoded"],
+            "fdas_retained_capacity_episodes_no_effect": decision_stats[
+                "fdas_retained_capacity_episodes_no_effect"],
+            "fdas_retained_capacity_episodes_effect_without_relief": (
+                decision_stats[
+                    "fdas_retained_capacity_episodes_effect_without_relief"]),
+            "fdas_retained_capacity_episodes_goal_relief": decision_stats[
+                "fdas_retained_capacity_episodes_goal_relief"],
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -11466,6 +11662,15 @@ async def _play(run_dir, manifest, context):
             "fdas_retained_capacity_outcomes_relief_positive"],
         "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
             "fdas_retained_capacity_outcomes_relief_negative"],
+        "fdas_retained_capacity_episodes_encoded": decision_stats[
+            "fdas_retained_capacity_episodes_encoded"],
+        "fdas_retained_capacity_episodes_no_effect": decision_stats[
+            "fdas_retained_capacity_episodes_no_effect"],
+        "fdas_retained_capacity_episodes_effect_without_relief": (
+            decision_stats[
+                "fdas_retained_capacity_episodes_effect_without_relief"]),
+        "fdas_retained_capacity_episodes_goal_relief": decision_stats[
+            "fdas_retained_capacity_episodes_goal_relief"],
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

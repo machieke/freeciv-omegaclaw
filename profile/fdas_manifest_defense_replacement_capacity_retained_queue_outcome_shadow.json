@@ -53,7 +53,8 @@
     "replacement_capacity_production_operation": "shadow-live",
     "replacement_capacity_production_lifecycle": "shadow-live",
     "replacement_capacity_retained_queue_lifecycle": "shadow-live",
-    "replacement_capacity_retained_queue_outcome": "shadow-live"
+    "replacement_capacity_retained_queue_outcome": "shadow-live",
+    "replacement_capacity_retained_queue_episode_bridge": "shadow-live"
   },
   "component_enabled": true,
   "coordinated_replacement_candidate_readout_diagnostic": {
@@ -194,6 +195,22 @@
     "product_identity_required": true,
     "readout_authority": false,
     "terminal_failure_semantics": "immediate-no-progress",
+    "transition_value_estimated": false,
+    "truth_mutated": false
+  },
+  "replacement_capacity_retained_queue_episode_bridge_diagnostic": {
+    "action_selection_changed": false,
+    "action_submitted": false,
+    "episode_store": "separate-observation-only",
+    "learning_authority": false,
+    "mapping": {
+      "durable-negative": "effect-without-goal-relief",
+      "durable-positive": "goal-relief-observed",
+      "terminal-no-progress": "no-effect-observed"
+    },
+    "policy_authority": false,
+    "prediction_ids_required_empty": true,
+    "readout_authority": false,
     "transition_value_estimated": false,
     "truth_mutated": false
   }

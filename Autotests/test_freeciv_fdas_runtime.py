@@ -626,6 +626,45 @@ def test_retained_capacity_outcome_events_have_zero_authority(tmp_path):
             writer, snapshot, label, "invalid", "store-digest")
 
 
+def test_retained_capacity_episode_event_has_zero_learning_authority(tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    value = {
+        "context_signature": {
+            "action_submitted": "false",
+            "selection_policy_authority": "false",
+        },
+        "episode_id": "retained-capacity-episode",
+        "execution_event_id": None,
+        "outcome_status": "goal-relief-observed",
+        "prediction_ids": [],
+    }
+    episode = SimpleNamespace(to_dict=lambda: dict(value))
+    path = os.path.join(str(tmp_path), "capacity-episode-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_retained_capacity_episode(
+        writer, snapshot, episode, "episode-store-digest")
+
+    assert event["type"] == "episode_opened"
+    assert event["payload"]["component_id"] == (
+        "fdas-retained-capacity-episode-bridge")
+    details = event["payload"]["details"]
+    assert details["learning_authority"] is False
+    assert details["policy_authority"] is False
+    assert details["readout_authority"] is False
+    assert details["transition_value_estimated"] is False
+    assert details["truth_mutated"] is False
+    assert validate_file(path).valid
+
+    invalid = SimpleNamespace(to_dict=lambda: {
+        **value, "prediction_ids": ["prediction"]})
+    with pytest.raises(RuntimeError, match="grants learning or action"):
+        runtime.emit_retained_capacity_episode(
+            writer, snapshot, invalid, "store-digest")
+
+
 def test_coordinated_replacement_execution_event_is_pilot_bounded(tmp_path):
     runtime = build_runtime(_enabled_city_declaration())
     snapshot = _snapshot()

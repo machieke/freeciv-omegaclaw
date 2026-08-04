@@ -445,7 +445,7 @@ def test_replacement_capacity_retained_queue_lifecycle_is_additive():
     }
 
 
-def test_replacement_capacity_retained_queue_outcome_is_additive():
+def test_replacement_capacity_retained_queue_outcome_and_episode_are_additive():
     with open(os.path.join(
             REPO, "profile",
             "dependent_atomspace_defense_choice_surface_shadow.yaml"),
@@ -465,12 +465,33 @@ def test_replacement_capacity_retained_queue_outcome_is_additive():
     config = DependentAtomSpaceConfig.from_dict(value, manifest)
     additive = copy.deepcopy(manifest)
     assert additive["capabilities"].pop(
+        "replacement_capacity_retained_queue_episode_bridge") == (
+            "shadow-live")
+    episode_diagnostic = additive.pop(
+        "replacement_capacity_retained_queue_episode_bridge_diagnostic")
+    assert additive["capabilities"].pop(
         "replacement_capacity_retained_queue_outcome") == "shadow-live"
     diagnostic = additive.pop(
         "replacement_capacity_retained_queue_outcome_diagnostic")
 
     assert config.enabled is True
     assert additive == parent
+    assert episode_diagnostic == {
+        "action_selection_changed": False,
+        "action_submitted": False,
+        "episode_store": "separate-observation-only",
+        "learning_authority": False,
+        "mapping": {
+            "durable-negative": "effect-without-goal-relief",
+            "durable-positive": "goal-relief-observed",
+            "terminal-no-progress": "no-effect-observed",
+        },
+        "policy_authority": False,
+        "prediction_ids_required_empty": True,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
     assert diagnostic == {
         "action_selection_changed": False,
         "deficit_authority": "current-dependent-revision",

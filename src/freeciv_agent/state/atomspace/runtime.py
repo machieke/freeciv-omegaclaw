@@ -1198,6 +1198,43 @@ class FdasRuntime(object):
             component_id="fdas-retained-capacity-outcome",
             component_version="1.0")
 
+    def emit_retained_capacity_episode(
+            self, writer, snapshot, episode, store_digest, caused_by=()):
+        """Emit one terminal observation-only capacity decision episode."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS retained capacity episode is not revision-current")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError("FDAS retained capacity episode digest is required")
+        value = episode.to_dict()
+        context = value.get("context_signature", {})
+        if (value.get("prediction_ids") != []
+                or value.get("execution_event_id") is not None
+                or context.get("action_submitted") != "false"
+                or context.get("selection_policy_authority") != "false"):
+            raise RuntimeError(
+                "FDAS retained capacity episode grants learning or action")
+        details = {
+            "action_selection_changed": False,
+            "episode": value,
+            "identity": "fdas-retained-capacity-episode-bridge/1.0",
+            "learning_authority": False,
+            "policy_authority": False,
+            "readout_authority": False,
+            "store_digest": store_digest,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        return self.event_emitter.emit_component(
+            writer, "episode_opened", snapshot.turn, revision, details,
+            caused_by=tuple(caused_by), ruleset_digest=self.ruleset_digest,
+            component_id="fdas-retained-capacity-episode-bridge",
+            component_version="1.0")
+
     def emit_coordinated_replacement_execution(
             self, writer, snapshot, value, transition, store_digest,
             caused_by=()):
@@ -1682,6 +1719,39 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         ):
             raise FdasRuntimeConfigurationError(
                 "replacement capacity retained queue outcome declaration "
+                "differs")
+    retained_capacity_episode_capability = manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_episode_bridge")
+    retained_capacity_episode_diagnostic = manifest.get(
+        "replacement_capacity_retained_queue_episode_bridge_diagnostic")
+    retained_capacity_episode_enabled = bool(
+        retained_capacity_episode_capability is not None
+        or retained_capacity_episode_diagnostic is not None)
+    if retained_capacity_episode_enabled:
+        expected_retained_capacity_episode = {
+            "action_selection_changed": False,
+            "action_submitted": False,
+            "episode_store": "separate-observation-only",
+            "learning_authority": False,
+            "mapping": {
+                "durable-negative": "effect-without-goal-relief",
+                "durable-positive": "goal-relief-observed",
+                "terminal-no-progress": "no-effect-observed",
+            },
+            "policy_authority": False,
+            "prediction_ids_required_empty": True,
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_capacity_outcome_enabled
+                or retained_capacity_episode_capability != "shadow-live"
+                or retained_capacity_episode_diagnostic
+                != expected_retained_capacity_episode
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity retained queue episode declaration "
                 "differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:
