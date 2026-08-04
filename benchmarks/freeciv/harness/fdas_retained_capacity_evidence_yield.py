@@ -17,6 +17,21 @@ FROZEN_TARGET_YIELD_PROBABILITY = 0.9
 FROZEN_QUERY_ENABLED_PILOT_GAMES = 64
 
 
+def _yield_design(probability, required_status_games, target_probability):
+    if probability <= 0.0:
+        return {
+            "achieved_probability": None,
+            "method": "exact-binomial-at-least-yield",
+            "planned_probability": probability,
+            "reason": "zero-observed-rate-cannot-size-finite-cohort",
+            "required_successes": required_status_games,
+            "samples": None,
+            "target_probability": target_probability,
+        }
+    return binomial_minimum_trials(
+        probability, required_status_games, target_probability)
+
+
 def retained_capacity_evidence_yield_plan(
         status_bearing_games=None, source_games=FROZEN_SOURCE_GAMES,
         required_status_games=FROZEN_REQUIRED_STATUS_GAMES,
@@ -33,7 +48,7 @@ def retained_capacity_evidence_yield_plan(
             or source_games < 1 or required_status_games < 1
             or query_enabled_pilot_games < 1
             or any(isinstance(value, bool) or not isinstance(value, int)
-                   or value < 1 or value > source_games
+                   or value < 0 or value > source_games
                    for value in counts.values())):
         raise ValueError("retained capacity evidence-yield inputs differ")
 
@@ -42,9 +57,9 @@ def retained_capacity_evidence_yield_plan(
         observed = counts[status]
         plug_in_rate = observed / float(source_games)
         interval = wilson(observed, source_games)
-        plug_in = binomial_minimum_trials(
+        plug_in = _yield_design(
             plug_in_rate, required_status_games, target_probability)
-        lower_bound = binomial_minimum_trials(
+        lower_bound = _yield_design(
             interval["lower"], required_status_games, target_probability)
         statuses.append({
             "observed_status_bearing_games": observed,
@@ -54,11 +69,17 @@ def retained_capacity_evidence_yield_plan(
             "wilson_95_interval": interval,
             "wilson_lower_sensitivity_design": lower_bound,
         })
-    provisional = max(
+    plug_in_sizes = tuple(
         value["plug_in_design"]["samples"] for value in statuses)
-    conservative = max(
+    conservative_sizes = tuple(
         value["wilson_lower_sensitivity_design"]["samples"]
         for value in statuses)
+    provisional = (
+        None if any(value is None for value in plug_in_sizes)
+        else max(plug_in_sizes))
+    conservative = (
+        None if any(value is None for value in conservative_sizes)
+        else max(conservative_sizes))
     report = {
         "claim_scope": (
             "exact fixed-cohort evidence-yield planning from reused PR94 "

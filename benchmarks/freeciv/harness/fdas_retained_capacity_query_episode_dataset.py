@@ -1,5 +1,6 @@
 """Deterministic cohort export of retained-capacity query/episode rows."""
 
+from concurrent.futures import ProcessPoolExecutor
 import json
 import os
 
@@ -49,9 +50,15 @@ def _expected_hashes(values, seeds):
     return result
 
 
+def _audit_parent(arguments):
+    seed, game_dir, repo = arguments
+    return seed, audit_fdas_retained_capacity_transition_query_live(
+        game_dir, repo=repo)
+
+
 def export_fdas_retained_capacity_query_episode_dataset(
         run_dir, expected_seeds, expected_source_commit, repo=None,
-        expected_parent_report_hashes=None):
+        expected_parent_report_hashes=None, audit_workers=1):
     """Export every query as a terminal or explicitly censored row."""
     run_dir = os.path.abspath(run_dir)
     seeds = tuple(int(value) for value in expected_seeds)
@@ -61,19 +68,30 @@ def export_fdas_retained_capacity_query_episode_dataset(
         raise ValueError("retained capacity query dataset commit is required")
     expected_hashes = _expected_hashes(
         expected_parent_report_hashes, seeds)
+    audit_workers = int(audit_workers)
+    if audit_workers < 1:
+        raise ValueError("retained capacity audit workers must be positive")
+    game_dirs = dict((seed, os.path.join(
+        run_dir, "games", "main", "e_full_loop", "{}-00".format(seed)))
+                     for seed in seeds)
+    audit_arguments = tuple(
+        (seed, game_dirs[seed], repo) for seed in seeds)
+    if audit_workers == 1:
+        parents = dict(_audit_parent(value) for value in audit_arguments)
+    else:
+        with ProcessPoolExecutor(max_workers=audit_workers) as executor:
+            parents = dict(executor.map(_audit_parent, audit_arguments))
 
     game_rows = []
     joined_rows = []
     extraction_errors = []
     parent_hashes = {}
     for seed in seeds:
-        game_dir = os.path.join(
-            run_dir, "games", "main", "e_full_loop", "{}-00".format(seed))
+        game_dir = game_dirs[seed]
         manifest_path = os.path.join(game_dir, "manifest.json")
         manifest = _load(manifest_path)
         game_id = manifest.get("game_id")
-        parent = audit_fdas_retained_capacity_transition_query_live(
-            game_dir, repo=repo)
+        parent = parents[seed]
         parent_hashes[seed] = parent["structural_hash"]
         query_identity = structural_hash([
             manifest.get("manifest_identity"), manifest.get("attempt_id"),
