@@ -202,6 +202,50 @@ def _binomial_probabilities(samples, probability):
     return [value / total for value in weights]
 
 
+def binomial_at_least_probability(samples, probability, required_successes):
+    """Exact binomial probability of observing at least a fixed count."""
+    samples = int(samples)
+    required_successes = int(required_successes)
+    probability = float(probability)
+    if (samples < 0 or required_successes < 0
+            or not 0.0 <= probability <= 1.0):
+        raise ValueError("invalid binomial yield design")
+    if required_successes == 0:
+        return 1.0
+    if required_successes > samples:
+        return 0.0
+    return sum(_binomial_probabilities(samples, probability)[
+        required_successes:])
+
+
+def binomial_minimum_trials(probability, required_successes,
+                            target_probability=0.9,
+                            maximum_trials=100000):
+    """Smallest fixed trial count meeting an exact binomial yield target."""
+    probability = float(probability)
+    required_successes = int(required_successes)
+    target_probability = float(target_probability)
+    maximum_trials = int(maximum_trials)
+    if (not 0.0 < probability <= 1.0 or required_successes < 1
+            or not 0.0 < target_probability < 1.0
+            or maximum_trials < required_successes):
+        raise ValueError("invalid binomial minimum-trial design")
+    for samples in range(required_successes, maximum_trials + 1):
+        achieved = binomial_at_least_probability(
+            samples, probability, required_successes)
+        if achieved >= target_probability:
+            return {
+                "achieved_probability": achieved,
+                "maximum_trials": maximum_trials,
+                "method": "exact-binomial-at-least-yield",
+                "planned_probability": probability,
+                "required_successes": required_successes,
+                "samples": samples,
+                "target_probability": target_probability,
+            }
+    raise ValueError("binomial yield design exceeds maximum trials")
+
+
 def paired_win_design_power(pairs, minimum_detectable_delta, discordance,
                             alpha=0.05, target_power=0.8):
     """Exact two-sided McNemar power under a predeclared paired alternative."""
