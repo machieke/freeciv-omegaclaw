@@ -35,6 +35,12 @@ from freeciv.harness.fdas_replacement_capacity_production_lifecycle_live import 
 from freeciv.harness.fdas_replacement_capacity_production_lifecycle_cohort import (
     audit_fdas_replacement_capacity_production_lifecycle_cohort,
 )
+from freeciv.harness.fdas_replacement_capacity_retained_queue_live import (
+    audit_fdas_replacement_capacity_retained_queue_live,
+)
+from freeciv.harness.fdas_replacement_capacity_retained_queue_cohort import (
+    audit_fdas_replacement_capacity_retained_queue_cohort,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
@@ -624,6 +630,124 @@ def _add_replacement_capacity_production_lifecycle_evidence(tmp_path):
     _write_json(status_path, status)
 
 
+def _add_replacement_capacity_retained_queue_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "replacement_capacity_retained_queue_lifecycle"] = "shadow-live"
+    activation[
+        "replacement_capacity_retained_queue_lifecycle_diagnostic"] = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "match_semantics": (
+                "pressure-selected-grounded-candidate-matches-current-"
+                "authoritative-queue"),
+            "no_queue_action_submitted": True,
+            "observation_authority": "later-authoritative-snapshot",
+            "policy_authority": False,
+            "single_pressure_selected_operation_required": True,
+            "truth_mutated": False,
+        }
+    _write_json(manifest_path, manifest)
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    terminal = events[-1]
+    seq = terminal["seq"]
+    operation_id = "capacity-retained-queue-lifecycle-operation"
+    base = {
+        "actor_id": "city:3",
+        "assignment_digest": None,
+        "bid": 0.0,
+        "claims": [{"resource": {"kind": "city_production_slot"}}],
+        "deadline_turn": 68,
+        "event_schema_version": "1.0",
+        "expected_prevented_loss": 0.0,
+        "mechanism": "fdas-replacement-capacity-retained-queue-lifecycle",
+        "next_action": None,
+        "operation_digest": structural_hash({
+            "operation_id": operation_id,
+            "operation_type": (
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production"),
+        }),
+        "operation_id": operation_id,
+        "operation_type": (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"),
+        "opportunity_cost": 0.0,
+        "policy_authority": False,
+        "provenance": [
+            "pressure-selected-operation-exact-match",
+            "current-authoritative-queue-byte-exact-match",
+            "no-queue-action-submitted",
+            "zero-immediate-capacity-goal-relief",
+        ],
+        "reason_code": None,
+        "requirement_id": "capacity-retained-requirements",
+        "requirement_set": {
+            "requirement_set_id": "capacity-retained-requirements"},
+        "selected": True,
+        "shadow_only": True,
+        "snapshot_id": "snapshot-capacity-retained-proposed",
+        "target_id": "city:3",
+    }
+
+    def event(event_type, offset, event_id, payload, caused_by):
+        return {
+            "caused_by": list(caused_by),
+            "event_id": event_id,
+            "game_id": terminal["game_id"],
+            "payload": payload,
+            "schema_version": terminal["schema_version"],
+            "seq": seq + offset,
+            "ts": terminal["ts"],
+            "turn": 4,
+            "type": event_type,
+        }
+
+    proposed = event(
+        "operation_proposed", 0, "event-capacity-retained-proposed",
+        dict(base, state="proposed"), (events[-2]["event_id"],))
+    observed = event(
+        "operation_step_revalidated", 1,
+        "event-capacity-retained-queue-observed",
+        dict(base, state="step_revalidated",
+             snapshot_id="snapshot-capacity-retained-queue-observed",
+             reason_code="queue-was-already-selected"),
+        (proposed["event_id"],))
+    completed = event(
+        "operation_completed", 2, "event-capacity-retained-product-observed",
+        dict(base, state="completed", product_ref="unit:902",
+             snapshot_id="snapshot-capacity-retained-product-observed",
+             resolution_snapshot_id=(
+                 "snapshot-capacity-retained-product-observed"),
+             resolution_status="resolved_success"),
+        (observed["event_id"],))
+    terminal["caused_by"] = [completed["event_id"]]
+    terminal["seq"] = seq + 3
+    counters = {
+        "fdas_replacement_retained_queue_lifecycle_evaluations": 1,
+        "fdas_replacement_retained_queue_lifecycle_selected_matches": 1,
+        "fdas_replacement_retained_queue_lifecycle_no_matches": 0,
+        "fdas_replacement_retained_queue_lifecycle_ambiguous_matches": 0,
+        "fdas_replacement_retained_queue_lifecycle_operations_registered": 1,
+        "fdas_replacement_retained_queue_lifecycle_queue_observations": 1,
+        "fdas_replacement_retained_queue_lifecycle_product_observations": 1,
+        "fdas_replacement_retained_queue_lifecycle_terminal_failures": 0,
+    }
+    terminal["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in (
+            *events[:-1], proposed, observed, completed, terminal)),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def _add_reproposal_hardening_evidence(tmp_path):
     events_path = tmp_path / "events.jsonl"
     events = [json.loads(line) for line in events_path.read_text(
@@ -1135,3 +1259,122 @@ def test_replacement_capacity_production_lifecycle_cohort_retains_all_games(
     assert report["summary"]["games_with_product_observation"] == 2
     assert report["summary"]["exact_matches"] == 2
     assert report["summary"]["product_observations"] == 2
+
+
+def test_replacement_capacity_retained_queue_live_observes_without_commit(
+        tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_evidence(tmp_path)
+
+    report = audit_fdas_replacement_capacity_retained_queue_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"] == {
+        "ambiguous_matches": 0,
+        "evaluations": 1,
+        "no_matches": 0,
+        "operations_registered": 1,
+        "product_observations": 1,
+        "queue_observations": 1,
+        "selected_matches": 1,
+        "terminal_failures": 0,
+    }
+
+
+def test_replacement_capacity_retained_queue_rejects_nonterminal_divergence(
+        tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_evidence(tmp_path)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    proposed = next(
+        row for row in events
+        if (row["type"] == "operation_proposed"
+            and row["payload"].get("mechanism") == (
+                "fdas-replacement-capacity-retained-queue-lifecycle")))
+    proposed["payload"]["reason_code"] = (
+        "production-target-diverged-before-product-observation")
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+
+    report = audit_fdas_replacement_capacity_retained_queue_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "queue_divergence_is_single_terminal_abandonment"] is False
+
+
+def test_replacement_capacity_retained_queue_cohort_retains_zero_yield_games(
+        tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+        _add_opportunity_funnel(game_dir)
+        _add_replacement_capacity_evidence(game_dir)
+        _add_replacement_capacity_production_evidence(game_dir)
+        _add_replacement_capacity_production_lifecycle_evidence(game_dir)
+        _add_replacement_capacity_retained_queue_evidence(game_dir)
+        if seed == 103:
+            events_path = game_dir / "events.jsonl"
+            events = [json.loads(line) for line in events_path.read_text(
+                encoding="utf-8").splitlines()]
+            events = [
+                row for row in events
+                if row.get("payload", {}).get("mechanism") != (
+                    "fdas-replacement-capacity-retained-queue-lifecycle")]
+            terminal = events[-1]
+            terminal["caused_by"] = [events[-2]["event_id"]]
+            terminal["seq"] = events[-2]["seq"] + 1
+            counter_names = (
+                "fdas_replacement_retained_queue_lifecycle_evaluations",
+                "fdas_replacement_retained_queue_lifecycle_selected_matches",
+                "fdas_replacement_retained_queue_lifecycle_no_matches",
+                "fdas_replacement_retained_queue_lifecycle_ambiguous_matches",
+                "fdas_replacement_retained_queue_lifecycle_operations_registered",
+                "fdas_replacement_retained_queue_lifecycle_queue_observations",
+                "fdas_replacement_retained_queue_lifecycle_product_observations",
+                "fdas_replacement_retained_queue_lifecycle_terminal_failures",
+            )
+            terminal["payload"]["summary"].update(
+                {name: 0 for name in counter_names})
+            events_path.write_text(
+                "".join(json.dumps(row, sort_keys=True) + "\n"
+                        for row in events), encoding="utf-8")
+            status_path = game_dir / "status.json"
+            status = json.loads(status_path.read_text(encoding="utf-8"))
+            status.update({name: 0 for name in counter_names})
+            _write_json(status_path, status)
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 2, "infrastructure_failures": 0,
+        "jobs": 2, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_capacity_retained_queue_cohort(
+        str(run_dir), (101, 103), expected_source_commit="a" * 40,
+        minimum_games_with_selected_match=1,
+        minimum_games_with_product_observation=1)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["game_count"] == 2
+    assert report["summary"]["games_with_selected_match"] == 1
+    assert report["summary"]["games_with_product_observation"] == 1
+    assert report["summary"]["selected_matches"] == 1
+    assert report["summary"]["product_observations"] == 1

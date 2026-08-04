@@ -1327,3 +1327,24 @@ changed. The corrected aggregate audit passes and is byte-identical on a second
 full pass. This proves recurrent exact delayed candidate mechanics, not queue
 selection, product completion, capacity relief, score, or win-rate value. See
 `fdas-pr89-replacement-capacity-production.md` and its JSON report.
+
+PR90 adds a separate selected-action lifecycle observer without changing the
+legacy action. It requires exactly one grounded capacity candidate to match the
+byte-exact selected city-production action, keeps queue acceptance distinct
+from later product identity, and fails closed on duplicate candidates. Its
+first one-game engine smoke completed cleanly but found zero matches across 22
+selected production actions. Direct comparison showed genuine policy mismatch:
+the capacity path usually preferred a different city or defender from the
+legacy controller. PR90 therefore validates the exact-match boundary but has
+not produced lifecycle outcome evidence and makes no value claim.
+
+PR91 observes a different, already-grounded boundary: scalar PF selects a
+capacity operation whose queue is already authoritative. A four-game
+known-seed diagnostic found this in one game, with two registrations and two
+queue observations. Both queues later diverged and produced no observed unit.
+The first implementation repeated blocked events until expiry; the hardened
+lifecycle now attributes divergence once as immediate terminal abandonment.
+Those used-seed diagnostics are not confirmation evidence. A fresh fixed
+16-game cohort, retaining every zero-yield game and requiring recurrence in two
+games plus one authoritative product observation, is preregistered in
+`fdas-pr91-replacement-capacity-retained-queue-preregistration.md`.
