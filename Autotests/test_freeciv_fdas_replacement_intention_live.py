@@ -1,5 +1,6 @@
 import os
 import sys
+from types import SimpleNamespace
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -9,9 +10,37 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
 
 from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
     FIXED_SEEDS,
+    _removal,
     expected_arm_order,
     paired_replacement_intention_analysis,
 )
+
+
+def test_intention_removal_includes_assignment_turn_exact_evidence():
+    event = {
+        "caused_by": ["combat-result"],
+        "event_id": "unit-removal",
+        "payload": {
+            "cause": "combat_attacker_lost",
+            "detail": "actor died after the intention was assigned",
+            "evidence_event_ids": ["combat-result"],
+            "evidence_quality": "exact",
+            "transition": "disappeared",
+            "unit_id": 8,
+        },
+        "turn": 40,
+        "type": "unit_lifecycle",
+    }
+    assignment = SimpleNamespace(
+        assignment_turn=40,
+        outcome=SimpleNamespace(observed_turn=72))
+
+    removal = _removal((event,), 8, assignment, present=False)
+
+    assert removal["exact"] is True
+    assert removal["unexplained"] is False
+    assert removal["cause"] == "combat_attacker_lost"
+    assert removal["turn"] == 40
 
 
 def _summary(seed, arm, both=True, opportunity=True, observed=True,

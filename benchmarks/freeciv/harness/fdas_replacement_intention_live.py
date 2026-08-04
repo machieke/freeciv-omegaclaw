@@ -84,7 +84,7 @@ def _removal(events, actor_id, assignment, present):
         if (row.get("type") == "unit_lifecycle"
             and row.get("payload", {}).get("unit_id") == actor_id
             and row.get("payload", {}).get("transition") == "disappeared"
-            and assignment.assignment_turn < int(row.get("turn", -1))
+            and assignment.assignment_turn <= int(row.get("turn", -1))
             <= observed_turn))
     if present:
         unresolved = bool(rows and not any(
