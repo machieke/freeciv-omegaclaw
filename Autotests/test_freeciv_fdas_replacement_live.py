@@ -29,6 +29,12 @@ from freeciv.harness.fdas_replacement_capacity_production_cohort import (
 from freeciv.harness.fdas_replacement_capacity_production_live import (
     audit_fdas_replacement_capacity_production_live,
 )
+from freeciv.harness.fdas_replacement_capacity_production_lifecycle_live import (
+    audit_fdas_replacement_capacity_production_lifecycle_live,
+)
+from freeciv.harness.fdas_replacement_capacity_production_lifecycle_cohort import (
+    audit_fdas_replacement_capacity_production_lifecycle_cohort,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
@@ -500,6 +506,124 @@ def _add_replacement_capacity_production_evidence(tmp_path):
     _write_json(status_path, status)
 
 
+def _add_replacement_capacity_production_lifecycle_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "replacement_capacity_production_lifecycle"] = "shadow-live"
+    activation["replacement_capacity_production_lifecycle_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "match_semantics": (
+            "exactly-one-grounded-candidate-matches-existing-policy-action"),
+        "observation_authority": "later-authoritative-snapshot",
+        "policy_authority": False,
+        "queue_acceptance_separate_from_product_observation": True,
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    terminal = events[-1]
+    seq = terminal["seq"]
+    operation_id = "capacity-production-lifecycle-operation"
+    base = {
+        "actor_id": "city:3",
+        "assignment_digest": None,
+        "bid": 0.0,
+        "claims": [{"resource": {"kind": "city_production_slot"}}],
+        "deadline_turn": 68,
+        "event_schema_version": "1.0",
+        "expected_prevented_loss": 0.0,
+        "mechanism": "fdas-replacement-capacity-production-lifecycle",
+        "next_action": {
+            "action_type": "city_production", "city_id": 3,
+            "target_kind": 6, "target_value": 10},
+        "operation_digest": structural_hash({
+            "operation_id": operation_id,
+            "operation_type": (
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production"),
+        }),
+        "operation_id": operation_id,
+        "operation_type": (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"),
+        "opportunity_cost": 0.0,
+        "policy_authority": False,
+        "provenance": [
+            "legacy-selected-action-byte-exact-match",
+            "queue-acceptance-is-not-product-observation",
+            "zero-immediate-capacity-goal-relief",
+        ],
+        "reason_code": None,
+        "requirement_id": "capacity-requirements",
+        "requirement_set": {"requirement_set_id": "capacity-requirements"},
+        "selected": True,
+        "shadow_only": True,
+        "snapshot_id": "snapshot-capacity-proposed",
+        "target_id": "city:3",
+    }
+
+    def event(event_type, offset, event_id, payload, caused_by):
+        return {
+            "caused_by": list(caused_by),
+            "event_id": event_id,
+            "game_id": terminal["game_id"],
+            "payload": payload,
+            "schema_version": terminal["schema_version"],
+            "seq": seq + offset,
+            "ts": terminal["ts"],
+            "turn": 4,
+            "type": event_type,
+        }
+
+    proposed = event(
+        "operation_proposed", 0, "event-capacity-lifecycle-proposed",
+        dict(base, state="proposed"), (events[-2]["event_id"],))
+    committed = event(
+        "operation_step_committed", 1, "event-capacity-lifecycle-committed",
+        dict(base, state="step_committed", action_id="action-capacity"),
+        (proposed["event_id"],))
+    observed = event(
+        "operation_step_revalidated", 2, "event-capacity-queue-observed",
+        dict(base, state="step_revalidated",
+             snapshot_id="snapshot-capacity-queue-observed",
+             reason_code="queue-target-observed-awaiting-product"),
+        (committed["event_id"],))
+    completed = event(
+        "operation_completed", 3, "event-capacity-product-observed",
+        dict(base, state="completed", product_ref="unit:901",
+             snapshot_id="snapshot-capacity-product-observed",
+             resolution_snapshot_id="snapshot-capacity-product-observed",
+             resolution_status="resolved_success"),
+        (observed["event_id"],))
+    terminal["caused_by"] = [completed["event_id"]]
+    terminal["seq"] = seq + 4
+    counters = {
+        "fdas_replacement_capacity_lifecycle_match_evaluations": 1,
+        "fdas_replacement_capacity_lifecycle_exact_matches": 1,
+        "fdas_replacement_capacity_lifecycle_no_matches": 0,
+        "fdas_replacement_capacity_lifecycle_ambiguous_matches": 0,
+        "fdas_replacement_capacity_lifecycle_operations_registered": 1,
+        "fdas_replacement_capacity_lifecycle_queue_acceptances": 1,
+        "fdas_replacement_capacity_lifecycle_queue_observations": 1,
+        "fdas_replacement_capacity_lifecycle_product_observations": 1,
+        "fdas_replacement_capacity_lifecycle_terminal_failures": 0,
+    }
+    terminal["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in (
+            *events[:-1], proposed, committed, observed, completed, terminal)),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def _add_reproposal_hardening_evidence(tmp_path):
     events_path = tmp_path / "events.jsonl"
     events = [json.loads(line) for line in events_path.read_text(
@@ -956,3 +1080,58 @@ def test_replacement_capacity_production_cohort_audits_delayed_grounding(
     assert report["summary"]["capacity_production_candidate_count"] == 4
     assert report["summary"]["grounded_production_operation_count"] == 4
     assert report["summary"]["production_model_abstention_count"] == 0
+
+
+def test_replacement_capacity_production_lifecycle_live_separates_observation(
+        tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+
+    report = audit_fdas_replacement_capacity_production_lifecycle_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"] == {
+        "ambiguous_matches": 0,
+        "exact_matches": 1,
+        "match_evaluations": 1,
+        "no_matches": 0,
+        "operations_registered": 1,
+        "product_observations": 1,
+        "queue_acceptances": 1,
+        "queue_observations": 1,
+        "terminal_failures": 0,
+    }
+
+
+def test_replacement_capacity_production_lifecycle_cohort_retains_all_games(
+        tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+        _add_opportunity_funnel(game_dir)
+        _add_replacement_capacity_evidence(game_dir)
+        _add_replacement_capacity_production_evidence(game_dir)
+        _add_replacement_capacity_production_lifecycle_evidence(game_dir)
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 2, "infrastructure_failures": 0,
+        "jobs": 2, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_capacity_production_lifecycle_cohort(
+        str(run_dir), (101, 103), expected_source_commit="a" * 40,
+        minimum_games_with_product_observation=2)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["game_count"] == 2
+    assert report["summary"]["games_with_product_observation"] == 2
+    assert report["summary"]["exact_matches"] == 2
+    assert report["summary"]["product_observations"] == 2
