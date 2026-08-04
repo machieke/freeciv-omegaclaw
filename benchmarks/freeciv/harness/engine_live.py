@@ -79,6 +79,9 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasDefenseActorPersistenceLabeler,
                                     FdasCoordinatedReplacementAdapter,
                                     FdasCoordinatedReplacementReadoutEvaluator,
+                                    FdasReplacementChainOutcomeLabeler,
+                                    FdasReplacementChainOutcomeStore,
+                                    REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2750,6 +2753,55 @@ async def _play(run_dir, manifest, context):
         fdas_replacement_readout_evaluator = (
             FdasCoordinatedReplacementReadoutEvaluator(
                 fdas_replacement_adapter))
+    fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
+        "coordinated_replacement_chain_outcome")
+    fdas_replacement_outcome_diagnostic = fdas_manifest.get(
+        "coordinated_replacement_chain_outcome_diagnostic")
+    fdas_replacement_outcome = bool(
+        fdas_replacement_outcome_capability is not None
+        or fdas_replacement_outcome_diagnostic is not None)
+    fdas_replacement_outcome_path = os.path.join(
+        run_dir, "fdas-coordinated-replacement-outcome-labels.json")
+    fdas_replacement_outcome_store = None
+    fdas_replacement_outcome_labeler = None
+    if fdas_replacement_outcome:
+        expected_replacement_outcome = {
+            "action_selection_changed": False,
+            "completion_index_required": True,
+            "induction_readout": False,
+            "observation_window_turns": 32,
+            "policy_authority": False,
+            "readout_authority": False,
+            "target_id": REPLACEMENT_CHAIN_OUTCOME_TARGET,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (fdas_replacement_outcome_capability != "shadow-live"
+                or fdas_replacement_outcome_diagnostic
+                != expected_replacement_outcome
+                or fdas_replacement_adapter is None):
+            raise RuntimeError(
+                "FDAS coordinated replacement outcome contract differs")
+        fdas_replacement_outcome_identity = structural_hash([
+            fdas_replacement_identity,
+            FdasReplacementChainOutcomeLabeler.LABELER_IDENTITY,
+            REPLACEMENT_CHAIN_OUTCOME_TARGET,
+        ])
+        fdas_replacement_outcome_store = (
+            FdasReplacementChainOutcomeStore.load(
+                fdas_replacement_outcome_path,
+                fdas_replacement_outcome_identity))
+        if fdas_replacement_outcome_store.quarantined:
+            raise RuntimeError(
+                "FDAS coordinated replacement outcome store is "
+                "quarantined: {}".format(
+                    fdas_replacement_outcome_store.quarantine_reason))
+        fdas_replacement_outcome_labeler = (
+            FdasReplacementChainOutcomeLabeler(
+                fdas_replacement_outcome_store))
+        # Empty activation remains durable evidence when no chain completes.
+        fdas_replacement_outcome_store.save(
+            fdas_replacement_outcome_path)
     fdas_transport_path = os.path.join(
         run_dir, "fdas-transport-lifecycle.json")
     fdas_transport_lifecycle = None
@@ -3880,6 +3932,65 @@ async def _play(run_dir, manifest, context):
                 "fdas_replacement_reproposal_suppressions"] += len(
                     fdas_replacement_adapter.reproposal_suppressions())
             return updates, changed
+    reconcile_fdas_replacement_outcomes = None
+    if fdas_replacement_outcome_labeler is not None:
+        def reconcile_fdas_replacement_outcomes(current, cause):
+            revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            if (revision is None
+                    or revision.snapshot_id != current.snapshot_id):
+                raise RuntimeError(
+                    "FDAS replacement outcome lacks current revision")
+            for record in fdas_replacement_store.records():
+                if (not fdas_replacement_outcome_labeler.eligible_record(
+                            record)
+                        or fdas_replacement_outcome_store.for_operation(
+                            record.spec.operation_id) is not None):
+                    continue
+                label = fdas_replacement_outcome_labeler.open(
+                    record, manifest["game_id"], player_id)
+                fdas_replacement_outcome_store.save(
+                    fdas_replacement_outcome_path)
+                event = (
+                    fdas_runtime.emit_coordinated_replacement_chain_outcome(
+                        writer, current, label, "opened",
+                        fdas_replacement_outcome_store.store_digest,
+                        caused_by=(cause,)))
+                if event is not None:
+                    cause = event["event_id"]
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_opened"] += 1
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_pending"] += 1
+            for prior in tuple(
+                    label
+                    for label in fdas_replacement_outcome_store.labels()
+                    if label.status == "pending"
+                    and current.turn >= label.due_turn):
+                observed = fdas_replacement_outcome_labeler.observe(
+                    prior.label_id, current, revision.revision_id)
+                if observed == prior:
+                    continue
+                fdas_replacement_outcome_store.save(
+                    fdas_replacement_outcome_path)
+                event = (
+                    fdas_runtime.emit_coordinated_replacement_chain_outcome(
+                        writer, current, observed, "observed",
+                        fdas_replacement_outcome_store.store_digest,
+                        caused_by=(cause,)))
+                if event is not None:
+                    cause = event["event_id"]
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_observed"] += 1
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_pending"] -= 1
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_positive"] += int(
+                        observed.outcome is True)
+                decision_stats[
+                    "fdas_replacement_chain_outcomes_negative"] += int(
+                        observed.outcome is False)
+            return cause
     reconcile_fdas_expansion = None
     if fdas_expansion_adapter is not None:
         def reconcile_fdas_expansion(current, revision):
@@ -4173,6 +4284,25 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_readout_grounded_pairs": 0,
         "fdas_replacement_readout_rejections": 0,
         "fdas_replacement_readout_abstentions": 0,
+        "fdas_replacement_chain_outcomes_opened": (
+            len(fdas_replacement_outcome_store.labels())
+            if fdas_replacement_outcome_store is not None else 0),
+        "fdas_replacement_chain_outcomes_observed": (
+            sum(value.status == "observed"
+                for value in fdas_replacement_outcome_store.labels())
+            if fdas_replacement_outcome_store is not None else 0),
+        "fdas_replacement_chain_outcomes_pending": (
+            sum(value.status == "pending"
+                for value in fdas_replacement_outcome_store.labels())
+            if fdas_replacement_outcome_store is not None else 0),
+        "fdas_replacement_chain_outcomes_positive": (
+            sum(value.outcome is True
+                for value in fdas_replacement_outcome_store.labels())
+            if fdas_replacement_outcome_store is not None else 0),
+        "fdas_replacement_chain_outcomes_negative": (
+            sum(value.outcome is False
+                for value in fdas_replacement_outcome_store.labels())
+            if fdas_replacement_outcome_store is not None else 0),
         "fdas_belief_decay_revisions": 0,
         "fdas_belief_rematerializations": 0,
         "fdas_belief_conflict_model_priors": 0,
@@ -6070,6 +6200,9 @@ async def _play(run_dir, manifest, context):
                             fdas_shadow = fdas_runtime.evaluate_shadow(
                                 snapshot,
                                 impact_planner.last_candidate_catalog)
+                        if reconcile_fdas_replacement_outcomes is not None:
+                            parent = reconcile_fdas_replacement_outcomes(
+                                snapshot, parent)
                     replacement_candidates = (
                         () if fdas_shadow is None else tuple(
                             value for value in fdas_shadow.candidates
@@ -8532,6 +8665,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_replacement_readout_rejections"]),
         ("fdas_replacement_readout_abstentions",
          decision_stats["fdas_replacement_readout_abstentions"]),
+        ("fdas_replacement_chain_outcomes_opened",
+         decision_stats["fdas_replacement_chain_outcomes_opened"]),
+        ("fdas_replacement_chain_outcomes_observed",
+         decision_stats["fdas_replacement_chain_outcomes_observed"]),
+        ("fdas_replacement_chain_outcomes_pending",
+         decision_stats["fdas_replacement_chain_outcomes_pending"]),
+        ("fdas_replacement_chain_outcomes_positive",
+         decision_stats["fdas_replacement_chain_outcomes_positive"]),
+        ("fdas_replacement_chain_outcomes_negative",
+         decision_stats["fdas_replacement_chain_outcomes_negative"]),
         ("fdas_belief_decay_revisions",
          decision_stats["fdas_belief_decay_revisions"]),
         ("fdas_belief_rematerializations",
@@ -9241,6 +9384,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_replacement_readout_rejections"]),
             "fdas_replacement_readout_abstentions": (
                 decision_stats["fdas_replacement_readout_abstentions"]),
+            "fdas_replacement_chain_outcomes_opened": (
+                decision_stats["fdas_replacement_chain_outcomes_opened"]),
+            "fdas_replacement_chain_outcomes_observed": (
+                decision_stats["fdas_replacement_chain_outcomes_observed"]),
+            "fdas_replacement_chain_outcomes_pending": (
+                decision_stats["fdas_replacement_chain_outcomes_pending"]),
+            "fdas_replacement_chain_outcomes_positive": (
+                decision_stats["fdas_replacement_chain_outcomes_positive"]),
+            "fdas_replacement_chain_outcomes_negative": (
+                decision_stats["fdas_replacement_chain_outcomes_negative"]),
             "fdas_belief_decay_revisions": (
                 decision_stats["fdas_belief_decay_revisions"]),
             "fdas_belief_rematerializations": (
@@ -9809,6 +9962,16 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_replacement_readout_rejections"]),
         "fdas_replacement_readout_abstentions": (
             decision_stats["fdas_replacement_readout_abstentions"]),
+        "fdas_replacement_chain_outcomes_opened": (
+            decision_stats["fdas_replacement_chain_outcomes_opened"]),
+        "fdas_replacement_chain_outcomes_observed": (
+            decision_stats["fdas_replacement_chain_outcomes_observed"]),
+        "fdas_replacement_chain_outcomes_pending": (
+            decision_stats["fdas_replacement_chain_outcomes_pending"]),
+        "fdas_replacement_chain_outcomes_positive": (
+            decision_stats["fdas_replacement_chain_outcomes_positive"]),
+        "fdas_replacement_chain_outcomes_negative": (
+            decision_stats["fdas_replacement_chain_outcomes_negative"]),
         "fdas_belief_decay_revisions": (
             decision_stats["fdas_belief_decay_revisions"]),
         "fdas_belief_rematerializations": (

@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+import pytest
+
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
@@ -13,6 +15,9 @@ from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     FdasCoordinatedReplacementAdapter,
     FdasCoordinatedReplacementReadoutEvaluator,
+    FdasReplacementChainOutcomeLabel,
+    FdasReplacementChainOutcomeLabeler,
+    FdasReplacementChainOutcomeStore,
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
     OperationSpec,
@@ -154,6 +159,34 @@ def _direct_candidate(snapshot, operation_id="fdas-direct-move-proof"):
         structural_hash(semantic))
 
 
+def _completed_replacement_record(operation_id="replacement-outcome-proof"):
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 520)]
+    first = _snapshot(first_payload, 520)
+    operation_store = OperationStore(
+        "fdas-replacement:outcome-operation-proof")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    adapter.reconcile(first, (_candidate(first, operation_id),))
+
+    second_payload = _payload(
+        13, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=82, reinforcement_x=2)
+    second_payload["legal_actions"] = [_move(7, 3)]
+    second_payload["authoritative"]["movement_routes"] = [
+        _route(7, 82, 84, 83, 13, 521)]
+    adapter.reconcile(_snapshot(second_payload, 521))
+
+    completed_payload = _payload(
+        14, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=84, reinforcement_x=4)
+    completed = _snapshot(completed_payload, 522)
+    adapter.reconcile(completed)
+    return operation_store.get(operation_id), completed
+
+
 def test_replacement_deduplicates_snapshot_specific_operation_ids():
     payload = _payload(12)
     payload["legal_actions"] = [_move(8, 2)]
@@ -264,6 +297,113 @@ def test_replacement_terminal_cooldown_does_not_suppress_independent_key():
     assert len(store.records()) == 2
     assert store.get("replacement-independent") is not None
     assert adapter.reproposal_suppressions() == ()
+
+
+def test_replacement_chain_outcome_opens_only_after_exact_completion():
+    payload = _payload(12)
+    payload["legal_actions"] = [_move(8, 2)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 523)]
+    snapshot = _snapshot(payload, 523)
+    operation_store = OperationStore(
+        "fdas-replacement:pending-outcome-proof")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    adapter.reconcile(snapshot, (_candidate(snapshot),))
+    label_store = FdasReplacementChainOutcomeStore(
+        "fdas-replacement:outcome-proof")
+    labeler = FdasReplacementChainOutcomeLabeler(label_store)
+
+    with pytest.raises(ValueError, match="completed operation"):
+        labeler.open(
+            operation_store.records()[0], snapshot.identity.game_id,
+            snapshot.player_id)
+
+    completed, completion_snapshot = _completed_replacement_record()
+    label = labeler.open(
+        completed, completion_snapshot.identity.game_id,
+        completion_snapshot.player_id)
+
+    assert label.status == "pending"
+    assert label.completion_turn == 14
+    assert label.due_turn == 46
+    assert label.completion_snapshot_id == completion_snapshot.snapshot_id
+    assert label.replacement_actor_id == 8
+    assert label.reinforcement_actor_id == 7
+    assert label.source_city_id == 3
+    assert label.target_city_id == 4
+    assert labeler.open(
+        completed, completion_snapshot.identity.game_id,
+        completion_snapshot.player_id) == label
+
+
+def test_replacement_chain_outcome_survives_restart_and_observes_due_turn(
+        tmp_path):
+    completed, completion_snapshot = _completed_replacement_record()
+    identity = "fdas-replacement:durable-outcome-proof"
+    store = FdasReplacementChainOutcomeStore(identity)
+    labeler = FdasReplacementChainOutcomeLabeler(store)
+    pending = labeler.open(
+        completed, completion_snapshot.identity.game_id,
+        completion_snapshot.player_id)
+    path = tmp_path / "replacement-outcomes.json"
+    store.save(str(path))
+
+    restarted = FdasReplacementChainOutcomeStore.load(str(path), identity)
+    restarted_labeler = FdasReplacementChainOutcomeLabeler(restarted)
+    before_payload = _payload(
+        45, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=84, reinforcement_x=4)
+    before = _snapshot(before_payload, 524)
+    assert restarted_labeler.observe(
+        pending.label_id, before, "revision-before-due") == pending
+
+    due_payload = _payload(
+        46, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=84, reinforcement_x=4)
+    due = _snapshot(due_payload, 525)
+    observed = restarted_labeler.observe(
+        pending.label_id, due, "revision-at-due")
+
+    assert observed.status == "observed"
+    assert observed.outcome is True
+    assert observed.reason == (
+        "completed-replacement-chain-durable-at-due-turn")
+    assert dict(observed.observed_value)["replacement_at_source"] is True
+    assert dict(observed.observed_value)["reinforcement_at_target"] is True
+
+    later_payload = _payload(
+        47, replacement_tile=81, replacement_x=1,
+        reinforcement_tile=81, reinforcement_x=1)
+    later = _snapshot(later_payload, 526)
+    assert restarted_labeler.observe(
+        pending.label_id, later, "revision-after-terminal") == observed
+
+
+def test_replacement_chain_outcome_retains_failed_durability_conjuncts():
+    completed, completion_snapshot = _completed_replacement_record()
+    store = FdasReplacementChainOutcomeStore(
+        "fdas-replacement:negative-outcome-proof")
+    labeler = FdasReplacementChainOutcomeLabeler(store)
+    pending = labeler.open(
+        completed, completion_snapshot.identity.game_id,
+        completion_snapshot.player_id)
+    due_payload = _payload(
+        46, replacement_tile=81, replacement_x=1,
+        reinforcement_tile=84, reinforcement_x=4)
+    due = _snapshot(due_payload, 527)
+    observed = labeler.observe(
+        pending.label_id, due, "revision-negative-due")
+
+    assert observed.outcome is False
+    assert "replacement-at-source" in observed.reason
+    assert dict(observed.observed_value)["replacement_present"] is True
+    assert dict(observed.observed_value)["replacement_at_source"] is False
+
+    invalid = observed.to_dict()
+    invalid["operation_spec_digest"] = "changed-spec"
+    with pytest.raises(ValueError, match="identity mismatch"):
+        FdasReplacementChainOutcomeLabel.from_dict(invalid)
 
 
 def test_replacement_readout_recalls_grounded_chain_without_value_claim():

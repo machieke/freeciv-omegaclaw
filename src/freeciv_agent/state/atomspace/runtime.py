@@ -1096,6 +1096,44 @@ class FdasRuntime(object):
             component_id="fdas-coordinated-replacement-candidate-readout",
             component_version="1.0")
 
+    def emit_coordinated_replacement_chain_outcome(
+            self, writer, snapshot, label, transition, store_digest,
+            caused_by=()):
+        """Emit completion-indexed chain evidence without value authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS replacement outcome evidence is not revision-current")
+        if transition not in ("opened", "observed"):
+            raise ValueError("FDAS replacement outcome transition is invalid")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError("FDAS replacement outcome store digest is required")
+        details = label.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "policy_authority",
+                "readout_authority", "transition_value_estimated",
+                "truth_mutated")):
+            raise RuntimeError(
+                "FDAS replacement outcome label grants authority or value")
+        details.update({
+            "identity": "fdas-coordinated-replacement-chain-outcome/1.0",
+            "induction_readout": False,
+            "store_digest": store_digest,
+            "transition": transition,
+        })
+        return self.event_emitter.emit_component(
+            writer,
+            "operation_outcome_label_{}".format(transition),
+            snapshot.turn, revision, details,
+            caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-coordinated-replacement-chain-outcome",
+            component_version="1.0")
+
     def emit_decision_safe_candidate_filter(
             self, writer, snapshot, candidate_filter, caused_by=()):
         """Emit exact pre-union safety exclusions without action authority."""

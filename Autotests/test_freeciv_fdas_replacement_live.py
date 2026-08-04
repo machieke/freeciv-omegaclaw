@@ -1,5 +1,9 @@
 import json
+from dataclasses import replace
 
+from freeciv.harness.fdas_replacement_chain_outcome_live import (
+    audit_fdas_replacement_chain_outcome_live,
+)
 from freeciv.harness.fdas_replacement_live import audit_fdas_replacement_live
 from freeciv.harness.fdas_replacement_readout_live import (
     audit_fdas_replacement_readout_live,
@@ -12,6 +16,12 @@ from freeciv.harness.fdas_replacement_reproposal import (
 )
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
+from freeciv_agent.planning import (
+    FdasReplacementChainOutcomeLabeler,
+    FdasReplacementChainOutcomeStore,
+    OperationRecord,
+    REPLACEMENT_CHAIN_OUTCOME_TARGET,
+)
 
 
 def _write_json(path, value):
@@ -261,6 +271,131 @@ def _add_reproposal_hardening_evidence(tmp_path):
     _write_json(status_path, status)
 
 
+def _outcome_event(event_type, seq, event_id, snapshot_id, revision_id,
+                   label, transition, store_digest, caused_by):
+    details = label.to_dict()
+    details.update({
+        "identity": "fdas-coordinated-replacement-chain-outcome/1.0",
+        "induction_readout": False,
+        "store_digest": store_digest,
+        "transition": transition,
+    })
+    payload = {
+        "component_id": "fdas-coordinated-replacement-chain-outcome",
+        "component_version": "1.0",
+        "details": details,
+        "revision_id": revision_id,
+        "ruleset_digest": "ruleset-proof",
+        "snapshot_id": snapshot_id,
+    }
+    payload["structural_hash"] = structural_hash(payload)
+    return {
+        "caused_by": list(caused_by),
+        "event_id": event_id,
+        "game_id": "replacement-live-proof",
+        "payload": payload,
+        "schema_version": "1.0",
+        "seq": seq,
+        "ts": "2026-01-01T00:00:00Z",
+        "turn": label.completion_turn if transition == "opened" else 36,
+        "type": event_type,
+    }
+
+
+def _add_replacement_chain_outcome_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    declaration = manifest["dependent_atomspace"]["manifest"]
+    declaration["capabilities"][
+        "coordinated_replacement_chain_outcome"] = "shadow-live"
+    declaration["coordinated_replacement_chain_outcome_diagnostic"] = {
+        "action_selection_changed": False,
+        "completion_index_required": True,
+        "induction_readout": False,
+        "observation_window_turns": 32,
+        "policy_authority": False,
+        "readout_authority": False,
+        "target_id": REPLACEMENT_CHAIN_OUTCOME_TARGET,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+
+    operation_path = tmp_path / "fdas-coordinated-replacement-operations.json"
+    operation_store = json.loads(operation_path.read_text(encoding="utf-8"))
+    record_value = operation_store["records"][0]
+    record_value["progress"].update({
+        "current_step_index": 1,
+        "state": "completed",
+        "terminal_reason": "all-step-predicates-satisfied",
+    })
+    operation_semantic = dict(operation_store)
+    operation_semantic.pop("store_digest")
+    operation_store["store_digest"] = structural_hash(operation_semantic)
+    _write_json(operation_path, operation_store)
+    record = OperationRecord.from_dict(record_value)
+
+    replacement_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"],
+        "fdas-coordinated-replacement-operations/1.0",
+    ])
+    outcome_identity = structural_hash([
+        replacement_identity,
+        FdasReplacementChainOutcomeLabeler.LABELER_IDENTITY,
+        REPLACEMENT_CHAIN_OUTCOME_TARGET,
+    ])
+    outcome_store = FdasReplacementChainOutcomeStore(outcome_identity)
+    labeler = FdasReplacementChainOutcomeLabeler(outcome_store)
+    pending = labeler.open(record, manifest["game_id"], 1)
+    pending_digest = outcome_store.store_digest
+    observed = replace(
+        pending,
+        status="observed",
+        observed_turn=36,
+        observed_revision_id="revision-36",
+        outcome=True,
+        observed_value=(("replacement_at_source", True),),
+        reason="completed-replacement-chain-durable-at-due-turn",
+        provenance_ids=tuple(sorted(set(
+            pending.provenance_ids + (
+                "assessment-revision:revision-36",)))))
+    outcome_store.record(observed)
+    outcome_store.save(str(
+        tmp_path / "fdas-coordinated-replacement-outcome-labels.json"))
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    opened = _outcome_event(
+        "operation_outcome_label_opened", 2, "event-outcome-opened",
+        "snapshot-4", "revision-1", pending, "opened", pending_digest,
+        (events[1]["event_id"],))
+    observed_event = _outcome_event(
+        "operation_outcome_label_observed", 0, "event-outcome-observed",
+        "snapshot-36", "revision-36", observed, "observed",
+        outcome_store.store_digest, (opened["event_id"],))
+    events[-1]["seq"] = 1
+    events[-1]["turn"] = 36
+    events[-1]["caused_by"] = [observed_event["event_id"]]
+    counters = {
+        "fdas_replacement_chain_outcomes_negative": 0,
+        "fdas_replacement_chain_outcomes_observed": 1,
+        "fdas_replacement_chain_outcomes_opened": 1,
+        "fdas_replacement_chain_outcomes_pending": 0,
+        "fdas_replacement_chain_outcomes_positive": 1,
+    }
+    events[-1]["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(value, sort_keys=True) + "\n" for value in (
+            events[0], events[1], opened, observed_event, events[-1])),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def _activate_zero_opportunity_readout(tmp_path):
     manifest_path = tmp_path / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -365,6 +500,25 @@ def test_replacement_reproposal_audit_accepts_bounded_hardening(tmp_path):
         "operations": 1,
         "reproposal_cooldown_turns": 32,
         "reproposal_suppressions": 7,
+    }
+
+
+def test_replacement_chain_outcome_audit_accepts_exact_lifecycle(tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_replacement_chain_outcome_evidence(tmp_path)
+
+    report = audit_fdas_replacement_chain_outcome_live(
+        str(tmp_path), expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"] == {
+        "completed_operations": 1,
+        "labels": 1,
+        "negative": 0,
+        "observed": 1,
+        "pending": 0,
+        "positive": 1,
     }
 
 

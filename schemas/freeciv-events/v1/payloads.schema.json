@@ -1503,6 +1503,8 @@
     "episode_relief_attributed": {"$ref": "#/$defs/atomspaceEvent"},
     "episode_outcome_label_opened": {"$ref": "#/$defs/atomspaceEvent"},
     "episode_outcome_label_observed": {"$ref": "#/$defs/atomspaceEvent"},
+    "operation_outcome_label_opened": {"$ref": "#/$defs/atomspaceEvent"},
+    "operation_outcome_label_observed": {"$ref": "#/$defs/atomspaceEvent"},
     "conductance_sample_recorded": {"$ref": "#/$defs/atomspaceEvent"},
     "induced_rule_quarantined": {"$ref": "#/$defs/atomspaceEvent"},
     "induced_rule_promoted": {"$ref": "#/$defs/atomspaceEvent"},

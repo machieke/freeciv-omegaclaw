@@ -338,6 +338,44 @@ def test_coordinated_replacement_readout_event_has_zero_value_authority(
             writer, snapshot, stale)
 
 
+def test_coordinated_replacement_chain_outcome_events_have_zero_authority(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "completion_snapshot_id": snapshot.snapshot_id,
+        "operation_id": "replacement-operation",
+        "policy_authority": False,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    label = SimpleNamespace(to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "replacement-outcome-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    opened = runtime.emit_coordinated_replacement_chain_outcome(
+        writer, snapshot, label, "opened", "pending-store-digest")
+    observed = runtime.emit_coordinated_replacement_chain_outcome(
+        writer, snapshot, label, "observed", "observed-store-digest",
+        caused_by=(opened["event_id"],))
+
+    assert opened["type"] == "operation_outcome_label_opened"
+    assert observed["type"] == "operation_outcome_label_observed"
+    assert opened["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-chain-outcome")
+    assert opened["payload"]["details"]["induction_readout"] is False
+    assert opened["payload"]["details"][
+        "transition_value_estimated"] is False
+    assert validate_file(path).valid
+
+    with pytest.raises(ValueError, match="transition"):
+        runtime.emit_coordinated_replacement_chain_outcome(
+            writer, snapshot, label, "invalid", "store-digest")
+
+
 def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

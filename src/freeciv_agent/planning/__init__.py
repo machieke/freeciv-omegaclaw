@@ -292,6 +292,13 @@ from .fdas_observation import (
     FdasObservationReturnAbstention,
 )
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
+from .fdas_replacement_outcomes import (
+    REPLACEMENT_CHAIN_OUTCOME_SCHEMA_VERSION,
+    REPLACEMENT_CHAIN_OUTCOME_TARGET,
+    FdasReplacementChainOutcomeLabel,
+    FdasReplacementChainOutcomeLabeler,
+    FdasReplacementChainOutcomeStore,
+)
 from .fdas_replacement_readout import (
     COORDINATED_REPLACEMENT_READOUT_IDENTITY,
     FdasCoordinatedReplacementPair,
@@ -494,6 +501,11 @@ __all__ = [
     "FdasObservationExecutionBridge",
     "FdasObservationReturnAbstention",
     "FdasCoordinatedReplacementAdapter",
+    "REPLACEMENT_CHAIN_OUTCOME_SCHEMA_VERSION",
+    "REPLACEMENT_CHAIN_OUTCOME_TARGET",
+    "FdasReplacementChainOutcomeLabel",
+    "FdasReplacementChainOutcomeLabeler",
+    "FdasReplacementChainOutcomeStore",
     "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
     "FdasCoordinatedReplacementPair",
     "FdasCoordinatedReplacementReadout",
