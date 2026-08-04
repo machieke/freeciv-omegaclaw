@@ -1142,3 +1142,17 @@ fixed denominator. The cohort also exposed terminal-lifecycle churn: seed
 and emitted 508,032 events. PR80 must harden terminal-chain reproposal before
 chain-value work proceeds. See
 `fdas-pr79-coordinated-replacement-readout-fresh-cohort.md` and its JSON report.
+
+PR80 closes the terminal-chain amplification exposed by PR79. A persisted
+32-turn cooldown now blocks immediate reproposal of the same logical actor,
+source, and target tuple after any terminal observation, while retaining every
+terminal record and allowing exact boundary release. Focused restart and key
+isolation tests pass, as do all 115 harness tests. On clean commit `46cb9d1`,
+the known pathological seed `109633` completed 160 turns with zero rejected
+actions. It recorded 709 suppressions, 61 durable operations instead of 208,
+and 143,885 events instead of 508,032; 228 grounded pairs remained observable.
+All eight audit gates pass with deterministic hash
+`7a26ed8d5140d7b290138c771f87254fc7ad8896df367c6e912f59a55c88f204`.
+The next gate is a chain-completion-specific outcome target, not further flow
+retuning. See `fdas-pr80-replacement-terminal-reproposal-hardening.md` and its
+JSON report.

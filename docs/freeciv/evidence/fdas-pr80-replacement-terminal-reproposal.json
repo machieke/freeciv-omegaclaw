@@ -1,0 +1,38 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_persisted_operations_have_logical_keys": true,
+      "cooldown_is_frozen_in_status_and_terminal_evidence": true,
+      "durable_operation_count_is_bounded": true,
+      "event_ledger_count_is_bounded_and_exact": true,
+      "grounded_recall_remains_observable": true,
+      "parent_lifecycle_and_readout_audit_passes": true,
+      "source_is_clean_and_expected_commit": true,
+      "terminal_reproposals_are_observably_suppressed": true
+    }
+  },
+  "claim_scope": "bounded terminal-chain reproposal and evidence amplification on one known pathological seed only; no gameplay performance, transition value, preference, score, or win-rate claim",
+  "limits": {
+    "expected_cooldown_turns": 32,
+    "maximum_events": 300000,
+    "maximum_operations": 80
+  },
+  "parent_audit_hash": "41d79a2548e156ea15badb6d6f9653010b240cf3e59d9be979c31f011f360d76",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "46cb9d1221158969dafeb63888ff5e7a535cc3a2",
+    "dirty": false,
+    "implementation_sha256": "958a8e83ec6e2f19fd92b38d047ee862c2b6e66aa38f1b8292088b9156953c44",
+    "source_files": 297
+  },
+  "structural_hash": "7a26ed8d5140d7b290138c771f87254fc7ad8896df367c6e912f59a55c88f204",
+  "summary": {
+    "event_count": 143885,
+    "grounded_pairs": 228,
+    "logical_key_count": 55,
+    "operations": 61,
+    "reproposal_cooldown_turns": 32,
+    "reproposal_suppressions": 709
+  }
+}
