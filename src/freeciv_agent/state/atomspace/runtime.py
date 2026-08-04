@@ -1161,6 +1161,43 @@ class FdasRuntime(object):
             component_id="fdas-coordinated-replacement-chain-outcome",
             component_version="1.0")
 
+    def emit_retained_capacity_outcome(
+            self, writer, snapshot, label, transition, store_digest,
+            caused_by=()):
+        """Emit delayed retained-capacity evidence without value authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS retained capacity outcome is not revision-current")
+        if transition not in ("opened", "product_observed", "observed"):
+            raise ValueError("FDAS retained capacity transition is invalid")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError("FDAS retained capacity store digest is required")
+        details = label.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "induction_readout",
+                "policy_authority", "readout_authority",
+                "transition_value_estimated", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS retained capacity outcome grants authority or value")
+        details.update({
+            "identity": "fdas-retained-capacity-outcome/1.0",
+            "store_digest": store_digest,
+            "transition": transition,
+        })
+        return self.event_emitter.emit_component(
+            writer,
+            "operation_outcome_label_{}".format(transition),
+            snapshot.turn, revision, details,
+            caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-retained-capacity-outcome",
+            component_version="1.0")
+
     def emit_coordinated_replacement_execution(
             self, writer, snapshot, value, transition, store_digest,
             caused_by=()):
@@ -1616,6 +1653,35 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         ):
             raise FdasRuntimeConfigurationError(
                 "replacement capacity retained queue lifecycle declaration "
+                "differs")
+    retained_capacity_outcome_capability = manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_outcome")
+    retained_capacity_outcome_diagnostic = manifest.get(
+        "replacement_capacity_retained_queue_outcome_diagnostic")
+    retained_capacity_outcome_enabled = bool(
+        retained_capacity_outcome_capability is not None
+        or retained_capacity_outcome_diagnostic is not None)
+    if retained_capacity_outcome_enabled:
+        expected_retained_capacity_outcome = {
+            "action_selection_changed": False,
+            "deficit_authority": "current-dependent-revision",
+            "induction_readout": False,
+            "observation_window_turns": 32,
+            "policy_authority": False,
+            "product_identity_required": True,
+            "readout_authority": False,
+            "terminal_failure_semantics": "immediate-no-progress",
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_queue_lifecycle_enabled
+                or retained_capacity_outcome_capability != "shadow-live"
+                or retained_capacity_outcome_diagnostic
+                != expected_retained_capacity_outcome
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity retained queue outcome declaration "
                 "differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:

@@ -587,6 +587,45 @@ def test_coordinated_replacement_chain_outcome_events_have_zero_authority(
             writer, snapshot, label, "invalid", "store-digest")
 
 
+def test_retained_capacity_outcome_events_have_zero_authority(tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "induction_readout": False,
+        "operation_id": "retained-capacity-operation",
+        "policy_authority": False,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    label = SimpleNamespace(to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "capacity-outcome-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    opened = runtime.emit_retained_capacity_outcome(
+        writer, snapshot, label, "opened", "opened-store-digest")
+    product = runtime.emit_retained_capacity_outcome(
+        writer, snapshot, label, "product_observed", "product-store-digest",
+        caused_by=(opened["event_id"],))
+    observed = runtime.emit_retained_capacity_outcome(
+        writer, snapshot, label, "observed", "observed-store-digest",
+        caused_by=(product["event_id"],))
+
+    assert opened["type"] == "operation_outcome_label_opened"
+    assert product["type"] == "operation_outcome_label_product_observed"
+    assert observed["type"] == "operation_outcome_label_observed"
+    assert opened["payload"]["component_id"] == (
+        "fdas-retained-capacity-outcome")
+    assert opened["payload"]["details"]["induction_readout"] is False
+    assert validate_file(path).valid
+
+    with pytest.raises(ValueError, match="transition"):
+        runtime.emit_retained_capacity_outcome(
+            writer, snapshot, label, "invalid", "store-digest")
+
+
 def test_coordinated_replacement_execution_event_is_pilot_bounded(tmp_path):
     runtime = build_runtime(_enabled_city_declaration())
     snapshot = _snapshot()

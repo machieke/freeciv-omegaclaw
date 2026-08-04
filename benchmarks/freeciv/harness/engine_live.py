@@ -82,6 +82,8 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     FdasCoordinatedReplacementReadoutEvaluator,
                                     FdasReplacementChainOutcomeLabeler,
                                     FdasReplacementChainOutcomeStore,
+                                    FdasRetainedCapacityOutcomeLabeler,
+                                    FdasRetainedCapacityOutcomeStore,
                                     FdasReplacementExecutionStore,
                                     FdasReplacementIntentionStore,
                                     FdasReplacementIntentionTracker,
@@ -95,6 +97,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     REPLACEMENT_INTENTION_SELECTION_POLICY,
                                     REPLACEMENT_INTENTION_TREATMENT_ID,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
+                                    RETAINED_CAPACITY_OUTCOME_TARGET,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2900,6 +2903,57 @@ async def _play(run_dir, manifest, context):
         ):
             raise RuntimeError(
                 "FDAS replacement capacity retained queue lifecycle differs")
+    retained_capacity_outcome_capability = fdas_manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_outcome")
+    retained_capacity_outcome_diagnostic = fdas_manifest.get(
+        "replacement_capacity_retained_queue_outcome_diagnostic")
+    retained_capacity_outcome_enabled = bool(
+        retained_capacity_outcome_capability is not None
+        or retained_capacity_outcome_diagnostic is not None)
+    retained_capacity_outcome_path = os.path.join(
+        run_dir, "fdas-retained-capacity-outcome-labels.json")
+    retained_capacity_outcome_store = None
+    retained_capacity_outcome_labeler = None
+    if retained_capacity_outcome_enabled:
+        expected_retained_capacity_outcome = {
+            "action_selection_changed": False,
+            "deficit_authority": "current-dependent-revision",
+            "induction_readout": False,
+            "observation_window_turns": 32,
+            "policy_authority": False,
+            "product_identity_required": True,
+            "readout_authority": False,
+            "terminal_failure_semantics": "immediate-no-progress",
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_queue_lifecycle_enabled
+                or retained_capacity_outcome_capability != "shadow-live"
+                or retained_capacity_outcome_diagnostic
+                != expected_retained_capacity_outcome
+        ):
+            raise RuntimeError(
+                "FDAS retained capacity outcome contract differs")
+        retained_capacity_outcome_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"],
+            FdasRetainedCapacityOutcomeLabeler.LABELER_IDENTITY,
+            RETAINED_CAPACITY_OUTCOME_TARGET,
+        ])
+        retained_capacity_outcome_store = (
+            FdasRetainedCapacityOutcomeStore.load(
+                retained_capacity_outcome_path,
+                retained_capacity_outcome_identity))
+        if retained_capacity_outcome_store.quarantined:
+            raise RuntimeError(
+                "FDAS retained capacity outcome store is quarantined: {}"
+                .format(retained_capacity_outcome_store.quarantine_reason))
+        retained_capacity_outcome_labeler = (
+            FdasRetainedCapacityOutcomeLabeler(
+                retained_capacity_outcome_store))
+        retained_capacity_outcome_store.save(
+            retained_capacity_outcome_path)
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4639,6 +4693,39 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_retained_queue_lifecycle_queue_observations": 0,
         "fdas_replacement_retained_queue_lifecycle_product_observations": 0,
         "fdas_replacement_retained_queue_lifecycle_terminal_failures": 0,
+        "fdas_retained_capacity_outcomes_opened": (
+            len(retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_pending_product": (
+            sum(value.status == "pending_product"
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_products_observed": (
+            sum(value.product_ref is not None
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_pending_relief": (
+            sum(value.status == "pending_relief"
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_terminal_no_progress": (
+            sum(value.outcome_kind == "terminal-no-progress"
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_relief_observed": (
+            sum(value.outcome_kind == "durable-capacity-relief"
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_relief_positive": (
+            sum(value.outcome_kind == "durable-capacity-relief"
+                and value.outcome is True
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_outcomes_relief_negative": (
+            sum(value.outcome_kind == "durable-capacity-relief"
+                and value.outcome is False
+                for value in retained_capacity_outcome_store.labels())
+            if retained_capacity_outcome_store is not None else 0),
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -4746,6 +4833,115 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_replacement_retained_queue_lifecycle_terminal_"
                     "failures"] += 1
+
+    def open_retained_capacity_outcomes(current, events, cause):
+        """Open one outcome label only for a newly registered observer."""
+        if retained_capacity_outcome_labeler is None:
+            return cause
+        revision = fdas_store.current_dependent_revision(
+            manifest["game_id"], player_id)
+        if revision is None or revision.snapshot_id != current.snapshot_id:
+            if not events:
+                return cause
+            raise RuntimeError(
+                "FDAS retained capacity outcome lacks current revision")
+        for event in events:
+            if event.get("type") != "operation_proposed":
+                continue
+            operation_id = event.get("payload", {}).get("operation_id")
+            prior = retained_capacity_outcome_store.for_operation(operation_id)
+            label = retained_capacity_outcome_labeler.open(
+                event, revision, manifest["game_id"], player_id)
+            if prior is not None:
+                continue
+            retained_capacity_outcome_store.save(
+                retained_capacity_outcome_path)
+            emitted = fdas_runtime.emit_retained_capacity_outcome(
+                writer, current, label, "opened",
+                retained_capacity_outcome_store.store_digest,
+                caused_by=(event["event_id"],))
+            if emitted is not None:
+                cause = emitted["event_id"]
+            decision_stats["fdas_retained_capacity_outcomes_opened"] += 1
+            decision_stats[
+                "fdas_retained_capacity_outcomes_pending_product"] += 1
+        return cause
+
+    def reconcile_retained_capacity_outcomes(current, events, cause):
+        """Record terminal queue evidence and due durable relief exactly once."""
+        if retained_capacity_outcome_labeler is None:
+            return cause
+        revision = fdas_store.current_dependent_revision(
+            manifest["game_id"], player_id)
+        if revision is None or revision.snapshot_id != current.snapshot_id:
+            if not events:
+                return cause
+            raise RuntimeError(
+                "FDAS retained capacity outcome lacks current revision")
+        terminal_types = frozenset((
+            "operation_completed", "operation_abandoned",
+            "operation_expired", "operation_failed"))
+        for event in events:
+            if event.get("type") not in terminal_types:
+                continue
+            operation_id = event.get("payload", {}).get("operation_id")
+            prior = retained_capacity_outcome_store.for_operation(operation_id)
+            if prior is None:
+                raise RuntimeError(
+                    "FDAS retained capacity terminal event lacks label")
+            observed = (
+                retained_capacity_outcome_labeler.observe_lifecycle_event(
+                    event, current, revision.revision_id))
+            if observed == prior:
+                continue
+            retained_capacity_outcome_store.save(
+                retained_capacity_outcome_path)
+            transition = (
+                "product_observed" if observed.status == "pending_relief"
+                else "observed")
+            emitted = fdas_runtime.emit_retained_capacity_outcome(
+                writer, current, observed, transition,
+                retained_capacity_outcome_store.store_digest,
+                caused_by=(event["event_id"],))
+            if emitted is not None:
+                cause = emitted["event_id"]
+            decision_stats[
+                "fdas_retained_capacity_outcomes_pending_product"] -= 1
+            if observed.status == "pending_relief":
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_products_observed"] += 1
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_pending_relief"] += 1
+            else:
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_terminal_no_progress"] += 1
+        for prior in tuple(
+                value for value in retained_capacity_outcome_store.labels()
+                if value.status == "pending_relief"
+                and current.turn >= value.due_turn):
+            observed = retained_capacity_outcome_labeler.observe_due_relief(
+                prior.label_id, current, revision)
+            if observed == prior:
+                continue
+            retained_capacity_outcome_store.save(
+                retained_capacity_outcome_path)
+            emitted = fdas_runtime.emit_retained_capacity_outcome(
+                writer, current, observed, "observed",
+                retained_capacity_outcome_store.store_digest,
+                caused_by=(cause,))
+            if emitted is not None:
+                cause = emitted["event_id"]
+            decision_stats[
+                "fdas_retained_capacity_outcomes_pending_relief"] -= 1
+            decision_stats[
+                "fdas_retained_capacity_outcomes_relief_observed"] += 1
+            decision_stats[
+                "fdas_retained_capacity_outcomes_relief_positive"] += int(
+                    observed.outcome is True)
+            decision_stats[
+                "fdas_retained_capacity_outcomes_relief_negative"] += int(
+                    observed.outcome is False)
+        return cause
 
     def advance_fdas_beliefs(current, cause):
         if not fdas_belief_shadow:
@@ -6065,6 +6261,9 @@ async def _play(run_dir, manifest, context):
                 retained_queue_parent = (
                     retained_queue_events[-1]["event_id"]
                     if retained_queue_events else capacity_lifecycle_parent)
+                retained_queue_parent = reconcile_retained_capacity_outcomes(
+                    next_snapshot, retained_queue_events,
+                    retained_queue_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
@@ -6210,6 +6409,9 @@ async def _play(run_dir, manifest, context):
                 retained_queue_parent = (
                     retained_queue_events[-1]["event_id"]
                     if retained_queue_events else capacity_lifecycle_parent)
+                retained_queue_parent = reconcile_retained_capacity_outcomes(
+                    snapshot, retained_queue_events,
+                    retained_queue_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
@@ -6652,6 +6854,8 @@ async def _play(run_dir, manifest, context):
                                 cold_verified=(
                                     fdas_update.cold_verification is not None),
                                 scopes=fdas_update.scope_count)
+                    parent = reconcile_retained_capacity_outcomes(
+                        snapshot, (), parent)
                     fdas_shadow = (
                         fdas_runtime.evaluate_shadow(
                             snapshot,
@@ -7028,6 +7232,9 @@ async def _play(run_dir, manifest, context):
                                 if retained_queue_events:
                                     parent = retained_queue_events[
                                         -1]["event_id"]
+                                    parent = open_retained_capacity_outcomes(
+                                        snapshot, retained_queue_events,
+                                        parent)
                             elif retained_queue_matches:
                                 decision_stats[
                                     "fdas_replacement_retained_queue_"
@@ -9683,6 +9890,23 @@ async def _play(run_dir, manifest, context):
         ("fdas_replacement_retained_queue_lifecycle_terminal_failures",
          decision_stats[
              "fdas_replacement_retained_queue_lifecycle_terminal_failures"]),
+        ("fdas_retained_capacity_outcomes_opened",
+         decision_stats["fdas_retained_capacity_outcomes_opened"]),
+        ("fdas_retained_capacity_outcomes_pending_product",
+         decision_stats["fdas_retained_capacity_outcomes_pending_product"]),
+        ("fdas_retained_capacity_outcomes_products_observed",
+         decision_stats["fdas_retained_capacity_outcomes_products_observed"]),
+        ("fdas_retained_capacity_outcomes_pending_relief",
+         decision_stats["fdas_retained_capacity_outcomes_pending_relief"]),
+        ("fdas_retained_capacity_outcomes_terminal_no_progress",
+         decision_stats[
+             "fdas_retained_capacity_outcomes_terminal_no_progress"]),
+        ("fdas_retained_capacity_outcomes_relief_observed",
+         decision_stats["fdas_retained_capacity_outcomes_relief_observed"]),
+        ("fdas_retained_capacity_outcomes_relief_positive",
+         decision_stats["fdas_retained_capacity_outcomes_relief_positive"]),
+        ("fdas_retained_capacity_outcomes_relief_negative",
+         decision_stats["fdas_retained_capacity_outcomes_relief_negative"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10510,6 +10734,23 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_replacement_retained_queue_lifecycle_terminal_"
                     "failures"]),
+            "fdas_retained_capacity_outcomes_opened": decision_stats[
+                "fdas_retained_capacity_outcomes_opened"],
+            "fdas_retained_capacity_outcomes_pending_product": decision_stats[
+                "fdas_retained_capacity_outcomes_pending_product"],
+            "fdas_retained_capacity_outcomes_products_observed": decision_stats[
+                "fdas_retained_capacity_outcomes_products_observed"],
+            "fdas_retained_capacity_outcomes_pending_relief": decision_stats[
+                "fdas_retained_capacity_outcomes_pending_relief"],
+            "fdas_retained_capacity_outcomes_terminal_no_progress": (
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_terminal_no_progress"]),
+            "fdas_retained_capacity_outcomes_relief_observed": decision_stats[
+                "fdas_retained_capacity_outcomes_relief_observed"],
+            "fdas_retained_capacity_outcomes_relief_positive": decision_stats[
+                "fdas_retained_capacity_outcomes_relief_positive"],
+            "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
+                "fdas_retained_capacity_outcomes_relief_negative"],
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -11192,6 +11433,23 @@ async def _play(run_dir, manifest, context):
             decision_stats[
                 "fdas_replacement_retained_queue_lifecycle_terminal_"
                 "failures"]),
+        "fdas_retained_capacity_outcomes_opened": decision_stats[
+            "fdas_retained_capacity_outcomes_opened"],
+        "fdas_retained_capacity_outcomes_pending_product": decision_stats[
+            "fdas_retained_capacity_outcomes_pending_product"],
+        "fdas_retained_capacity_outcomes_products_observed": decision_stats[
+            "fdas_retained_capacity_outcomes_products_observed"],
+        "fdas_retained_capacity_outcomes_pending_relief": decision_stats[
+            "fdas_retained_capacity_outcomes_pending_relief"],
+        "fdas_retained_capacity_outcomes_terminal_no_progress": (
+            decision_stats[
+                "fdas_retained_capacity_outcomes_terminal_no_progress"]),
+        "fdas_retained_capacity_outcomes_relief_observed": decision_stats[
+            "fdas_retained_capacity_outcomes_relief_observed"],
+        "fdas_retained_capacity_outcomes_relief_positive": decision_stats[
+            "fdas_retained_capacity_outcomes_relief_positive"],
+        "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
+            "fdas_retained_capacity_outcomes_relief_negative"],
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

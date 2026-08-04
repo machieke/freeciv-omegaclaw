@@ -445,6 +445,46 @@ def test_replacement_capacity_retained_queue_lifecycle_is_additive():
     }
 
 
+def test_replacement_capacity_retained_queue_outcome_is_additive():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_capacity_retained_queue_"
+            "outcome_shadow.json"), encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_capacity_retained_queue_"
+            "lifecycle_shadow.json"), encoding="utf-8") as stream:
+        parent = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    additive = copy.deepcopy(manifest)
+    assert additive["capabilities"].pop(
+        "replacement_capacity_retained_queue_outcome") == "shadow-live"
+    diagnostic = additive.pop(
+        "replacement_capacity_retained_queue_outcome_diagnostic")
+
+    assert config.enabled is True
+    assert additive == parent
+    assert diagnostic == {
+        "action_selection_changed": False,
+        "deficit_authority": "current-dependent-revision",
+        "induction_readout": False,
+        "observation_window_turns": 32,
+        "policy_authority": False,
+        "product_identity_required": True,
+        "readout_authority": False,
+        "terminal_failure_semantics": "immediate-no-progress",
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+
+
 def test_scalar_baseline_readout_profile_has_distinct_control_semantics():
     with open(os.path.join(
             REPO, "profile",
