@@ -299,6 +299,13 @@ from .fdas_replacement_outcomes import (
     FdasReplacementChainOutcomeLabeler,
     FdasReplacementChainOutcomeStore,
 )
+from .fdas_capacity_outcomes import (
+    RETAINED_CAPACITY_OUTCOME_SCHEMA_VERSION,
+    RETAINED_CAPACITY_OUTCOME_TARGET,
+    FdasRetainedCapacityOutcomeLabel,
+    FdasRetainedCapacityOutcomeLabeler,
+    FdasRetainedCapacityOutcomeStore,
+)
 from .fdas_replacement_execution import (
     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
     REPLACEMENT_EXECUTION_SCHEMA_VERSION,
@@ -536,6 +543,11 @@ __all__ = [
     "FdasReplacementChainOutcomeLabel",
     "FdasReplacementChainOutcomeLabeler",
     "FdasReplacementChainOutcomeStore",
+    "RETAINED_CAPACITY_OUTCOME_SCHEMA_VERSION",
+    "RETAINED_CAPACITY_OUTCOME_TARGET",
+    "FdasRetainedCapacityOutcomeLabel",
+    "FdasRetainedCapacityOutcomeLabeler",
+    "FdasRetainedCapacityOutcomeStore",
     "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
     "FdasCoordinatedReplacementPair",
     "FdasCoordinatedReplacementReadout",
