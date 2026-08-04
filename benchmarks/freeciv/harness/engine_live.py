@@ -2872,6 +2872,34 @@ async def _play(run_dir, manifest, context):
         ):
             raise RuntimeError(
                 "FDAS replacement capacity production lifecycle differs")
+    retained_queue_lifecycle_capability = fdas_manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_lifecycle")
+    retained_queue_lifecycle_diagnostic = fdas_manifest.get(
+        "replacement_capacity_retained_queue_lifecycle_diagnostic")
+    retained_queue_lifecycle_enabled = bool(
+        retained_queue_lifecycle_capability is not None
+        or retained_queue_lifecycle_diagnostic is not None)
+    if retained_queue_lifecycle_enabled:
+        expected_retained_queue_lifecycle = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "match_semantics": (
+                "pressure-selected-grounded-candidate-matches-current-"
+                "authoritative-queue"),
+            "no_queue_action_submitted": True,
+            "observation_authority": "later-authoritative-snapshot",
+            "policy_authority": False,
+            "single_pressure_selected_operation_required": True,
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_production_operation_enabled
+                or retained_queue_lifecycle_capability != "shadow-live"
+                or retained_queue_lifecycle_diagnostic
+                != expected_retained_queue_lifecycle
+        ):
+            raise RuntimeError(
+                "FDAS replacement capacity retained queue lifecycle differs")
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4603,6 +4631,14 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_lifecycle_queue_observations": 0,
         "fdas_replacement_capacity_lifecycle_product_observations": 0,
         "fdas_replacement_capacity_lifecycle_terminal_failures": 0,
+        "fdas_replacement_retained_queue_lifecycle_evaluations": 0,
+        "fdas_replacement_retained_queue_lifecycle_selected_matches": 0,
+        "fdas_replacement_retained_queue_lifecycle_no_matches": 0,
+        "fdas_replacement_retained_queue_lifecycle_ambiguous_matches": 0,
+        "fdas_replacement_retained_queue_lifecycle_operations_registered": 0,
+        "fdas_replacement_retained_queue_lifecycle_queue_observations": 0,
+        "fdas_replacement_retained_queue_lifecycle_product_observations": 0,
+        "fdas_replacement_retained_queue_lifecycle_terminal_failures": 0,
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -4680,6 +4716,36 @@ async def _play(run_dir, manifest, context):
                 decision_stats[
                     "fdas_replacement_capacity_lifecycle_terminal_failures"
                 ] += 1
+
+    def record_replacement_retained_queue_lifecycle_events(events):
+        """Reconcile retained-current-queue lifecycle event counters."""
+        for event in events:
+            payload = event.get("payload", {})
+            if payload.get("mechanism") != (
+                    "fdas-replacement-capacity-retained-queue-lifecycle"):
+                continue
+            event_type = event.get("type")
+            if event_type == "operation_proposed":
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_operations_"
+                    "registered"] += 1
+            elif (
+                    event_type == "operation_step_revalidated"
+                    and payload.get("reason_code") ==
+                    "queue-was-already-selected"):
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_queue_"
+                    "observations"] += 1
+            elif event_type == "operation_completed":
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_product_"
+                    "observations"] += 1
+            elif event_type in (
+                    "operation_failed", "operation_abandoned",
+                    "operation_expired"):
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_terminal_"
+                    "failures"] += 1
 
     def advance_fdas_beliefs(current, cause):
         if not fdas_belief_shadow:
@@ -5980,9 +6046,12 @@ async def _play(run_dir, manifest, context):
                     .resolve_replacement_capacity_production_operations(
                         writer, next_snapshot,
                         caused_by=(enabling_parent,))
-                    if replacement_capacity_production_lifecycle_enabled
+                    if (replacement_capacity_production_lifecycle_enabled
+                        or retained_queue_lifecycle_enabled)
                     else ())
                 record_replacement_capacity_lifecycle_events(
+                    capacity_lifecycle_events)
+                record_replacement_retained_queue_lifecycle_events(
                     capacity_lifecycle_events)
                 capacity_lifecycle_parent = (
                     capacity_lifecycle_events[-1]["event_id"]
@@ -6113,9 +6182,12 @@ async def _play(run_dir, manifest, context):
                     .resolve_replacement_capacity_production_operations(
                         writer, snapshot,
                         caused_by=(enabling_parent,))
-                    if replacement_capacity_production_lifecycle_enabled
+                    if (replacement_capacity_production_lifecycle_enabled
+                        or retained_queue_lifecycle_enabled)
                     else ())
                 record_replacement_capacity_lifecycle_events(
+                    capacity_lifecycle_events)
+                record_replacement_retained_queue_lifecycle_events(
                     capacity_lifecycle_events)
                 capacity_lifecycle_parent = (
                     capacity_lifecycle_events[-1]["event_id"]
@@ -6910,6 +6982,42 @@ async def _play(run_dir, manifest, context):
                                 fdas_shadow.candidate_instantiation
                                 .omitted_unprotected_count),
                             status=fdas_shadow.pressure.status)
+                        if retained_queue_lifecycle_enabled:
+                            decision_stats[
+                                "fdas_replacement_retained_queue_lifecycle_"
+                                "evaluations"] += 1
+                            selected_capacity_operation_id = (
+                                fdas_shadow.pressure.schedule.get(
+                                    "selected_operation_id"))
+                            retained_queue_matches = (
+                                control_event_emitter
+                                .replacement_capacity_retained_queue_matches(
+                                    fdas_shadow.candidates,
+                                    selected_capacity_operation_id))
+                            if len(retained_queue_matches) == 1:
+                                decision_stats[
+                                    "fdas_replacement_retained_queue_"
+                                    "lifecycle_selected_matches"] += 1
+                                retained_queue_events = (
+                                    control_event_emitter
+                                    .prepare_replacement_capacity_retained_queue_operation(
+                                        writer, snapshot,
+                                        retained_queue_matches[0],
+                                        selected_capacity_operation_id,
+                                        caused_by=(parent,)))
+                                record_replacement_retained_queue_lifecycle_events(
+                                    retained_queue_events)
+                                if retained_queue_events:
+                                    parent = retained_queue_events[
+                                        -1]["event_id"]
+                            elif retained_queue_matches:
+                                decision_stats[
+                                    "fdas_replacement_retained_queue_"
+                                    "lifecycle_ambiguous_matches"] += 1
+                            else:
+                                decision_stats[
+                                    "fdas_replacement_retained_queue_"
+                                    "lifecycle_no_matches"] += 1
                         if (fdas_candidate_impact_shadow is not None
                                 or fdas_defense_choice_surface):
                             typed_scores = (
@@ -9533,6 +9641,30 @@ async def _play(run_dir, manifest, context):
         ("fdas_replacement_capacity_lifecycle_terminal_failures",
          decision_stats[
              "fdas_replacement_capacity_lifecycle_terminal_failures"]),
+        ("fdas_replacement_retained_queue_lifecycle_evaluations",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_evaluations"]),
+        ("fdas_replacement_retained_queue_lifecycle_selected_matches",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_selected_matches"]),
+        ("fdas_replacement_retained_queue_lifecycle_no_matches",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_no_matches"]),
+        ("fdas_replacement_retained_queue_lifecycle_ambiguous_matches",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_ambiguous_matches"]),
+        ("fdas_replacement_retained_queue_lifecycle_operations_registered",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_operations_registered"]),
+        ("fdas_replacement_retained_queue_lifecycle_queue_observations",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_queue_observations"]),
+        ("fdas_replacement_retained_queue_lifecycle_product_observations",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_product_observations"]),
+        ("fdas_replacement_retained_queue_lifecycle_terminal_failures",
+         decision_stats[
+             "fdas_replacement_retained_queue_lifecycle_terminal_failures"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10330,6 +10462,36 @@ async def _play(run_dir, manifest, context):
             "fdas_replacement_capacity_lifecycle_terminal_failures": (
                 decision_stats[
                     "fdas_replacement_capacity_lifecycle_terminal_failures"]),
+            "fdas_replacement_retained_queue_lifecycle_evaluations": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_evaluations"]),
+            "fdas_replacement_retained_queue_lifecycle_selected_matches": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_"
+                    "selected_matches"]),
+            "fdas_replacement_retained_queue_lifecycle_no_matches": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_no_matches"]),
+            "fdas_replacement_retained_queue_lifecycle_ambiguous_matches": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_"
+                    "ambiguous_matches"]),
+            "fdas_replacement_retained_queue_lifecycle_operations_registered": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_operations_"
+                    "registered"]),
+            "fdas_replacement_retained_queue_lifecycle_queue_observations": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_queue_"
+                    "observations"]),
+            "fdas_replacement_retained_queue_lifecycle_product_observations": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_product_"
+                    "observations"]),
+            "fdas_replacement_retained_queue_lifecycle_terminal_failures": (
+                decision_stats[
+                    "fdas_replacement_retained_queue_lifecycle_terminal_"
+                    "failures"]),
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -10984,6 +11146,34 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_lifecycle_terminal_failures": (
             decision_stats[
                 "fdas_replacement_capacity_lifecycle_terminal_failures"]),
+        "fdas_replacement_retained_queue_lifecycle_evaluations": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_evaluations"]),
+        "fdas_replacement_retained_queue_lifecycle_selected_matches": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_selected_matches"]),
+        "fdas_replacement_retained_queue_lifecycle_no_matches": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_no_matches"]),
+        "fdas_replacement_retained_queue_lifecycle_ambiguous_matches": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_ambiguous_matches"]),
+        "fdas_replacement_retained_queue_lifecycle_operations_registered": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_operations_"
+                "registered"]),
+        "fdas_replacement_retained_queue_lifecycle_queue_observations": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_queue_"
+                "observations"]),
+        "fdas_replacement_retained_queue_lifecycle_product_observations": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_product_"
+                "observations"]),
+        "fdas_replacement_retained_queue_lifecycle_terminal_failures": (
+            decision_stats[
+                "fdas_replacement_retained_queue_lifecycle_terminal_"
+                "failures"]),
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

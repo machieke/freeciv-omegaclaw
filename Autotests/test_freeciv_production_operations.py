@@ -710,6 +710,69 @@ def test_capacity_production_lifecycle_match_preserves_ambiguity():
         (matching,), "other-action") == ()
 
 
+def test_capacity_retained_queue_lifecycle_needs_pf_selected_operation():
+    intent = _intent(
+        emergency=False,
+        operation_type=(
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+    before = _snapshot(
+        intent, current_kind=6, current_value=10)
+    assembly = _assembly(before, intent)
+    candidate = SimpleNamespace(
+        action=intent.action(),
+        action_key=canonical_json_bytes(intent.action()).decode("utf-8"),
+        authority_eligible=False,
+        blockers=("delayed-production-completion-unobserved",),
+        candidate_hash="retained-capacity-candidate-hash",
+        operation=assembly.spec,
+        production_assembly=assembly)
+
+    assert assembly.initial_step_index == 1
+    assert ControlEventEmitter.replacement_capacity_retained_queue_matches(
+        (candidate,), assembly.spec.operation_id) == (candidate,)
+    assert ControlEventEmitter.replacement_capacity_retained_queue_matches(
+        (candidate,), "other-operation") == ()
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(
+            path, "capacity-retained-queue-lifecycle", durable=False)
+        emitter = ControlEventEmitter()
+        wrong = emitter.prepare_replacement_capacity_retained_queue_operation(
+            writer, before, candidate, "other-operation")
+        prepared = (
+            emitter.prepare_replacement_capacity_retained_queue_operation(
+                writer, before, candidate, assembly.spec.operation_id))
+        completed_snapshot = _snapshot(
+            intent, turn=80, current_kind=6, current_value=10,
+            units=(_unit(902, "Riflemen"),), advertise=False,
+            snapshot_suffix="retained-completed")
+        completed = (
+            emitter.resolve_replacement_capacity_production_operations(
+                writer, completed_snapshot,
+                caused_by=(prepared[-1]["event_id"],)))
+        writer.sync()
+        report = validate_file(path)
+
+    proposed = next(
+        row for row in prepared if row["type"] == "operation_proposed")
+    completion = next(
+        row for row in completed if row["type"] == "operation_completed")
+    assert wrong == ()
+    assert proposed["payload"]["mechanism"] == (
+        "fdas-replacement-capacity-retained-queue-lifecycle")
+    assert "pressure-selected-operation-exact-match" in (
+        proposed["payload"]["provenance"])
+    assert "current-authoritative-queue-byte-exact-match" in (
+        proposed["payload"]["provenance"])
+    assert "no-queue-action-submitted" in proposed["payload"]["provenance"]
+    assert not any(
+        row["type"] == "operation_step_committed"
+        for row in prepared + completed)
+    assert completion["payload"]["product_ref"] == "unit:902"
+    assert report.valid, [row.to_dict() for row in report.errors]
+
+
 def test_bounded_persistence_guard_excludes_only_competing_safe_switches():
     intent = _intent(
         emergency=False)

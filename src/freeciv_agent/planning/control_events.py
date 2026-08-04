@@ -2522,6 +2522,14 @@ class ControlEventEmitter:
             return ()
         lifecycle = self._replacement_capacity_production_lifecycle_for(
             writer)
+        if any(
+                lifecycle._action_key(existing.queue_action())
+                == candidate.action_key
+                for record in lifecycle.store.nonterminal_records()
+                for existing in (lifecycle.assembly(record.spec.operation_id),)
+                if existing is not None
+        ):
+            return ()
         updates = lifecycle.register(assembly, snapshot)
         if not updates:
             return ()
@@ -2555,6 +2563,71 @@ class ControlEventEmitter:
                 parents = (events[-1]["event_id"],)
         return tuple(emitted)
 
+    def prepare_replacement_capacity_retained_queue_operation(
+            self, writer, snapshot, candidate,
+            selected_operation_id, caused_by=()):
+        """Observe one PF-selected capacity operation already in production."""
+        assembly = getattr(candidate, "production_assembly", None)
+        if (
+                snapshot is None
+                or assembly is None
+                or assembly.initial_step_index != 1
+                or assembly.spec.operation_type != (
+                    "fdas-shadow:city-replacement-capacity-deficit:"
+                    "city_production")
+                or getattr(candidate, "authority_eligible", True)
+                or getattr(candidate, "operation", None) is None
+                or candidate.operation.operation_id != selected_operation_id
+                or getattr(candidate, "action_key", None)
+                    not in snapshot.legal_action_json
+                or candidate.action != assembly.queue_action()
+                or "delayed-production-completion-unobserved"
+                    not in getattr(candidate, "blockers", ())
+        ):
+            return ()
+        lifecycle = self._replacement_capacity_production_lifecycle_for(
+            writer)
+        if any(
+                lifecycle._action_key(existing.queue_action())
+                == candidate.action_key
+                for record in lifecycle.store.nonterminal_records()
+                for existing in (lifecycle.assembly(record.spec.operation_id),)
+                if existing is not None
+        ):
+            return ()
+        updates = lifecycle.register(assembly, snapshot)
+        if not updates:
+            return ()
+        payload = self._grounded_enabling_payload(
+            assembly, None, assembly.spec.goal_ids[0],
+            snapshot, True, updates[0].reason)
+        payload["mechanism"] = (
+            "fdas-replacement-capacity-retained-queue-lifecycle")
+        payload["provenance"] = list(payload["provenance"]) + [
+            "fdas-capacity-candidate:{}".format(candidate.candidate_hash),
+            "pressure-selected-operation-exact-match",
+            "current-authoritative-queue-byte-exact-match",
+            "no-queue-action-submitted",
+            "zero-immediate-capacity-goal-relief",
+        ]
+        proposed = writer.emit(
+            "operation_proposed", int(snapshot.turn), payload,
+            caused_by=list(caused_by))
+        self._operation_payloads[assembly.spec.operation_id] = dict(payload)
+        self._operation_event_ids[assembly.spec.operation_id] = (
+            proposed["event_id"])
+        emitted = [proposed]
+        parents = (proposed["event_id"],)
+        for update in updates:
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle, update,
+                "fdas-replacement-capacity-retained-queue-lifecycle",
+                caused_by=parents)
+            emitted.extend(events)
+            if events:
+                parents = (events[-1]["event_id"],)
+        return tuple(emitted)
+
     @staticmethod
     def replacement_capacity_production_matches(candidates, action_key):
         """Return every grounded capacity route matching one policy action."""
@@ -2569,6 +2642,23 @@ class ControlEventEmitter:
                 "operation_type", None) == (
                     "fdas-shadow:city-replacement-capacity-deficit:"
                     "city_production"))
+
+    @staticmethod
+    def replacement_capacity_retained_queue_matches(
+            candidates, selected_operation_id):
+        """Return the PF-selected grounded route already in the exact queue."""
+        if not isinstance(selected_operation_id, str) or not selected_operation_id:
+            return ()
+        return tuple(
+            value for value in candidates
+            if getattr(value, "production_assembly", None) is not None
+            and value.production_assembly.initial_step_index == 1
+            and getattr(
+                getattr(value, "operation", None),
+                "operation_id", None) == selected_operation_id
+            and getattr(value.operation, "operation_type", None) == (
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production"))
 
     def emit_replacement_capacity_production_action_outcome(
             self, writer, snapshot, action, outcome, caused_by=()):

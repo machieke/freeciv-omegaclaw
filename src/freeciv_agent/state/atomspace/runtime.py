@@ -1588,6 +1588,35 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
             raise FdasRuntimeConfigurationError(
                 "replacement capacity production lifecycle declaration "
                 "differs")
+    retained_queue_lifecycle_capability = manifest["capabilities"].get(
+        "replacement_capacity_retained_queue_lifecycle")
+    retained_queue_lifecycle_diagnostic = manifest.get(
+        "replacement_capacity_retained_queue_lifecycle_diagnostic")
+    retained_queue_lifecycle_enabled = bool(
+        retained_queue_lifecycle_capability is not None
+        or retained_queue_lifecycle_diagnostic is not None)
+    if retained_queue_lifecycle_enabled:
+        expected_retained_queue_lifecycle = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "match_semantics": (
+                "pressure-selected-grounded-candidate-matches-current-"
+                "authoritative-queue"),
+            "no_queue_action_submitted": True,
+            "observation_authority": "later-authoritative-snapshot",
+            "policy_authority": False,
+            "single_pressure_selected_operation_required": True,
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_production_enabled
+                or retained_queue_lifecycle_capability != "shadow-live"
+                or retained_queue_lifecycle_diagnostic
+                != expected_retained_queue_lifecycle
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity retained queue lifecycle declaration "
+                "differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:
         projectors.append(CityEconomyProjector(ruleset_ir, digest))
