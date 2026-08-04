@@ -132,6 +132,25 @@ python3 scripts/freeciv/run_harness.py \
 The exact 301-game audit command and source commit are frozen in the PR98
 cohort-audit implementation before launch.
 
+```bash
+SEEDS=$(python3 - <<'PY'
+import yaml
+with open(
+    'profile/freeciv_harness_fdas_pr98_retained_capacity_transition_discovery_160_turn.yaml',
+    encoding='utf-8',
+) as stream:
+    print(','.join(str(value) for value in yaml.safe_load(stream)['seeds']))
+PY
+)
+PYTHONPATH=src:benchmarks python3 \
+  scripts/freeciv/audit_fdas_retained_capacity_transition_discovery.py \
+  artifacts/freeciv/fdas-pr98-retained-capacity-transition-discovery-v1 \
+  --expected-seeds "$SEEDS" \
+  --expected-source-commit "$SOURCE_COMMIT" \
+  --audit-workers 4 \
+  --output /tmp/fdas-pr98-retained-capacity-transition-discovery.json
+```
+
 ## Claim boundary
 
 A passing PR98 cohort establishes only discovery-data adequacy for the frozen

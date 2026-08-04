@@ -6,6 +6,10 @@ from freeciv.harness.fdas_retained_capacity_evidence_yield import (
 from freeciv.harness.fdas_retained_capacity_query_yield import (
     audit_fdas_retained_capacity_query_yield,
 )
+from freeciv.harness.fdas_retained_capacity_transition_discovery import (
+    audit_fdas_retained_capacity_transition_discovery,
+    retained_capacity_transition_discovery_adequacy,
+)
 from freeciv.harness.statistics import (
     binomial_at_least_probability,
     binomial_minimum_trials,
@@ -84,3 +88,59 @@ def test_retained_capacity_query_yield_requires_exact_fixed_cohort():
     with pytest.raises(ValueError, match="requires 64 seeds"):
         audit_fdas_retained_capacity_query_yield(
             "unused", tuple(range(63)), "commit")
+
+
+def _discovery_dataset(statuses_by_seed):
+    rows = []
+    games = []
+    for seed, statuses in statuses_by_seed.items():
+        games.append({
+            "censored_rows": 0,
+            "seed": seed,
+            "terminal_rows": len(statuses),
+        })
+        rows.extend({
+            "row": {
+                "observation_status": "terminal-observed",
+                "outcome_status": status,
+            },
+            "seed": seed,
+        } for status in statuses)
+    return {
+        "games": games,
+        "rows": rows,
+        "summary": {"terminal_rows": len(rows)},
+    }
+
+
+def test_retained_capacity_transition_discovery_adequacy_is_game_scoped():
+    statuses = (
+        ["no-effect-observed"] * 10
+        + ["effect-without-goal-relief"] * 10
+        + ["goal-relief-observed"] * 10)
+    inadequate = retained_capacity_transition_discovery_adequacy(
+        _discovery_dataset({1: statuses}))
+
+    assert inadequate["measures"]["terminal_rows"] == 30
+    assert inadequate["measures"]["terminal_bearing_games"] == 1
+    assert inadequate["measures"]["goal-relief-observed_games"] == 1
+    assert inadequate["decision"] == "insufficient-evidence"
+
+    adequate = retained_capacity_transition_discovery_adequacy(
+        _discovery_dataset(dict((seed, (
+            "no-effect-observed",
+            "effect-without-goal-relief",
+            "goal-relief-observed",
+        )) for seed in range(10))))
+    assert adequate["measures"]["terminal_bearing_games"] == 10
+    assert adequate["decision"] == "insufficient-evidence"
+    assert adequate["checks"]["terminal_bearing_games_minimum_met"] is False
+
+
+def test_retained_capacity_transition_discovery_requires_exact_cohort():
+    with pytest.raises(ValueError, match="requires 301 unique seeds"):
+        audit_fdas_retained_capacity_transition_discovery(
+            "unused", tuple(range(300)), "commit")
+    with pytest.raises(ValueError, match="requires 301 unique seeds"):
+        audit_fdas_retained_capacity_transition_discovery(
+            "unused", tuple(range(300)) + (299,), "commit")
