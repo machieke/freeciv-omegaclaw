@@ -1289,3 +1289,17 @@ legal persistent-defender production actions at the source city. The first 16
 of 30 unused seeds are frozen; candidate frequency is descriptive and no
 policy, action, value, outcome, score, or win-rate authority is added. See
 `fdas-pr88-replacement-capacity-preregistration.md`.
+
+PR88 passes all preregistered gates from clean commit `f29aa33`. All 16 fixed
+games reached turn 160 with zero infrastructure failures, resumes, or rejected
+engine actions, and the full audit reproduced byte-identically. Across 1,037
+shadow evaluations, all 16 games emitted replacement-capacity demand: 1,789
+typed deficits and 2,837 current-legal persistent-defender production
+candidates. The source-removal safety invariant remained exact. All 2,837
+candidates then stopped at the same explicit downstream blocker,
+`uncompiled-action-effect`; generic proxy legality does not imply an exact or
+immediate production effect. The next bounded slice is therefore a
+capacity-specific delayed defender-production operation with exact queue
+semantics, production ETA, RequirementSets, and shadow outcome observation—not
+a generic effect waiver or an authority change. See
+`fdas-pr88-replacement-capacity.md` and its JSON report.

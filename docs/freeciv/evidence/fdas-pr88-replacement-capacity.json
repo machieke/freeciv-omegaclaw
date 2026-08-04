@@ -1,0 +1,190 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_expected_games_complete_without_infrastructure_failure": true,
+      "all_game_level_capacity_audits_pass": true,
+      "all_sources_are_clean_and_commit_bound": true,
+      "every_game_contributes_shadow_evaluations": true
+    }
+  },
+  "claim_scope": "fixed fresh-game distribution of typed source-city replacement-capacity demand and legal shadow production candidates only; no completion, value, action, score, or win-rate claim",
+  "evidence": {
+    "run-summary.json": {
+      "path": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/run-summary.json",
+      "sha256": "6e3af9cd6a0919841c7b972ccad12913164981cb7970493158eff1d6be560b68"
+    }
+  },
+  "games": [
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 149,
+      "capacity_production_candidates": 280,
+      "evaluations": 85,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110749-00",
+      "report_hash": "860244a7142d05dc4325f1c858fdd0a1f233fc22c855fa99abea11365433c27e",
+      "seed": 110749,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 144,
+      "capacity_production_candidates": 287,
+      "evaluations": 55,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110753-00",
+      "report_hash": "6b9e0c2485d71130f705e3ddc0f6c6151511d7b5c10ecf3dba02c94b9ab60489",
+      "seed": 110753,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 139,
+      "capacity_production_candidates": 262,
+      "evaluations": 77,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110771-00",
+      "report_hash": "dfb5129fc8875ada2d639ead54092780e361a48725311beb84f6d58dfac64cad",
+      "seed": 110771,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 141,
+      "capacity_production_candidates": 88,
+      "evaluations": 75,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110777-00",
+      "report_hash": "727d9cf9909969c9828496de225ebcebd0f83ae09f902fd16db0f83e889577ec",
+      "seed": 110777,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 47,
+      "capacity_production_candidates": 94,
+      "evaluations": 63,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110807-00",
+      "report_hash": "600b1a976cdcc351b311430ce5a16cd120916a79b7a0a20af8bdb9314ecfcda7",
+      "seed": 110807,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 27,
+      "capacity_production_candidates": 54,
+      "evaluations": 34,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110813-00",
+      "report_hash": "88fd225756c3fb625df679cc52c1fd0b3cf487afc53ca152d038aa255935f8eb",
+      "seed": 110813,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 10,
+      "capacity_production_candidates": 10,
+      "evaluations": 32,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110819-00",
+      "report_hash": "69d7513ec7ce7b2db5583c3518fa21574c4b23a49ba2d73be69f14d87c0181ee",
+      "seed": 110819,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 87,
+      "capacity_production_candidates": 86,
+      "evaluations": 64,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110821-00",
+      "report_hash": "09c88739e5a1f885d26a14da6d2d10d318a882dfc5db789f9def7c844526dbe2",
+      "seed": 110821,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 26,
+      "capacity_production_candidates": 51,
+      "evaluations": 34,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110849-00",
+      "report_hash": "52fed41f9824e54ee329cb40ef51b2bdf15caba6dc6d27ba8daccfe837c6fd8b",
+      "seed": 110849,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 95,
+      "capacity_production_candidates": 119,
+      "evaluations": 103,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110863-00",
+      "report_hash": "0062e30e66e9bceaedd88c67c3f8be32d4fd7d9c1c5356523d8313c555af06be",
+      "seed": 110863,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 66,
+      "capacity_production_candidates": 123,
+      "evaluations": 43,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110881-00",
+      "report_hash": "a95a9e94dee9c806877be85ceeb2dd1c611d94527d4b187ada0ad7f022c6a65d",
+      "seed": 110881,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 339,
+      "capacity_production_candidates": 476,
+      "evaluations": 153,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110909-00",
+      "report_hash": "70d072c3c5c76b66cd65ad68a761557b0ff602163789a49adbd07d7697fbf9b8",
+      "seed": 110909,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 182,
+      "capacity_production_candidates": 347,
+      "evaluations": 70,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110917-00",
+      "report_hash": "b0acb90b6f58cd213707c13de09789f21275f9eebab430d30314715e92d7677b",
+      "seed": 110917,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 159,
+      "capacity_production_candidates": 305,
+      "evaluations": 58,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110921-00",
+      "report_hash": "70bf14919640f57cdc145bbf0e32b042bf2939af0561f821ab73926aa37360aa",
+      "seed": 110921,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 117,
+      "capacity_production_candidates": 135,
+      "evaluations": 44,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110923-00",
+      "report_hash": "1bc1272897baf194269a2bdf13e4ee8615037cc9545ec81aecf00dede4e15d01",
+      "seed": 110923,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    },
+    {
+      "accepted": true,
+      "capacity_deficit_goals": 61,
+      "capacity_production_candidates": 120,
+      "evaluations": 47,
+      "game_dir": "artifacts/freeciv/fdas-pr88-replacement-capacity-v1/games/main/e_full_loop/110939-00",
+      "report_hash": "55b0244236eaede4591025944c5913e4fa3399e0afc06896c03ca25039ca0e44",
+      "seed": 110939,
+      "source_commit": "f29aa33726aa5022ff03eba2efa8c90918516621"
+    }
+  ],
+  "schema_version": "1.0",
+  "structural_hash": "56f89987aa1b544450d62cff2b01519850d2ade1bcc48225a5431be0e833229f",
+  "summary": {
+    "capacity_deficit_goal_count": 1789,
+    "capacity_production_candidate_count": 2837,
+    "evaluation_count": 1037,
+    "game_count": 16,
+    "games_with_capacity_demand": 16,
+    "games_with_capacity_production_candidate": 16
+  }
+}
