@@ -135,6 +135,9 @@ def audit_fdas_replacement_execution_live(
     result_events = {
         row.get("event_id"): row for row in events
         if row.get("type") == "action_result"}
+    rejected_result_events = tuple(
+        row for row in result_events.values()
+        if row.get("payload", {}).get("status") != "accepted")
     final = tuple(row for row in events if row.get("type") == "run_completed")
     terminal = (
         final[0].get("payload", {}).get("summary", {})
@@ -219,7 +222,9 @@ def audit_fdas_replacement_execution_live(
             for name, value in expected_counters.items()),
         "engine_actions_are_rejection_free": bool(
             status.get("rejected_actions") == 0
-            and terminal.get("rejected_actions") == 0),
+            and not rejected_result_events
+            and len(result_events) == status.get("engine_actions")
+            and len(result_events) == terminal.get("actions")),
     }
     report = {
         "acceptance": {"accepted": all(checks.values()), "checks": checks},

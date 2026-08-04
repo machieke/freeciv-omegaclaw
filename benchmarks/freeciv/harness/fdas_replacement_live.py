@@ -117,6 +117,9 @@ def audit_fdas_replacement_live(game_dir, repo=None):
     details = tuple(row["payload"].get("details", {}) for row in lifecycle)
     event_operation_ids = tuple(row.get("operation_id") for row in details)
     dispositions = tuple(row.get("disposition") for row in details)
+    reconciliation_dispositions = tuple(
+        value for value in dispositions
+        if not (isinstance(value, str) and value.startswith("execution-")))
     final = tuple(row for row in events if row.get("type") == "run_completed")
     terminal = (
         final[0].get("payload", {}).get("summary", {})
@@ -127,7 +130,12 @@ def audit_fdas_replacement_live(game_dir, repo=None):
         "fdas_replacement_completions": dispositions.count("completed"),
         "fdas_replacement_expirations": dispositions.count("expired"),
         "fdas_replacement_operations": len(records),
-        "fdas_replacement_reconciliations": len(lifecycle),
+        # The execution pilot emits the same operation-lifecycle component so
+        # its durable transitions remain causally visible.  They are not
+        # adapter reconciliation passes and therefore do not increment the
+        # long-standing reconciliation counter.
+        "fdas_replacement_reconciliations": len(
+            reconciliation_dispositions),
         "fdas_replacement_reservable": sum(
             value in ("reservable", "reconciled") for value in dispositions),
         "fdas_replacement_step_advances": dispositions.count("step-advanced"),
@@ -197,6 +205,8 @@ def audit_fdas_replacement_live(game_dir, repo=None):
             "dispositions": dict(
                 (value, dispositions.count(value))
                 for value in sorted(set(dispositions))),
+            "execution_lifecycle_events": (
+                len(dispositions) - len(reconciliation_dispositions)),
             "lifecycle_events": len(lifecycle),
             "opportunity_observed": bool(records),
             "operations": len(records),

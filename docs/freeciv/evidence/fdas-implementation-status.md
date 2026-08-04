@@ -1170,3 +1170,18 @@ is activation evidence only: the next prerequisite is a separately gated,
 bounded chain-execution treatment capable of generating completion-indexed
 outcomes. See `fdas-pr81-replacement-chain-outcome-contract.md` and its JSON
 report.
+
+PR82 closes that execution-mechanics prerequisite with a default-off,
+claim-ineligible forced pilot. Clean known seed `109459` assigned one grounded
+chain at turn 33, submitted six exact steps through the ordinary planner and
+final gate with six acceptances, advanced only from later authoritative
+placement, and completed at turn 37. Its one 32-turn durability label was
+observed negative at turn 74 because both assigned actors were absent even
+though both cities remained owned. All eleven corrected audit gates pass and
+the report is byte-stable. This proves multi-snapshot execution and outcome
+linkage, not value: the known opportunity, post-opportunity forced assignment,
+single game, and negative label provide no causal, policy, score, or win-rate
+claim. A fresh game-cluster randomized design and actor-removal attribution
+are the next boundaries. See
+`fdas-pr82-bounded-replacement-execution-pilot.md`, its JSON report, and the
+separately recorded audit-composition correction.

@@ -1,0 +1,62 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_persisted_attempts_are_accepted_and_engine_linked": true,
+      "attempt_events_match_persisted_attempts_exactly": true,
+      "authority_events_are_revision_current_and_pilot_bounded": true,
+      "completion_opens_exactly_one_chain_outcome_label": true,
+      "engine_actions_are_rejection_free": true,
+      "exactly_one_assignment_is_bound_to_completed_operation": true,
+      "execution_store_is_valid_unquarantined_and_identity_bound": true,
+      "manifest_freezes_one_forced_claim_ineligible_treatment": true,
+      "parent_completion_indexed_outcome_audit_passes": true,
+      "source_is_clean_and_expected_commit": true,
+      "status_and_terminal_attempt_counters_match_store": true
+    }
+  },
+  "claim_scope": "known-seed forced-treatment execution mechanics only; one completed coordinated replacement and its completion-indexed label; no causal value, policy, score, or win-rate claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/events.jsonl",
+      "sha256": "98530f22481bdeb621e87de4ef89fd0479aa9ecfba30bbf4b9aca1ddbe8316be"
+    },
+    "fdas-coordinated-replacement-execution.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-execution.json",
+      "sha256": "57e04845025c4873bfc6ee725daa7f7f96d7b325276bda816dd1ccdc5f61d37b"
+    },
+    "fdas-coordinated-replacement-operations.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-operations.json",
+      "sha256": "54d7c31a8e5087edd9e2a1e966e856f1d033371b1234c70a288bbb870fc6073f"
+    },
+    "fdas-coordinated-replacement-outcome-labels.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-outcome-labels.json",
+      "sha256": "efdc3fe6ca279680ebe60f4c7230b4be7aede2c10ae42fc2f942945fcd4fee34"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/manifest.json",
+      "sha256": "923daf902aa699ed3f883dd02b1e01a30735c54a52843f92bd45936a819423d1"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/status.json",
+      "sha256": "f364d32b8c7e54f19320d70dacc331c777187ba2c57d4db189f721f519383ef5"
+    }
+  },
+  "parent_audit_hash": "2c4fb140e5ddc5f8905430f465ba12b024cfb4272c0971dc49564f40e844ad5b",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "fc431b839fe4e5b43a09231cab935008c7b04efd",
+    "dirty": false,
+    "implementation_sha256": "b5d9deedaf283c424313f060f1195a31d66b34ef58907520bbbbaa5641cc2cab",
+    "source_files": 301
+  },
+  "structural_hash": "d5e51d12f87d5ab6ee656977dc80e7ea2df96bccb16781b075beb15b3264d3ea",
+  "summary": {
+    "accepted_attempts": 6,
+    "assignment_id": "replacement-execution-assignment-bbf812204e590ae4d1d9bb81",
+    "completion_turn": 37,
+    "operation_id": "operation-7461d5cd84eada84f89f688c5b06ef65",
+    "outcome_status": "observed",
+    "step_attempts": 6
+  }
+}

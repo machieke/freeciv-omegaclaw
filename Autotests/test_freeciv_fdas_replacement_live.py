@@ -443,6 +443,42 @@ def test_replacement_live_accepts_observed_shadow_lifecycle(tmp_path):
     assert report["summary"]["opportunity_observed"] is True
 
 
+def test_replacement_live_separates_execution_events_from_reconciliations(
+        tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "events.jsonl"
+    rows = [json.loads(line) for line in path.read_text(
+        encoding="utf-8").splitlines()]
+    execution = dict(rows[0])
+    execution["caused_by"] = [rows[0]["event_id"]]
+    execution["event_id"] = "event-execution"
+    execution["seq"] = 1
+    execution["payload"] = dict(rows[0]["payload"])
+    execution["payload"]["details"] = dict(
+        rows[0]["payload"]["details"])
+    execution["payload"]["details"].update({
+        "disposition": "execution-activated",
+        "previous_state": "reserved",
+        "reason": "bounded-pilot-current-step-activated",
+        "state": "active",
+    })
+    execution["payload"]["structural_hash"] = structural_hash(dict(
+        (key, value) for key, value in execution["payload"].items()
+        if key != "structural_hash"))
+    rows[-1]["caused_by"] = [execution["event_id"]]
+    rows[-1]["seq"] = 2
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n"
+                for row in (rows[0], execution, rows[-1])),
+        encoding="utf-8")
+
+    report = audit_fdas_replacement_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["lifecycle_events"] == 2
+    assert report["summary"]["execution_lifecycle_events"] == 1
+
+
 def test_replacement_live_accepts_auditable_zero_opportunity(tmp_path):
     _fixture(tmp_path, with_operation=False)
 
