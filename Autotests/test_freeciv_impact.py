@@ -365,6 +365,61 @@ def test_exact_authority_materializes_current_candidate_without_baseline():
     assert materialized.pressure_artifact is None
 
 
+def test_exact_authority_bypasses_legacy_no_effect_suppression():
+    actions = [
+        {"action_type": "unit_fortify", "actor_id": 12,
+         "is_valid": True},
+    ]
+    snapshot = _snapshot([_unit(12, "Alpine Troops")], actions)
+    planner = GroundedImpactPlanner()
+    treatment = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 12},
+        "city_defense", 10.0, "treatment")
+    planner.last_candidate_catalog = ()
+    grounding = planner._grounding_signature(snapshot, treatment)
+    planner._no_effect_attempts[(treatment.action_key, grounding)] = (
+        planner.no_effect_retry_limit)
+    authority = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-suppressed-operation", "test-defense-operation",
+        treatment.action, treatment.action_key, treatment.category,
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-suppressed-authority",))
+
+    materialized = planner.rematerialize_exact_authority(
+        snapshot, None, authority)
+
+    assert materialized.candidate.action_key == treatment.action_key
+    assert materialized.operation_authority["baseline_candidate_key"] is None
+    assert planner.no_effect_retries_blocked == 0
+
+
+def test_exact_authority_prefers_action_identity_over_category_drift():
+    actions = [
+        {"action_type": "unit_fortify", "actor_id": 12,
+         "is_valid": True},
+    ]
+    snapshot = _snapshot([_unit(12, "Alpine Troops")], actions)
+    planner = GroundedImpactPlanner()
+    current = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 12},
+        "legacy-current-category", 10.0, "current")
+    planner.last_candidate_catalog = (current,)
+    authority = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-category-drift-operation", "test-defense-operation",
+        current.action, current.action_key, "city_garrison_move",
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-category-drift-authority",))
+
+    materialized = planner.rematerialize_exact_authority(
+        snapshot, None, authority)
+
+    assert materialized.candidate == current
+    assert materialized.candidate.category == "legacy-current-category"
+    assert materialized.operation_authority["readout"] == authority
+
+
 def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
     city = _city(production_kind=6, production_value=11)
     city["buildability"]["options"].extend([

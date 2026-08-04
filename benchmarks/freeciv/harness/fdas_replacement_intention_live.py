@@ -30,6 +30,7 @@ EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V1
 CORRECTED_EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V2
 COMPONENT_ID = "fdas-coordinated-replacement-intention-outcome"
 EXECUTION_COMPONENT_ID = "fdas-coordinated-replacement-execution-pilot"
+READOUT_COMPONENT_ID = "fdas-coordinated-replacement-candidate-readout"
 FIXED_SEEDS = (
     109701, 109703, 109709, 109721, 109723, 109727, 109741, 109751,
     109789, 109793, 109807, 109819, 109829, 109831, 109841, 109843,
@@ -159,9 +160,54 @@ def _expected_diagnostic(arm, experiment_id):
             "attempt_budget_policy": "native-route-path-length-plus-one-v1",
             "baseline_absence_policy": (
                 "exact-current-candidate-materialization-v1"),
+            "candidate_rematerialization_policy": (
+                "exact-action-primary-current-category-v1"),
+            "legacy_suppression_policy": (
+                "operation-attempt-budget-controls-exact-authority-v1"),
             "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
         })
     return value
+
+
+def _assignment_readout_evidence(events, assigned_events, assignment):
+    """Bind one assignment to its direct readout parent and logical surface."""
+    if assignment is None:
+        return {
+            "bound": not assigned_events,
+            "logical_pair_count": 0,
+            "logical_pair_hash": None,
+            "logical_pairs": (),
+            "selected_is_lexicographic_minimum": None,
+        }
+    by_id = dict((row.get("event_id"), row) for row in events)
+    parents = () if len(assigned_events) != 1 else tuple(
+        by_id.get(event_id) for event_id in assigned_events[0].get(
+            "caused_by", ()))
+    readouts = tuple(
+        row for row in parents
+        if row is not None and row.get("payload", {}).get("component_id")
+        == READOUT_COMPONENT_ID)
+    logical_pairs = ()
+    if len(readouts) == 1:
+        logical_pairs = tuple(sorted(set(
+            (
+                int(pair["replacement_actor_id"]),
+                int(pair["reinforcement_actor_id"]),
+                int(pair["source_city_id"]),
+                int(pair["target_city_id"]),
+            )
+            for pair in readouts[0].get("payload", {}).get(
+                "details", {}).get("pairs", ()))))
+    selected = tuple(assignment.logical_pair)
+    return {
+        "bound": bool(len(readouts) == 1 and selected in logical_pairs),
+        "logical_pair_count": len(logical_pairs),
+        "logical_pair_hash": (
+            None if not logical_pairs else structural_hash(logical_pairs)),
+        "logical_pairs": logical_pairs,
+        "selected_is_lexicographic_minimum": bool(
+            logical_pairs and selected == logical_pairs[0]),
+    }
 
 
 def audit_fdas_replacement_intention_arm(
@@ -225,6 +271,8 @@ def audit_fdas_replacement_intention_arm(
         row for row in component_events
         if row.get("payload", {}).get("details", {}).get("transition")
         in ("observed", "censored"))
+    assignment_readout = _assignment_readout_evidence(
+        events, assigned_events, assignment)
     run_completed = tuple(
         row for row in events if row.get("type") == "run_completed")
     run_started = tuple(
@@ -379,6 +427,11 @@ def audit_fdas_replacement_intention_arm(
             and (assignment is None
                  or assignment.experiment_id == experiment_id)),
         "assignment_and_outcome_events_match_store": assignment_events_match,
+        "assignment_is_bound_to_direct_candidate_readout": (
+            assignment_readout["bound"]),
+        "assignment_matches_declared_selection_policy": bool(
+            experiment_id == EXPERIMENT_ID or assignment is None
+            or assignment_readout["selected_is_lexicographic_minimum"]),
         "outcome_is_terminal_and_vector_is_complete": bool(
             assignment is None
             or (assignment.outcome is not None and complete_vector)),
@@ -406,6 +459,10 @@ def audit_fdas_replacement_intention_arm(
         "arm_audit_accepted": all(checks.values()),
         "assignment_turn": (
             None if assignment is None else assignment.assignment_turn),
+        "assignment_candidate_logical_pair_count": assignment_readout[
+            "logical_pair_count"],
+        "assignment_candidate_logical_pair_hash": assignment_readout[
+            "logical_pair_hash"],
         "consequence": consequence,
         "execution_accepted": (
             0 if execution_assignment is None else
@@ -495,6 +552,10 @@ def paired_replacement_intention_analysis(
                 ("control", "treatment")
                 if starts[0] < starts[1] else ("treatment", "control"))
         row["expected_arm_order"] = list(expected_order)
+        row["assignment_candidate_surfaces_match"] = (
+            None if control is None or treatment is None else
+            control.get("assignment_candidate_logical_pair_hash")
+            == treatment.get("assignment_candidate_logical_pair_hash"))
         row["observed_arm_order"] = (
             None if observed_order is None else list(observed_order))
         row["arm_order_valid"] = observed_order == expected_order

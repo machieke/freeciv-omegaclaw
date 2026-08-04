@@ -10,6 +10,7 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
 
 from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
     FIXED_SEEDS,
+    _assignment_readout_evidence,
     _removal,
     expected_arm_order,
     paired_replacement_intention_analysis,
@@ -43,6 +44,32 @@ def test_intention_removal_includes_assignment_turn_exact_evidence():
     assert removal["turn"] == 40
 
 
+def test_assignment_readout_evidence_binds_logical_minimum():
+    assignment = SimpleNamespace(logical_pair=(112, 108, 103, 116))
+    readout = {
+        "event_id": "readout",
+        "payload": {
+            "component_id": "fdas-coordinated-replacement-candidate-readout",
+            "details": {"pairs": [
+                {"replacement_actor_id": 122,
+                 "reinforcement_actor_id": 108,
+                 "source_city_id": 103, "target_city_id": 116},
+                {"replacement_actor_id": 112,
+                 "reinforcement_actor_id": 108,
+                 "source_city_id": 103, "target_city_id": 116},
+            ]},
+        },
+    }
+    assigned = {"event_id": "assigned", "caused_by": ["readout"]}
+
+    evidence = _assignment_readout_evidence(
+        (readout, assigned), (assigned,), assignment)
+
+    assert evidence["bound"] is True
+    assert evidence["logical_pair_count"] == 2
+    assert evidence["selected_is_lexicographic_minimum"] is True
+
+
 def _summary(seed, arm, both=True, opportunity=True, observed=True,
              completion=False):
     consequence = None
@@ -58,6 +85,8 @@ def _summary(seed, arm, both=True, opportunity=True, observed=True,
         }
     return {
         "arm": arm,
+        "assignment_candidate_logical_pair_hash": (
+            "candidate-surface" if opportunity else None),
         "assignment_turn": 40 if opportunity else None,
         "consequence": consequence,
         "execution_completion_turn": 44 if completion else None,

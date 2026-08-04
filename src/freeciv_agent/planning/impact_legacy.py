@@ -6813,7 +6813,12 @@ class GroundedImpactPlanner(object):
                         candidate.rationale),
                     projection=projection)
             if candidate is not None and candidate.scope not in excluded_scopes:
-                if not self._no_effect_suppressed(snapshot, candidate):
+                # An exact operation owns its persisted attempt policy.  The
+                # legacy single-action no-effect cache must not silently erase
+                # a still-current, proof-bound operation step.
+                if (key == protected_action_key
+                        or not self._no_effect_suppressed(
+                            snapshot, candidate)):
                     result.append(candidate)
             if diagnostics is not None:
                 latency_ms = (
@@ -6946,8 +6951,9 @@ class GroundedImpactPlanner(object):
         Prefer the immediately preceding catalog.  If the FDAS operation is
         broader than the legacy heuristic catalog, reproject only its exact
         current legal action through the normal bounded-operation authority
-        path.  No alternate action is introduced and the final execution gate
-        remains downstream.
+        path.  A prior legacy decision is optional because a current operation
+        step may be the only grounded candidate.  No alternate action is
+        introduced and the final execution gate remains downstream.
         """
         if (prior_decision is not None
                 and not isinstance(prior_decision, ImpactDecision)):
@@ -6967,18 +6973,24 @@ class GroundedImpactPlanner(object):
                 and action_type not in ("unit_move", "unit_fortify")):
             raise ValueError(
                 "exact rematerialization action is outside authority kind")
-        matches = tuple(
+        action_matches = tuple(
             value for value in self.last_candidate_catalog
-            if (value.action_key == authority_readout.action_key
-                and value.category
-                == authority_readout.candidate_category))
+            if value.action_key == authority_readout.action_key)
+        matches = tuple(
+            value for value in action_matches
+            if value.category == authority_readout.candidate_category)
         if not matches:
-            matches = tuple(
+            matches = action_matches
+        if not matches:
+            action_matches = tuple(
                 value for value in self.candidates(
                     snapshot, operation_authority=authority_readout)
-                if (value.action_key == authority_readout.action_key
-                    and value.category
-                    == authority_readout.candidate_category))
+                if value.action_key == authority_readout.action_key)
+            matches = tuple(
+                value for value in action_matches
+                if value.category == authority_readout.candidate_category)
+            if not matches:
+                matches = action_matches
             if diagnostics is not None:
                 diagnostics["authority_catalog_reprojections"] = (
                     diagnostics.get("authority_catalog_reprojections", 0)
@@ -6986,9 +6998,10 @@ class GroundedImpactPlanner(object):
         if not matches:
             raise ValueError(
                 "exact rematerialization requires one current candidate")
-        # Duplicate packet advertisements can yield repeated representations
-        # of one byte-identical action.  The catalog is already deterministically
-        # ordered; choosing its first exact row cannot change engine behavior.
+        # Duplicate packet advertisements and context-sensitive legacy
+        # categories can yield repeated representations of one byte-identical
+        # action.  The catalog is already deterministically ordered; choosing
+        # its first exact row cannot change engine behavior.
         candidate = matches[0]
         baseline_candidate_key = (
             None if prior_decision is None

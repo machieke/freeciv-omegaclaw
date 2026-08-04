@@ -2905,6 +2905,10 @@ async def _play(run_dir, manifest, context):
                     "native-route-path-length-plus-one-v1"),
                 "baseline_absence_policy": (
                     "exact-current-candidate-materialization-v1"),
+                "candidate_rematerialization_policy": (
+                    "exact-action-primary-current-category-v1"),
+                "legacy_suppression_policy": (
+                    "operation-attempt-budget-controls-exact-authority-v1"),
                 "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
             })
         if (fdas_replacement_intention_capability != "shadow-live"

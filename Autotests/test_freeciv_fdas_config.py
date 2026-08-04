@@ -203,6 +203,10 @@ def test_replacement_intention_logical_order_manifests_freeze_correction(arm):
         "terminal-fail-before-submit")
     assert diagnostic["baseline_absence_policy"] == (
         "exact-current-candidate-materialization-v1")
+    assert diagnostic["candidate_rematerialization_policy"] == (
+        "exact-action-primary-current-category-v1")
+    assert diagnostic["legacy_suppression_policy"] == (
+        "operation-attempt-budget-controls-exact-authority-v1")
     assert diagnostic["treatment_executor_required"] is (arm == "treatment")
 
 

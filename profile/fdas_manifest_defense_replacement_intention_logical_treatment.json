@@ -167,6 +167,8 @@
     "attempt_budget_failure": "terminal-fail-before-submit",
     "attempt_budget_policy": "native-route-path-length-plus-one-v1",
     "baseline_absence_policy": "exact-current-candidate-materialization-v1",
+    "candidate_rematerialization_policy": "exact-action-primary-current-category-v1",
+    "legacy_suppression_policy": "operation-attempt-budget-controls-exact-authority-v1",
     "assignment_unit": "game-first-grounded-coordinated-replacement-chain-intention/1.0",
     "claim_eligible": false,
     "experiment_id": "fdas-replacement-intention-logical-order-paired-pilot-v2",

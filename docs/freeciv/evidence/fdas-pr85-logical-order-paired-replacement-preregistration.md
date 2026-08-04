@@ -15,9 +15,10 @@ retried, replaced, or pooled with this correction.
 
 ## Frozen corrections
 
-PR85 changes three mechanically coupled boundaries: first-opportunity ordering,
-route-derived attempt capacity, and treatment materialization when the legacy
-planner has no action. A grounded pair is ordered
+PR85 changes four mechanically coupled boundaries: first-opportunity ordering,
+route-derived attempt capacity, treatment materialization when the legacy
+planner has no action, and exact operation rematerialization across legacy
+candidate filters. A grounded pair is ordered
 lexicographically by:
 
 ```text
@@ -50,13 +51,27 @@ baseline. It records `baseline_candidate_key=null` and `changed_winner=true`;
 the authority action must still pass the current snapshot, legal-action,
 category, operation, requirement, and downstream commit gates.
 
+A fourth PR84 treatment failure then occurred before any PR85 engine seed was
+run. After one accepted movement step, legacy candidate reprojection could omit
+the next exact operation row or represent its byte-identical action under a
+different current category even though the operation remained active and
+within its own bounded attempt budget. PR85 makes the active exact authority
+action exempt from the duplicate legacy retry policy and treats exact current
+action identity as primary over category decoration. It prefers a category
+match when available and otherwise retains the deterministic current candidate
+category. The operation's persisted route-derived step budget remains the sole
+retry bound, and all exact authority and commit gates remain unchanged.
+
 All other grounding, safety checks, intention vector, 32-turn observation
 window, treatment authority boundary, and legacy control policy remain
 unchanged. The manifest must declare
 `selection_policy=lexicographic-logical-tuple-v1`,
-`attempt_budget_policy=native-route-path-length-plus-one-v1`, and
-`attempt_budget_failure=terminal-fail-before-submit`, and
-`baseline_absence_policy=exact-current-candidate-materialization-v1`.
+`attempt_budget_policy=native-route-path-length-plus-one-v1`,
+`attempt_budget_failure=terminal-fail-before-submit`,
+`baseline_absence_policy=exact-current-candidate-materialization-v1`,
+`candidate_rematerialization_policy=exact-action-primary-current-category-v1`,
+and
+`legacy_suppression_policy=operation-attempt-budget-controls-exact-authority-v1`.
 
 ## Fixed paired cohort
 
