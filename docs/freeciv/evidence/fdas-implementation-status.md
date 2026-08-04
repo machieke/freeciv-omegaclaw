@@ -1242,3 +1242,16 @@ design without outcome conditioning, adds ruleset compilation plus container,
 proxy, and exact-model dependency checks before output creation, and writes a
 new root. See `fdas-pr86-isolated-launch-ruleset-preflight-failure.md` and
 `fdas-pr86b-ruleset-preflight-correction.md`.
+
+PR86b then completed all 32 arms from clean commit `b98013c` with four
+dedicated ports, zero infrastructure failures, zero launcher failures, zero
+rejected actions, and 1,182,995 valid events. The deterministic audit accepted
+all gates and reproduced byte-identically. Six pairs were matched-observed,
+one matched-censored, and nine had no opportunity; there were no mismatches.
+All seven assigned treatment operations completed and all 48 bounded attempts
+were accepted. The primary paired city-retention risk difference was +0.1667
+with interval [0, 0.5] and exact McNemar `p=1.0`. Every mechanism progression
+gate passed, but the six observed pairs and one discordance support only a
+favorable descriptive mechanism result, not a statistically reliable general,
+score, or win-rate claim. See
+`fdas-pr86b-isolated-launch-paired-replacement.md` and its JSON audit.

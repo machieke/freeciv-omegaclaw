@@ -1,0 +1,2566 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_arm_audits_pass": true,
+      "all_arms_share_one_expected_clean_source": true,
+      "all_fixed_control_arms_are_present": true,
+      "all_fixed_treatment_arms_are_present": true,
+      "minimum_four_pairs_are_matched_and_observed": true,
+      "no_pair_has_a_mechanical_failure": true
+    }
+  },
+  "analysis": {
+    "classification_counts": {
+      "incomplete-pair": 0,
+      "matched-censored": 1,
+      "matched-observed": 6,
+      "no-opportunity": 9,
+      "opportunity-mismatch": 0,
+      "outcome-mismatch": 0
+    },
+    "mechanical_failure_seeds": [],
+    "primary": {
+      "discordance": {
+        "baseline_only_win": 0,
+        "both_lose": 2,
+        "both_win": 3,
+        "discordant_pairs": 1,
+        "exact_mcnemar_p": 1.0,
+        "method": "exact-two-sided-mcnemar",
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "pairs": 6,
+        "treatment_only_win": 1
+      },
+      "risk_difference": {
+        "estimate": 0.16666666666666666,
+        "lower": 0.0,
+        "method": "paired-bootstrap-risk-difference",
+        "n": 6,
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "upper": 0.5
+      }
+    },
+    "progression": {
+      "city_retention_point_estimate_nonnegative": true,
+      "minimum_four_observed_pairs": true,
+      "minimum_two_treatment_completions": true,
+      "no_mechanical_failures": true,
+      "no_treatment_excess_unexplained_removal": true
+    },
+    "rows": [
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:28:58.426911Z",
+          "seed": 110161,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110161,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:26:38.443931Z",
+          "seed": 110161,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-censored",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 7,
+          "assignment_candidate_logical_pair_hash": "3df0d81079120f39a1c37c4b1b092654c771320ed502d55b1ad6acb1cb215592",
+          "assignment_turn": 131,
+          "consequence": {
+            "assigned_actor_survival_count": null,
+            "both_cities_owned_and_present": null,
+            "city_retention_count": null,
+            "defended_city_count": null,
+            "exact_combat_attributed_actor_losses": null,
+            "operation_state": null,
+            "outcome_status": "censored",
+            "reinforcement_removal": null,
+            "replacement_removal": null,
+            "unexplained_actor_removals": null
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            114,
+            121,
+            115,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:41.165604Z",
+          "seed": 110183,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110183,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 7,
+          "assignment_candidate_logical_pair_hash": "3df0d81079120f39a1c37c4b1b092654c771320ed502d55b1ad6acb1cb215592",
+          "assignment_turn": 131,
+          "consequence": {
+            "assigned_actor_survival_count": null,
+            "both_cities_owned_and_present": null,
+            "city_retention_count": null,
+            "defended_city_count": null,
+            "exact_combat_attributed_actor_losses": null,
+            "operation_state": null,
+            "outcome_status": "censored",
+            "reinforcement_removal": null,
+            "replacement_removal": null,
+            "unexplained_actor_removals": null
+          },
+          "execution_accepted": 6,
+          "execution_attempts": 6,
+          "execution_completion_turn": 134,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            114,
+            121,
+            115,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:31:33.797361Z",
+          "seed": 110183,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "5daf2fab64b2e471cb7ae06e2afab8335c0464118f86e3c20922c08e96d42c37",
+          "assignment_turn": 63,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "5e44969db2dc4f0b9e0af0d990384dcb",
+              "evidence_event_ids": [
+                "3b01c6e5b86d4e46ac257209112ae8c7",
+                "85547a7d7315409787f252de0a84baca"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 75,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            123,
+            106,
+            101,
+            117
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:30:12.651719Z",
+          "seed": 110221,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110221,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "5daf2fab64b2e471cb7ae06e2afab8335c0464118f86e3c20922c08e96d42c37",
+          "assignment_turn": 63,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "1fa4cf3d1e64414ea9064a2c1a911843",
+              "evidence_event_ids": [
+                "f65509f9364b4a3a887af817b3481837",
+                "61de6175c54b44d0b0068192f1b23706"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 75,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 11,
+          "execution_attempts": 11,
+          "execution_completion_turn": 65,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            123,
+            106,
+            101,
+            117
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:42.397899Z",
+          "seed": 110221,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "42325749cf2789b172474f98203cbb31e70a6301c87358e4ffeaa421133bf6bc",
+          "assignment_turn": 106,
+          "consequence": {
+            "assigned_actor_survival_count": 0,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 0,
+            "defended_city_count": 0,
+            "exact_combat_attributed_actor_losses": 2,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "8b9f40aa1d5d45628b301ca6e512f8fc",
+              "evidence_event_ids": [
+                "ff207412093d4772a2350a2507103321",
+                "0f3c5a700aa54044a89b56f2cb8972cf"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 132,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "cf26ab33cf85428d9c5134721e69cfb2",
+              "evidence_event_ids": [
+                "f38ccae2ecc040e394759cd9f63608cc",
+                "257b0ca3bf284f51bcdf03609ba3bc49"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 108,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            122,
+            106,
+            101,
+            112
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:28:53.795239Z",
+          "seed": 110233,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110233,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "42325749cf2789b172474f98203cbb31e70a6301c87358e4ffeaa421133bf6bc",
+          "assignment_turn": 106,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_attacker_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported attacker HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "79416c4eb9b741c4985578590af0716d",
+              "evidence_event_ids": [
+                "adcde75af9884041be0a453206bd8430",
+                "5ac6e0dd594f49489511c2b6976405cf"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 114,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 5,
+          "execution_attempts": 5,
+          "execution_completion_turn": 106,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            122,
+            106,
+            101,
+            112
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:39.814978Z",
+          "seed": 110233,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "9c4861bbf678851164e7a4fd2da5a0bde089fe99e7fa0f82cdbb4e3fdffc1ce9",
+          "assignment_turn": 28,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            120,
+            110,
+            113
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:35:38.894263Z",
+          "seed": 110237,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110237,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "9c4861bbf678851164e7a4fd2da5a0bde089fe99e7fa0f82cdbb4e3fdffc1ce9",
+          "assignment_turn": 28,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 8,
+          "execution_attempts": 8,
+          "execution_completion_turn": 29,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            120,
+            110,
+            113
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:31:10.500806Z",
+          "seed": 110237,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:39:13.435734Z",
+          "seed": 110251,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110251,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:36:46.811063Z",
+          "seed": 110251,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "82dd7ab551a08f8d1a6db1c111785ee79c09b088e706d8e558d98bd4aa684e60",
+          "assignment_turn": 37,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            119,
+            109,
+            122
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:33:44.163129Z",
+          "seed": 110261,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110261,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "82dd7ab551a08f8d1a6db1c111785ee79c09b088e706d8e558d98bd4aa684e60",
+          "assignment_turn": 37,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 6,
+          "execution_attempts": 6,
+          "execution_completion_turn": 37,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            119,
+            109,
+            122
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:36:29.193723Z",
+          "seed": 110261,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:32:50.728575Z",
+          "seed": 110269,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110269,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:30:48.401982Z",
+          "seed": 110269,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:40:01.208168Z",
+          "seed": 110273,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110273,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:43:17.701593Z",
+          "seed": 110273,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:43:42.885748Z",
+          "seed": 110281,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110281,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:41:27.862887Z",
+          "seed": 110281,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:39:23.939367Z",
+          "seed": 110291,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110291,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:42:08.257622Z",
+          "seed": 110291,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:34:42.585312Z",
+          "seed": 110311,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110311,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:37:35.351846Z",
+          "seed": 110311,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 2,
+          "assignment_candidate_logical_pair_hash": "23dd1fc439ab875f1dadb3178c03b3bd38b5d0b352833eeb6ad5840d7b22e350",
+          "assignment_turn": 98,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            114,
+            110,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:46:25.291604Z",
+          "seed": 110321,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "observed_arm_order": [
+          "control",
+          "treatment"
+        ],
+        "seed": 110321,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 2,
+          "assignment_candidate_logical_pair_hash": "23dd1fc439ab875f1dadb3178c03b3bd38b5d0b352833eeb6ad5840d7b22e350",
+          "assignment_turn": 98,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 5,
+          "execution_attempts": 5,
+          "execution_completion_turn": 98,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            114,
+            110,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:48:53.246875Z",
+          "seed": 110321,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "matched-observed",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 1,
+          "assignment_candidate_logical_pair_hash": "b6cc509869a674e009bf49a22327d3dee34f8f93b94add8b462747df29adb785",
+          "assignment_turn": 55,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "feefca9330b04c5d81e630bcee6920b6",
+              "evidence_event_ids": [
+                "681b6177ce304fcb927f003156a369a3",
+                "56590d2c33464b84a91e13a311ba6865"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 57,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            115,
+            109,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:47:10.931601Z",
+          "seed": 110323,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110323,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 1,
+          "assignment_candidate_logical_pair_hash": "b6cc509869a674e009bf49a22327d3dee34f8f93b94add8b462747df29adb785",
+          "assignment_turn": 55,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_attacker_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported attacker HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "f69881ea5e17471ebb1b0e3d291d3995",
+              "evidence_event_ids": [
+                "b652fb6ed5534fff9b343ee88d4e691d",
+                "07b5b3500149478088329db3050b2c15"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 61,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 7,
+          "execution_attempts": 7,
+          "execution_completion_turn": 57,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            115,
+            109,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:45:43.929157Z",
+          "seed": 110323,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:46:26.819508Z",
+          "seed": 110339,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110339,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:44:46.992043Z",
+          "seed": 110339,
+          "status": "completed"
+        }
+      },
+      {
+        "arm_audits_valid": true,
+        "arm_order_valid": true,
+        "assignment_candidate_surfaces_match": true,
+        "classification": "no-opportunity",
+        "control": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:42:30.904985Z",
+          "seed": 110359,
+          "status": "completed"
+        },
+        "expected_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "observed_arm_order": [
+          "treatment",
+          "control"
+        ],
+        "seed": 110359,
+        "treatment": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:40:42.654977Z",
+          "seed": 110359,
+          "status": "completed"
+        }
+      }
+    ],
+    "schema_version": "1.0",
+    "secondary": {
+      "assigned_actor_survival_count": {
+        "estimate": 0.16666666666666666,
+        "lower": 0.0,
+        "method": "paired_bootstrap_delta",
+        "n": 6,
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "upper": 0.5
+      },
+      "city_retention_count": {
+        "estimate": 0.3333333333333333,
+        "lower": 0.0,
+        "method": "paired_bootstrap_delta",
+        "n": 6,
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "upper": 0.6666666666666666
+      },
+      "defended_city_count": {
+        "estimate": 0.16666666666666666,
+        "lower": 0.0,
+        "method": "paired_bootstrap_delta",
+        "n": 6,
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "upper": 0.5
+      },
+      "exact_combat_attributed_actor_losses": {
+        "estimate": -0.16666666666666666,
+        "lower": -0.5,
+        "method": "paired_bootstrap_delta",
+        "n": 6,
+        "paired_seeds": [
+          110221,
+          110233,
+          110237,
+          110261,
+          110321,
+          110323
+        ],
+        "upper": 0.0
+      }
+    }
+  },
+  "arm_reports": {
+    "control": {
+      "110161": {
+        "acceptance": true,
+        "structural_hash": "a92b4b931e7a70bba2d1d882616a27b6fd0ffbaabe618005c06660b0d23f2ebc",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:28:58.426911Z",
+          "seed": 110161,
+          "status": "completed"
+        }
+      },
+      "110183": {
+        "acceptance": true,
+        "structural_hash": "79a73c9906984a3f24a77123606dcd7357d19ebf636e0e6e9085af1718773dc1",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 7,
+          "assignment_candidate_logical_pair_hash": "3df0d81079120f39a1c37c4b1b092654c771320ed502d55b1ad6acb1cb215592",
+          "assignment_turn": 131,
+          "consequence": {
+            "assigned_actor_survival_count": null,
+            "both_cities_owned_and_present": null,
+            "city_retention_count": null,
+            "defended_city_count": null,
+            "exact_combat_attributed_actor_losses": null,
+            "operation_state": null,
+            "outcome_status": "censored",
+            "reinforcement_removal": null,
+            "replacement_removal": null,
+            "unexplained_actor_removals": null
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            114,
+            121,
+            115,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:41.165604Z",
+          "seed": 110183,
+          "status": "completed"
+        }
+      },
+      "110221": {
+        "acceptance": true,
+        "structural_hash": "97eb2a62e5c70f3f02408beb159b52c6f76ff2d39ee570ee08a79db8079cf0a7",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "5daf2fab64b2e471cb7ae06e2afab8335c0464118f86e3c20922c08e96d42c37",
+          "assignment_turn": 63,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "5e44969db2dc4f0b9e0af0d990384dcb",
+              "evidence_event_ids": [
+                "3b01c6e5b86d4e46ac257209112ae8c7",
+                "85547a7d7315409787f252de0a84baca"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 75,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            123,
+            106,
+            101,
+            117
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:30:12.651719Z",
+          "seed": 110221,
+          "status": "completed"
+        }
+      },
+      "110233": {
+        "acceptance": true,
+        "structural_hash": "8db921e26eb609af395371cb99540b735cf9a9bac2ea25691c9741046fd8bb2b",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "42325749cf2789b172474f98203cbb31e70a6301c87358e4ffeaa421133bf6bc",
+          "assignment_turn": 106,
+          "consequence": {
+            "assigned_actor_survival_count": 0,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 0,
+            "defended_city_count": 0,
+            "exact_combat_attributed_actor_losses": 2,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "8b9f40aa1d5d45628b301ca6e512f8fc",
+              "evidence_event_ids": [
+                "ff207412093d4772a2350a2507103321",
+                "0f3c5a700aa54044a89b56f2cb8972cf"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 132,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "cf26ab33cf85428d9c5134721e69cfb2",
+              "evidence_event_ids": [
+                "f38ccae2ecc040e394759cd9f63608cc",
+                "257b0ca3bf284f51bcdf03609ba3bc49"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 108,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            122,
+            106,
+            101,
+            112
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:28:53.795239Z",
+          "seed": 110233,
+          "status": "completed"
+        }
+      },
+      "110237": {
+        "acceptance": true,
+        "structural_hash": "6543280db3775d23d2b45d976c3c60306eba4b8c6d37aa0b42005cc8fa6368e2",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "9c4861bbf678851164e7a4fd2da5a0bde089fe99e7fa0f82cdbb4e3fdffc1ce9",
+          "assignment_turn": 28,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            120,
+            110,
+            113
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:35:38.894263Z",
+          "seed": 110237,
+          "status": "completed"
+        }
+      },
+      "110251": {
+        "acceptance": true,
+        "structural_hash": "d800f2e0f5cfa9ea526909c31ee9651e86fc3bc7228b37bdf66582681807d2e9",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:39:13.435734Z",
+          "seed": 110251,
+          "status": "completed"
+        }
+      },
+      "110261": {
+        "acceptance": true,
+        "structural_hash": "78a95621407ed43525816e4d4bc218d3facb1f7978bac2aaeb1b2d15af735ca2",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "82dd7ab551a08f8d1a6db1c111785ee79c09b088e706d8e558d98bd4aa684e60",
+          "assignment_turn": 37,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            119,
+            109,
+            122
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:33:44.163129Z",
+          "seed": 110261,
+          "status": "completed"
+        }
+      },
+      "110269": {
+        "acceptance": true,
+        "structural_hash": "1e1fc32c2c21028a6a022b8801284a8d38ff4c7de39c7ce93bbb4fd6e7f1c9b7",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:32:50.728575Z",
+          "seed": 110269,
+          "status": "completed"
+        }
+      },
+      "110273": {
+        "acceptance": true,
+        "structural_hash": "ade55fe58614af137d77ec540a88ca90733beccfb9b9ba4d5e2850b114d904c6",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:40:01.208168Z",
+          "seed": 110273,
+          "status": "completed"
+        }
+      },
+      "110281": {
+        "acceptance": true,
+        "structural_hash": "8ab04e787f2559df40f9ecafd9356856a63d8b7c16276747a04f4ae8453158fd",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:43:42.885748Z",
+          "seed": 110281,
+          "status": "completed"
+        }
+      },
+      "110291": {
+        "acceptance": true,
+        "structural_hash": "df022b680d09a8c7b12678940cc02051614693c547863a7d56863dcf4a2494c0",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:39:23.939367Z",
+          "seed": 110291,
+          "status": "completed"
+        }
+      },
+      "110311": {
+        "acceptance": true,
+        "structural_hash": "7c7901df50221d4f1a947a0150ac7f40ba39b8af326a879abf5645accab48fa8",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:34:42.585312Z",
+          "seed": 110311,
+          "status": "completed"
+        }
+      },
+      "110321": {
+        "acceptance": true,
+        "structural_hash": "a06d7ab8ca1476f33a06a6c0f2f9304b3227ef6bf66ed6c443dc2022eb509fd8",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 2,
+          "assignment_candidate_logical_pair_hash": "23dd1fc439ab875f1dadb3178c03b3bd38b5d0b352833eeb6ad5840d7b22e350",
+          "assignment_turn": 98,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            114,
+            110,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:46:25.291604Z",
+          "seed": 110321,
+          "status": "completed"
+        }
+      },
+      "110323": {
+        "acceptance": true,
+        "structural_hash": "ac46fb5b5686f4676e46790b13c659518dbabd383049b46c32c942dd82f4c47f",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 1,
+          "assignment_candidate_logical_pair_hash": "b6cc509869a674e009bf49a22327d3dee34f8f93b94add8b462747df29adb785",
+          "assignment_turn": 55,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "expired",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "feefca9330b04c5d81e630bcee6920b6",
+              "evidence_event_ids": [
+                "681b6177ce304fcb927f003156a369a3",
+                "56590d2c33464b84a91e13a311ba6865"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 57,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            115,
+            109,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:47:10.931601Z",
+          "seed": 110323,
+          "status": "completed"
+        }
+      },
+      "110339": {
+        "acceptance": true,
+        "structural_hash": "892259e2e7298c6655360ac746c34dcbf8c02cfa80e799561a080234e7acbee3",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:46:26.819508Z",
+          "seed": 110339,
+          "status": "completed"
+        }
+      },
+      "110359": {
+        "acceptance": true,
+        "structural_hash": "c4d57628a282e4fdc9c4bdb5c38a9ab56b41e8ded07cb87b9eae793532614884",
+        "summary": {
+          "arm": "control",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:42:30.904985Z",
+          "seed": 110359,
+          "status": "completed"
+        }
+      }
+    },
+    "treatment": {
+      "110161": {
+        "acceptance": true,
+        "structural_hash": "2e98d3be349a2c283e4333a7ca297911a832c77bedc6ba2d67e5fd85ea7acfa6",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:26:38.443931Z",
+          "seed": 110161,
+          "status": "completed"
+        }
+      },
+      "110183": {
+        "acceptance": true,
+        "structural_hash": "03c8a3e55c3779f63029e988e34bd49db7af225729ba7ccb4c328ba199cc3609",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 7,
+          "assignment_candidate_logical_pair_hash": "3df0d81079120f39a1c37c4b1b092654c771320ed502d55b1ad6acb1cb215592",
+          "assignment_turn": 131,
+          "consequence": {
+            "assigned_actor_survival_count": null,
+            "both_cities_owned_and_present": null,
+            "city_retention_count": null,
+            "defended_city_count": null,
+            "exact_combat_attributed_actor_losses": null,
+            "operation_state": null,
+            "outcome_status": "censored",
+            "reinforcement_removal": null,
+            "replacement_removal": null,
+            "unexplained_actor_removals": null
+          },
+          "execution_accepted": 6,
+          "execution_attempts": 6,
+          "execution_completion_turn": 134,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            114,
+            121,
+            115,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:31:33.797361Z",
+          "seed": 110183,
+          "status": "completed"
+        }
+      },
+      "110221": {
+        "acceptance": true,
+        "structural_hash": "00b1309176310daa732419a2232d09484caab68a6069ab1370d6fbb9032a1ca5",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "5daf2fab64b2e471cb7ae06e2afab8335c0464118f86e3c20922c08e96d42c37",
+          "assignment_turn": 63,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_defender_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "1fa4cf3d1e64414ea9064a2c1a911843",
+              "evidence_event_ids": [
+                "f65509f9364b4a3a887af817b3481837",
+                "61de6175c54b44d0b0068192f1b23706"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 75,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 11,
+          "execution_attempts": 11,
+          "execution_completion_turn": 65,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            123,
+            106,
+            101,
+            117
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:42.397899Z",
+          "seed": 110221,
+          "status": "completed"
+        }
+      },
+      "110233": {
+        "acceptance": true,
+        "structural_hash": "77396a85481ea68b58b831763af7602edd431166c9b26380fdc446444485ce79",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 3,
+          "assignment_candidate_logical_pair_hash": "42325749cf2789b172474f98203cbb31e70a6301c87358e4ffeaa421133bf6bc",
+          "assignment_turn": 106,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": false,
+            "city_retention_count": 1,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_attacker_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported attacker HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "79416c4eb9b741c4985578590af0716d",
+              "evidence_event_ids": [
+                "adcde75af9884041be0a453206bd8430",
+                "5ac6e0dd594f49489511c2b6976405cf"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 114,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 5,
+          "execution_attempts": 5,
+          "execution_completion_turn": 106,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            122,
+            106,
+            101,
+            112
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:26:39.814978Z",
+          "seed": 110233,
+          "status": "completed"
+        }
+      },
+      "110237": {
+        "acceptance": true,
+        "structural_hash": "c8a56f61051a8d07a6787cbeceb1461af6a14fbbd6d3a9742d0d058fdf97c4e1",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "9c4861bbf678851164e7a4fd2da5a0bde089fe99e7fa0f82cdbb4e3fdffc1ce9",
+          "assignment_turn": 28,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 8,
+          "execution_attempts": 8,
+          "execution_completion_turn": 29,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            120,
+            110,
+            113
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:31:10.500806Z",
+          "seed": 110237,
+          "status": "completed"
+        }
+      },
+      "110251": {
+        "acceptance": true,
+        "structural_hash": "0bc3fe6ab0f23f25fbc207b919b65fab7dc6f33eaff4787d978ec0283f17fbf6",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:36:46.811063Z",
+          "seed": 110251,
+          "status": "completed"
+        }
+      },
+      "110261": {
+        "acceptance": true,
+        "structural_hash": "256c05dc672758098312e04405ada32703c9e012bd6e0fe51a8f717e6a2c4092",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 4,
+          "assignment_candidate_logical_pair_hash": "82dd7ab551a08f8d1a6db1c111785ee79c09b088e706d8e558d98bd4aa684e60",
+          "assignment_turn": 37,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 6,
+          "execution_attempts": 6,
+          "execution_completion_turn": 37,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            106,
+            119,
+            109,
+            122
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:36:29.193723Z",
+          "seed": 110261,
+          "status": "completed"
+        }
+      },
+      "110269": {
+        "acceptance": true,
+        "structural_hash": "5be2c83cf4eb5db6e25eb5654dee781a3dee07f73b9ccc0f0a5b78af6ed741b1",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:30:48.401982Z",
+          "seed": 110269,
+          "status": "completed"
+        }
+      },
+      "110273": {
+        "acceptance": true,
+        "structural_hash": "e07ea611c0bdc8011b81815c75d44dd6e3f64115f2e0a53b257a5804540c021b",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:43:17.701593Z",
+          "seed": 110273,
+          "status": "completed"
+        }
+      },
+      "110281": {
+        "acceptance": true,
+        "structural_hash": "b7dff8934d2df78f752e6448471fdd14150c3e8e1b19812877cded493876af60",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:41:27.862887Z",
+          "seed": 110281,
+          "status": "completed"
+        }
+      },
+      "110291": {
+        "acceptance": true,
+        "structural_hash": "b5c532da45800764890b0d5c7ff3f446e36d56e1e139272f56015c022a4d89c4",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:42:08.257622Z",
+          "seed": 110291,
+          "status": "completed"
+        }
+      },
+      "110311": {
+        "acceptance": true,
+        "structural_hash": "86306d51b9f7181dbe5535104330affd37bec794d2683b001826d9d89ef7979f",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:37:35.351846Z",
+          "seed": 110311,
+          "status": "completed"
+        }
+      },
+      "110321": {
+        "acceptance": true,
+        "structural_hash": "8c2c5df7926a876d37a14ac5fc3f5e98e13e5d98fc57b640d1a0da407ab1debc",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 2,
+          "assignment_candidate_logical_pair_hash": "23dd1fc439ab875f1dadb3178c03b3bd38b5d0b352833eeb6ad5840d7b22e350",
+          "assignment_turn": 98,
+          "consequence": {
+            "assigned_actor_survival_count": 2,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 2,
+            "exact_combat_attributed_actor_losses": 0,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 5,
+          "execution_attempts": 5,
+          "execution_completion_turn": 98,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            114,
+            110,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:48:53.246875Z",
+          "seed": 110321,
+          "status": "completed"
+        }
+      },
+      "110323": {
+        "acceptance": true,
+        "structural_hash": "c1e75d9bb8f6bf4895a6ad2c5e9915cb3ce1d4902b681b953a2d3b61a0c6718b",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 1,
+          "assignment_candidate_logical_pair_hash": "b6cc509869a674e009bf49a22327d3dee34f8f93b94add8b462747df29adb785",
+          "assignment_turn": 55,
+          "consequence": {
+            "assigned_actor_survival_count": 1,
+            "both_cities_owned_and_present": true,
+            "city_retention_count": 2,
+            "defended_city_count": 1,
+            "exact_combat_attributed_actor_losses": 1,
+            "operation_state": "completed",
+            "outcome_status": "observed",
+            "reinforcement_removal": {
+              "cause": "combat_attacker_lost",
+              "detail": "PACKET_UNIT_COMBAT_INFO reported attacker HP 0 before PACKET_UNIT_REMOVE.",
+              "event_id": "f69881ea5e17471ebb1b0e3d291d3995",
+              "evidence_event_ids": [
+                "b652fb6ed5534fff9b343ee88d4e691d",
+                "07b5b3500149478088329db3050b2c15"
+              ],
+              "evidence_quality": "exact",
+              "exact": true,
+              "turn": 61,
+              "unexplained": false
+            },
+            "replacement_removal": {
+              "cause": null,
+              "event_id": null,
+              "evidence_quality": null,
+              "exact": true,
+              "unexplained": false
+            },
+            "unexplained_actor_removals": 0
+          },
+          "execution_accepted": 7,
+          "execution_attempts": 7,
+          "execution_completion_turn": 57,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": [
+            108,
+            115,
+            109,
+            103
+          ],
+          "opportunity": true,
+          "run_started_at": "2026-08-04T05:45:43.929157Z",
+          "seed": 110323,
+          "status": "completed"
+        }
+      },
+      "110339": {
+        "acceptance": true,
+        "structural_hash": "7b2a0102e9c7a232ab68685ee7258620fcd9d455d81e9eda3e11a0f1bd89bef3",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:44:46.992043Z",
+          "seed": 110339,
+          "status": "completed"
+        }
+      },
+      "110359": {
+        "acceptance": true,
+        "structural_hash": "2085572ee27f200689517e3c06195176b9406f678504fc35088dbe0cce748326",
+        "summary": {
+          "arm": "treatment",
+          "arm_audit_accepted": true,
+          "assignment_candidate_logical_pair_count": 0,
+          "assignment_candidate_logical_pair_hash": null,
+          "assignment_turn": null,
+          "consequence": null,
+          "execution_accepted": 0,
+          "execution_attempts": 0,
+          "execution_completion_turn": null,
+          "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+          "infrastructure_error": null,
+          "infrastructure_failure": false,
+          "logical_pair": null,
+          "opportunity": false,
+          "run_started_at": "2026-08-04T05:40:42.654977Z",
+          "seed": 110359,
+          "status": "completed"
+        }
+      }
+    }
+  },
+  "claim_scope": "16-seed paired descriptive mechanism pilot; no calibrated transition-value, general policy, score, or win-rate claim",
+  "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+  "fixed_seeds": [
+    110161,
+    110183,
+    110221,
+    110233,
+    110237,
+    110251,
+    110261,
+    110269,
+    110273,
+    110281,
+    110291,
+    110311,
+    110321,
+    110323,
+    110339,
+    110359
+  ],
+  "schema_version": "1.0",
+  "source_commits": [
+    "b98013c2634b6da439fe267ff90e9982ba7dcaac"
+  ],
+  "structural_hash": "c2196e639365357b434cdff91d68d3e306cc4744b0011f27930670309ad7d752"
+}
