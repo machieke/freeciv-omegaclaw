@@ -48,16 +48,24 @@ from freeciv.harness.fdas_replacement_capacity_retained_queue_outcome_live impor
 from freeciv.harness.fdas_replacement_capacity_retained_queue_outcome_cohort import (
     audit_fdas_replacement_capacity_retained_queue_outcome_cohort,
 )
+from freeciv.harness.fdas_replacement_capacity_retained_queue_episode_live import (
+    audit_fdas_replacement_capacity_retained_queue_episode_live,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.planning import (
+    DecisionEpisodeStore,
+    FdasRetainedCapacityEpisodeBridge,
     FdasReplacementChainOutcomeLabeler,
     FdasReplacementChainOutcomeStore,
     OperationRecord,
     REPLACEMENT_CHAIN_OUTCOME_TARGET,
+)
+from freeciv_agent.planning.fdas_capacity_episode_bridge import (
+    RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
 )
 from freeciv_agent.planning.fdas_capacity_outcomes import (
     FdasRetainedCapacityOutcomeLabel,
@@ -969,6 +977,127 @@ def _add_replacement_capacity_retained_queue_outcome_evidence(tmp_path):
     _write_json(status_path, status)
 
 
+def _add_replacement_capacity_retained_queue_episode_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "replacement_capacity_retained_queue_episode_bridge"] = "shadow-live"
+    activation[
+        "replacement_capacity_retained_queue_episode_bridge_diagnostic"] = {
+            "action_selection_changed": False,
+            "action_submitted": False,
+            "episode_store": "separate-observation-only",
+            "learning_authority": False,
+            "mapping": {
+                "durable-negative": "effect-without-goal-relief",
+                "durable-positive": "goal-relief-observed",
+                "terminal-no-progress": "no-effect-observed",
+            },
+            "policy_authority": False,
+            "prediction_ids_required_empty": True,
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+    manifest["dependent_atomspace"]["config"]["learning"] = {
+        "contextual_conductance_authority_enabled": False,
+        "contextual_conductance_enabled": False,
+        "episode_attribution_enabled": True,
+        "induced_rule_readout_enabled": False,
+        "induction_enabled": True,
+    }
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    proposal = next(
+        row for row in events
+        if row.get("type") == "operation_proposed"
+        and row.get("payload", {}).get("mechanism") == (
+            "fdas-replacement-capacity-retained-queue-lifecycle"))
+    proposal["payload"]["goal_ids"] = ["fdas-goal-capacity-proof"]
+    terminal = events[-1]
+    outcome_event = next(
+        row for row in events
+        if row.get("type") == "operation_outcome_label_observed")
+
+    outcome_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"],
+        FdasRetainedCapacityOutcomeLabeler.LABELER_IDENTITY,
+        RETAINED_CAPACITY_OUTCOME_TARGET,
+    ])
+    outcome_store = FdasRetainedCapacityOutcomeStore.load(
+        str(tmp_path / "fdas-retained-capacity-outcome-labels.json"),
+        outcome_identity)
+    label = outcome_store.labels()[0]
+    episode_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"], RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+    ])
+    episode_store = DecisionEpisodeStore(episode_identity)
+    episode = FdasRetainedCapacityEpisodeBridge(episode_store).encode(
+        label, proposal)
+    episode_store.save(str(
+        tmp_path / "fdas-retained-capacity-decision-episodes.json"))
+    main_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"], "fdas-defense-decision-episodes/1.0",
+    ])
+    DecisionEpisodeStore(main_identity).save(
+        str(tmp_path / "fdas-decision-episodes.json"))
+    _write_json(manifest_path, manifest)
+
+    details = {
+        "action_selection_changed": False,
+        "episode": episode.to_dict(),
+        "identity": RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+        "learning_authority": False,
+        "policy_authority": False,
+        "readout_authority": False,
+        "store_digest": episode_store.store_digest,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    payload = {
+        "component_id": "fdas-retained-capacity-episode-bridge",
+        "component_version": "1.0",
+        "details": details,
+        "revision_id": episode.after_revision_id,
+        "ruleset_digest": "ruleset-proof",
+        "snapshot_id": outcome_event["payload"]["snapshot_id"],
+    }
+    payload["structural_hash"] = structural_hash(payload)
+    episode_event = {
+        "caused_by": [outcome_event["event_id"]],
+        "event_id": "event-capacity-episode-opened",
+        "game_id": terminal["game_id"],
+        "payload": payload,
+        "schema_version": terminal["schema_version"],
+        "seq": 1,
+        "ts": terminal["ts"],
+        "turn": label.observed_turn,
+        "type": "episode_opened",
+    }
+    counters = {
+        "fdas_retained_capacity_episodes_encoded": 1,
+        "fdas_retained_capacity_episodes_no_effect": 0,
+        "fdas_retained_capacity_episodes_effect_without_relief": 0,
+        "fdas_retained_capacity_episodes_goal_relief": 1,
+    }
+    terminal["caused_by"] = [episode_event["event_id"]]
+    terminal["seq"] = 2
+    terminal["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in (
+            *events[:-1], episode_event, terminal)), encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def _add_reproposal_hardening_evidence(tmp_path):
     events_path = tmp_path / "events.jsonl"
     events = [json.loads(line) for line in events_path.read_text(
@@ -1692,6 +1821,101 @@ def test_retained_capacity_outcome_live_rejects_authority_escape(tmp_path):
     assert report["acceptance"]["accepted"] is False
     assert report["acceptance"]["checks"][
         "event_transitions_are_typed_digest_valid_and_non_authorizing"] is False
+
+
+def test_retained_capacity_episode_live_is_exact_and_learning_isolated(
+        tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_outcome_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_episode_evidence(tmp_path)
+
+    report = audit_fdas_replacement_capacity_retained_queue_episode_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"] == {
+        "effect_without_goal_relief": 0,
+        "episodes_encoded": 1,
+        "goal_relief_observed": 1,
+        "no_effect_observed": 0,
+        "terminal_labels": 1,
+    }
+
+
+def test_retained_capacity_episode_live_rejects_authority_escape(tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_outcome_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_episode_evidence(tmp_path)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    event = next(
+        row for row in events
+        if row.get("payload", {}).get("component_id") == (
+            "fdas-retained-capacity-episode-bridge"))
+    event["payload"]["details"]["learning_authority"] = True
+    material = dict(event["payload"])
+    material.pop("structural_hash")
+    event["payload"]["structural_hash"] = structural_hash(material)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+
+    report = audit_fdas_replacement_capacity_retained_queue_episode_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "one_typed_causal_non_authorizing_event_exists_per_episode"] is False
+
+
+def test_retained_capacity_episode_live_rejects_learning_store_contamination(
+        tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+    _add_replacement_capacity_evidence(tmp_path)
+    _add_replacement_capacity_production_evidence(tmp_path)
+    _add_replacement_capacity_production_lifecycle_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_outcome_evidence(tmp_path)
+    _add_replacement_capacity_retained_queue_episode_evidence(tmp_path)
+    manifest = json.loads((tmp_path / "manifest.json").read_text(
+        encoding="utf-8"))
+    main_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"], "fdas-defense-decision-episodes/1.0",
+    ])
+    capacity_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"], RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+    ])
+    capacity = DecisionEpisodeStore.load(str(
+        tmp_path / "fdas-retained-capacity-decision-episodes.json"),
+        capacity_identity)
+    main = DecisionEpisodeStore(main_identity)
+    main.record(capacity.episodes()[0])
+    main.save(str(tmp_path / "fdas-decision-episodes.json"))
+
+    report = audit_fdas_replacement_capacity_retained_queue_episode_live(
+        str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "capacity_episodes_are_isolated_from_learning_and_induction_store"] \
+        is False
 
 
 def test_retained_capacity_outcome_cohort_is_clean_commit_bound(tmp_path):
