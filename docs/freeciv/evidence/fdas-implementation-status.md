@@ -1122,3 +1122,11 @@ the known seed. The next scientific gate is fresh-seed recall in at least two
 independent games, followed by a chain-completion-specific outcome target—not
 reuse of the current direct-action calibration. See
 `fdas-pr78-coordinated-replacement-candidate-readout.md` and its JSON report.
+
+PR79 freezes the first independent recall cohort without changing PR78. The
+first 16 of 30 new registered seeds must all pass lifecycle/readout mechanics,
+zero-opportunity games remain in the denominator, and at least two independent
+games must contain a grounded safe chain. The descriptive opportunity rate is
+game-level with a Wilson interval; no seed replacement or append is allowed.
+This is a transfer gate only, not value or outcome evidence. See
+`fdas-pr79-coordinated-replacement-readout-fresh-cohort-preregistration.md`.

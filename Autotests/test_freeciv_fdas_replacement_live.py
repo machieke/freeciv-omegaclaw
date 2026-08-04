@@ -4,6 +4,9 @@ from freeciv.harness.fdas_replacement_live import audit_fdas_replacement_live
 from freeciv.harness.fdas_replacement_readout_live import (
     audit_fdas_replacement_readout_live,
 )
+from freeciv.harness.fdas_replacement_readout_cohort import (
+    audit_fdas_replacement_readout_cohort,
+)
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
 
@@ -236,6 +239,43 @@ def _add_candidate_readout(tmp_path):
     _write_json(status_path, status)
 
 
+def _activate_zero_opportunity_readout(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "coordinated_replacement_candidate_readout"] = "shadow-live"
+    activation["coordinated_replacement_candidate_readout_diagnostic"] = {
+        "action_selection_changed": False,
+        "combined_native_route_grounding_required": True,
+        "direct_control_semantics": "protected-source-garrison-direct-move",
+        "policy_authority": False,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+    counters = {
+        "fdas_replacement_readout_abstentions": 0,
+        "fdas_replacement_readout_candidates": 0,
+        "fdas_replacement_readout_direct_controls": 0,
+        "fdas_replacement_readout_evaluations": 0,
+        "fdas_replacement_readout_grounded_pairs": 0,
+        "fdas_replacement_readout_rejections": 0,
+    }
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    events[-1]["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+
+
 def test_replacement_live_accepts_observed_shadow_lifecycle(tmp_path):
     _fixture(tmp_path)
 
@@ -285,3 +325,35 @@ def test_replacement_readout_live_accepts_grounded_safe_chain(tmp_path):
     assert report["acceptance"]["accepted"] is True
     assert report["summary"]["grounded_pairs"] == 1
     assert report["summary"]["replacement_candidates"] == 1
+
+
+def test_replacement_readout_allows_zero_opportunity_in_cohort_scope(tmp_path):
+    _fixture(tmp_path, with_operation=False)
+    _activate_zero_opportunity_readout(tmp_path)
+
+    report = audit_fdas_replacement_readout_live(
+        str(tmp_path), require_grounded_pair=False)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["grounded_pairs"] == 0
+
+
+def test_replacement_readout_cohort_requires_two_opportunity_games(tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 2, "infrastructure_failures": 0,
+        "jobs": 2, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_readout_cohort(
+        str(run_dir), (101, 103), expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["opportunity_game_count"] == 2
+    assert report["summary"]["grounded_pair_count"] == 2

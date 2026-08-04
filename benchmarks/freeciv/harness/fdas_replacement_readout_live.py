@@ -46,7 +46,8 @@ def _hash_valid(value):
     return isinstance(claimed, str) and claimed == structural_hash(material)
 
 
-def audit_fdas_replacement_readout_live(game_dir, repo=None):
+def audit_fdas_replacement_readout_live(
+        game_dir, repo=None, require_grounded_pair=True):
     """Verify real safe-chain recall with no transition-value assertion."""
     game_dir = os.path.abspath(game_dir)
     parent = audit_fdas_replacement_live(game_dir, repo=repo)
@@ -114,7 +115,7 @@ def audit_fdas_replacement_readout_live(game_dir, repo=None):
                 "truth_mutated": False,
             }),
         "readout_events_are_revision_current_and_non_authorizing": (
-            bool(details) and all(
+            (bool(details) or not require_grounded_pair) and all(
                 row["payload"].get("snapshot_id")
                 == detail.get("snapshot_id")
                 and row["payload"].get("revision_id")
@@ -127,7 +128,8 @@ def audit_fdas_replacement_readout_live(game_dir, repo=None):
                 and detail.get("truth_mutated") is False
                 and _hash_valid(detail)
                 for row, detail in zip(readout_events, details))),
-        "at_least_one_grounded_safe_chain_is_recalled": bool(pairs),
+        "at_least_one_grounded_safe_chain_is_recalled": (
+            bool(pairs) if require_grounded_pair else True),
         "pair_routes_and_lifecycle_references_are_exact": pair_valid,
         "status_and_terminal_counters_match_readout_events": all(
             status.get(name) == value and terminal.get(name) == value
