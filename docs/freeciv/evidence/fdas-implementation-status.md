@@ -1457,3 +1457,26 @@ wide sensitivity requires a disjoint fixed 64-game query-enabled yield pilot
 first. No model was fitted and all learning/readout authority remains disabled.
 See `fdas-pr96-retained-capacity-query-episode-dataset.md` and its two JSON
 reports.
+
+PR97 completes the fixed fresh 64-game query-enabled yield pilot. All games
+completed from clean source commit `a55e71b` with zero resume or infrastructure
+failure. Eighteen games opened 24 queries, and all 24 reached exact terminal
+episodes: 14 no-effect, four effect-without-relief, and six goal-relief. The
+game-scoped status recurrence is 12, 3, and 6 games respectively; zero-query
+games remain 46/64 and no query was censored at the horizon.
+
+The first two audits rejected one legitimate multi-operation refresh ordering
+in seed `130553`. Commit `16a79c7` narrowly accepts an exact same-turn
+two-parent interleaving in which the target terminal and another retained
+queue's prior revalidation parent that queue's current revalidation before the
+four-event revision chain. Unrelated branching remains rejected, and no engine
+evidence or outcome changed. Both corrected full audits pass byte-identically
+with structural hash
+`3bf6e8297bf0fed31666efb718c60d29c240938c3cf982e66dcc5678ee29f245`.
+
+The rare effect-without-relief game rate is 3/64 (4.7%, Wilson 1.6% to 12.9%).
+The exact prospective size for a 90% chance of at least 10 such games rises to
+301 games per future discovery or confirmation cohort; the Wilson-lower
+sensitivity is 882. PR97 remains yield-only and contributes no fitting or
+confirmation rows. See `fdas-pr97-retained-capacity-query-yield.md`, its JSON
+report, and the audit-correction note.
