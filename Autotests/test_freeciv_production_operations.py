@@ -748,7 +748,7 @@ def test_capacity_retained_queue_lifecycle_needs_pf_selected_operation():
             units=(_unit(902, "Riflemen"),), advertise=False,
             snapshot_suffix="retained-completed")
         completed = (
-            emitter.resolve_replacement_capacity_production_operations(
+            emitter.resolve_replacement_capacity_retained_queue_operations(
                 writer, completed_snapshot,
                 caused_by=(prepared[-1]["event_id"],)))
         writer.sync()
@@ -771,6 +771,31 @@ def test_capacity_retained_queue_lifecycle_needs_pf_selected_operation():
         for row in prepared + completed)
     assert completion["payload"]["product_ref"] == "unit:902"
     assert report.valid, [row.to_dict() for row in report.errors]
+
+
+def test_retained_queue_divergence_is_terminal_without_churn():
+    intent = _intent()
+    before = _snapshot(intent, current_kind=6, current_value=10)
+    assembly = _assembly(before, intent)
+    lifecycle = ProductionOperationLifecycle(
+        "retained-divergence", terminal_on_queue_divergence=True)
+    lifecycle.register(assembly, before)
+    diverged = _snapshot(
+        intent, turn=73, current_kind=3, current_value=14,
+        snapshot_suffix="diverged")
+
+    update = lifecycle.observe(diverged)
+    later = lifecycle.observe(_snapshot(
+        intent, turn=74, current_kind=3, current_value=14,
+        snapshot_suffix="still-diverged"))
+
+    assert len(update) == 1
+    assert update[0].disposition == "abandoned"
+    assert update[0].reason == (
+        "production-target-diverged-before-product-observation")
+    assert lifecycle.store.get(
+        assembly.spec.operation_id).progress.state == OperationState.ABANDONED
+    assert later == ()
 
 
 def test_bounded_persistence_guard_excludes_only_competing_safe_switches():

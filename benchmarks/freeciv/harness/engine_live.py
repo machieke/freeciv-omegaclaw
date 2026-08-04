@@ -6046,28 +6046,37 @@ async def _play(run_dir, manifest, context):
                     .resolve_replacement_capacity_production_operations(
                         writer, next_snapshot,
                         caused_by=(enabling_parent,))
-                    if (replacement_capacity_production_lifecycle_enabled
-                        or retained_queue_lifecycle_enabled)
+                    if replacement_capacity_production_lifecycle_enabled
                     else ())
                 record_replacement_capacity_lifecycle_events(
-                    capacity_lifecycle_events)
-                record_replacement_retained_queue_lifecycle_events(
                     capacity_lifecycle_events)
                 capacity_lifecycle_parent = (
                     capacity_lifecycle_events[-1]["event_id"]
                     if capacity_lifecycle_events else enabling_parent)
+                retained_queue_events = (
+                    control_event_emitter
+                    .resolve_replacement_capacity_retained_queue_operations(
+                        writer, next_snapshot,
+                        caused_by=(capacity_lifecycle_parent,))
+                    if retained_queue_lifecycle_enabled
+                    else ())
+                record_replacement_retained_queue_lifecycle_events(
+                    retained_queue_events)
+                retained_queue_parent = (
+                    retained_queue_events[-1]["event_id"]
+                    if retained_queue_events else capacity_lifecycle_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer,
                         next_snapshot,
                         caused_by=(
-                            capacity_lifecycle_parent,)))
+                            retained_queue_parent,)))
                 combat_parent = (
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else capacity_lifecycle_parent)
+                    else retained_queue_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(
@@ -6182,27 +6191,36 @@ async def _play(run_dir, manifest, context):
                     .resolve_replacement_capacity_production_operations(
                         writer, snapshot,
                         caused_by=(enabling_parent,))
-                    if (replacement_capacity_production_lifecycle_enabled
-                        or retained_queue_lifecycle_enabled)
+                    if replacement_capacity_production_lifecycle_enabled
                     else ())
                 record_replacement_capacity_lifecycle_events(
-                    capacity_lifecycle_events)
-                record_replacement_retained_queue_lifecycle_events(
                     capacity_lifecycle_events)
                 capacity_lifecycle_parent = (
                     capacity_lifecycle_events[-1]["event_id"]
                     if capacity_lifecycle_events else enabling_parent)
+                retained_queue_events = (
+                    control_event_emitter
+                    .resolve_replacement_capacity_retained_queue_operations(
+                        writer, snapshot,
+                        caused_by=(capacity_lifecycle_parent,))
+                    if retained_queue_lifecycle_enabled
+                    else ())
+                record_replacement_retained_queue_lifecycle_events(
+                    retained_queue_events)
+                retained_queue_parent = (
+                    retained_queue_events[-1]["event_id"]
+                    if retained_queue_events else capacity_lifecycle_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer, snapshot,
                         caused_by=(
-                            capacity_lifecycle_parent,)))
+                            retained_queue_parent,)))
                 operation_parent = (
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else capacity_lifecycle_parent)
+                    else retained_queue_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(

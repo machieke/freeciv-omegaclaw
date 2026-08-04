@@ -82,13 +82,17 @@ class ProductionOperationLifecycle:
     CONTROLLER_IDENTITY = (
         "freeciv-production-operation-lifecycle/1.0")
 
-    def __init__(self, identity):
+    def __init__(self, identity, terminal_on_queue_divergence=False):
         if not isinstance(
                 identity, str
                 ) or not identity:
             raise ValueError(
                 "production lifecycle identity is required")
+        if not isinstance(terminal_on_queue_divergence, bool):
+            raise TypeError(
+                "production queue divergence policy must be boolean")
         self.identity = identity
+        self.terminal_on_queue_divergence = terminal_on_queue_divergence
         self.store = OperationStore(
             "production:{}".format(
                 identity))
@@ -581,6 +585,22 @@ class ProductionOperationLifecycle:
                 continue
             if readout.disposition == (
                     "abandoned"):
+                updates.append(
+                    self._finish(
+                        assembly, original,
+                        snapshot,
+                        OperationState.ABANDONED,
+                        "abandoned",
+                        readout.reason,
+                        readout=readout))
+                continue
+            if (
+                    self.terminal_on_queue_divergence
+                    and readout.disposition == "blocked"
+                    and readout.reason == (
+                        "production-target-diverged-before-product-"
+                        "observation")
+            ):
                 updates.append(
                     self._finish(
                         assembly, original,

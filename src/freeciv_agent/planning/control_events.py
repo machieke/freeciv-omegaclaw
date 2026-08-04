@@ -206,6 +206,7 @@ class ControlEventEmitter:
         self._combat_lifecycles = {}
         self._production_lifecycles = {}
         self._replacement_capacity_production_lifecycles = {}
+        self._replacement_capacity_retained_queue_lifecycles = {}
         self._research_lifecycles = {}
         self._prepared_enabling_actions = set()
         self._emitted_production_persistence_guards = set()
@@ -299,6 +300,20 @@ class ControlEventEmitter:
             lifecycle = ProductionOperationLifecycle(
                 "fdas-replacement-capacity:{}".format(game_id))
             self._replacement_capacity_production_lifecycles[
+                game_id] = lifecycle
+        return lifecycle
+
+    def _replacement_capacity_retained_queue_lifecycle_for(self, writer):
+        from .production_lifecycle import ProductionOperationLifecycle
+
+        game_id = str(writer.game_id)
+        lifecycle = self._replacement_capacity_retained_queue_lifecycles.get(
+            game_id)
+        if lifecycle is None:
+            lifecycle = ProductionOperationLifecycle(
+                "fdas-replacement-retained-queue:{}".format(game_id),
+                terminal_on_queue_divergence=True)
+            self._replacement_capacity_retained_queue_lifecycles[
                 game_id] = lifecycle
         return lifecycle
 
@@ -2585,7 +2600,7 @@ class ControlEventEmitter:
                     not in getattr(candidate, "blockers", ())
         ):
             return ()
-        lifecycle = self._replacement_capacity_production_lifecycle_for(
+        lifecycle = self._replacement_capacity_retained_queue_lifecycle_for(
             writer)
         if any(
                 lifecycle._action_key(existing.queue_action())
@@ -2704,6 +2719,25 @@ class ControlEventEmitter:
             events = self._emit_grounded_enabling_update(
                 writer, snapshot, lifecycle, update,
                 "fdas-replacement-capacity-production-lifecycle",
+                caused_by=parents)
+            emitted.extend(events)
+            if events:
+                parents = (events[-1]["event_id"],)
+        return tuple(emitted)
+
+    def resolve_replacement_capacity_retained_queue_operations(
+            self, writer, snapshot, caused_by=()):
+        """Resolve retained queues, abandoning immediately on divergence."""
+        if snapshot is None:
+            return ()
+        lifecycle = self._replacement_capacity_retained_queue_lifecycle_for(
+            writer)
+        emitted = []
+        parents = tuple(caused_by)
+        for update in lifecycle.observe(snapshot):
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle, update,
+                "fdas-replacement-capacity-retained-queue-lifecycle",
                 caused_by=parents)
             emitted.extend(events)
             if events:
