@@ -1436,3 +1436,24 @@ twice byte-identically. Its structural hash is
 This proves outcome-blind feature-capture and abstention mechanics only; it
 does not estimate transition value or improve policy. See
 `fdas-pr95-retained-capacity-transition-query.md` and its JSON report.
+
+PR96 closes the query-to-outcome dataset boundary without reinterpreting
+missing observations. A pure typed row joins each proposal-time PR95 query to
+at most one exact terminal PR93 episode; queries without an episode remain
+explicitly `right-censored`, while orphan and duplicate episodes, identity or
+revision disagreement, prediction links, and authority leakage fail closed.
+The cohort exporter composes the full PR95 audit, retains zero-query games,
+partitions terminal and censored rows, and reports exact feature signatures.
+
+The frozen PR95 mechanics smoke exported twice byte-identically and passed all
+eight dataset gates with one query, one terminal goal-relief episode, and no
+censored rows. The dataset hash is
+`9ae738c57dad51b1be98afefca4bf6de181d9c25b7f64dfe57dcbdd23ad655dd`.
+A separate exact binomial yield planner reproduces the preregistered
+status-specific plug-in sizes of 74, 225, and 111 games and Wilson-lower
+sensitivities of 213, 1,275, and 404. The rare effect-without-relief status sets
+a provisional 225 games per future discovery or confirmation cohort, but its
+wide sensitivity requires a disjoint fixed 64-game query-enabled yield pilot
+first. No model was fitted and all learning/readout authority remains disabled.
+See `fdas-pr96-retained-capacity-query-episode-dataset.md` and its two JSON
+reports.
