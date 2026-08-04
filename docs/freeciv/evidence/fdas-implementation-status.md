@@ -1419,3 +1419,20 @@ interval, 8.2% to 64.1%. No model was fitted and no learning/readout path was
 enabled. The deterministic dataset hash is
 `bb9971c39a114a035bbc3894a29b939b642ea7e1f25fbe955dec4a05f226824e`.
 See `fdas-pr94-retained-capacity-episode-dataset.md` and its JSON report.
+
+PR95 responds to that insufficiency by capturing future model inputs without
+pretending a model exists. Each retained-capacity proposal now opens one
+separate, proposal-time transition query with a frozen categorical feature
+schema for action/lifecycle, production target, turn/horizon, source/target
+city size and unit counts, source food/shield surplus, and disorder. The query
+always abstains with no estimate, interval, or model ID. It remains absent from
+PR93 episode prediction IDs and all learning, induction, and readout stores.
+
+The clean seed-111539 engine smoke completed 1/1 at 160 turns with one exact
+query and one later terminal episode. A strict composed audit reconstructs the
+query from the exact recorded proposal-time snapshot and passes all ten gates
+twice byte-identically. Its structural hash is
+`50db864724479095fdde65996ff0cac8bbd446f3b08a57cd6fcbeff6e9415294`.
+This proves outcome-blind feature-capture and abstention mechanics only; it
+does not estimate transition value or improve policy. See
+`fdas-pr95-retained-capacity-transition-query.md` and its JSON report.

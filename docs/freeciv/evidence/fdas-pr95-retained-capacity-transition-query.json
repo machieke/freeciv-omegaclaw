@@ -1,0 +1,59 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "final_store_digest_is_last_query_event_digest": true,
+      "incremental_event_store_digests_replay_to_final_store": true,
+      "manifest_freezes_outcome_blind_abstention_contract": true,
+      "one_query_exists_for_every_opened_outcome_label": true,
+      "one_typed_causal_non_authorizing_abstention_event_per_query": true,
+      "parent_episode_audit_passes": true,
+      "queries_do_not_enter_episode_learning_induction_or_readout": true,
+      "queries_recompute_from_exact_proposal_time_snapshot": true,
+      "query_counters_match_store_status_and_terminal_exactly": true,
+      "query_store_is_typed_identity_bound_and_digest_valid": true
+    }
+  },
+  "claim_scope": "exact proposal-time retained-capacity categorical feature capture with mandatory numerical abstention; no episode link, learning, induction, readout, policy, score, or win-rate claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/events.jsonl",
+      "sha256": "e86991c21fdb2cd8a6a06da94fe656a48dc8431d58e1e886dbf6df47c5f6cbc6"
+    },
+    "fdas-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/fdas-decision-episodes.json",
+      "sha256": "e3be80cfd33c812eb295d63a0292ea2bc1d35dc1c0fe7a49f7f92257af7fea3b"
+    },
+    "fdas-retained-capacity-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/fdas-retained-capacity-decision-episodes.json",
+      "sha256": "1f22b83365fcbd6bdfbfe8cd0f39c1a7118c43390652908d8f62ae65b82da717"
+    },
+    "fdas-retained-capacity-transition-queries.json": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/fdas-retained-capacity-transition-queries.json",
+      "sha256": "be5d0f0bf70b948ce68d9cdf37d493a1b604bc970ce9727d17e946f8d77b0b11"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/manifest.json",
+      "sha256": "a5ddc83508bc803ac0e2a12e4242d1ca70a8de034f16ff029c4ae8610f805f32"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr95-retained-capacity-transition-query-smoke-v1/games/main/e_full_loop/111539-00/status.json",
+      "sha256": "bd56a03dd3db818714f8a8f70d2377398c2b8adf13b5bd0248c3258babda2822"
+    }
+  },
+  "parent_audit_hash": "f3cbd97095d869acfa3f3afb4fd8ce41adadc58c631aa27263c02f9ce578577b",
+  "recomputation_errors": [],
+  "schema_version": "1.0",
+  "source": {
+    "commit": "600267555b6ad86a92effa1d9bf23bcf5db39e30",
+    "dirty": false,
+    "implementation_sha256": "da20d497fe0a652092c0023290537c97b29bff165e43fdc491e9fbde5525e754",
+    "source_files": 322
+  },
+  "structural_hash": "50db864724479095fdde65996ff0cac8bbd446f3b08a57cd6fcbeff6e9415294",
+  "summary": {
+    "abstained": 1,
+    "queries": 1,
+    "terminal_episodes": 1
+  }
+}
