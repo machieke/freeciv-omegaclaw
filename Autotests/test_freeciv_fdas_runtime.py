@@ -291,6 +291,53 @@ def test_coordinated_replacement_event_is_revision_bound_and_shadow_only(
             writer, snapshot, stale, "replacement-store-digest")
 
 
+def test_coordinated_replacement_readout_event_has_zero_value_authority(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    revision = runtime.snapshot_store.current_dependent_revision(
+        snapshot.identity.game_id, snapshot.player_id)
+    assert revision.revision_id == update.revision_id
+    details = {
+        "action_selection_changed": False,
+        "candidate_recall_changed": True,
+        "direct_candidate_count": 1,
+        "identity": "fdas-coordinated-replacement-candidate-readout/1.0",
+        "pairs": [{"safe_chain_grounded": True}],
+        "policy_authority": False,
+        "readout_authority": False,
+        "reason": "grounded-safe-chain-recalled",
+        "rejected": [],
+        "replacement_candidate_count": 1,
+        "revision_id": revision.revision_id,
+        "snapshot_id": snapshot.snapshot_id,
+        "status": "eligible-shadow",
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    readout = SimpleNamespace(
+        snapshot_id=snapshot.snapshot_id,
+        revision_id=revision.revision_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "replacement-readout-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_coordinated_replacement_candidate_readout(
+        writer, snapshot, readout)
+
+    assert event["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-candidate-readout")
+    assert event["payload"]["details"]["transition_value_estimated"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        to_dict=lambda: {**details, "revision_id": "stale-revision"})
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_coordinated_replacement_candidate_readout(
+            writer, snapshot, stale)
+
+
 def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

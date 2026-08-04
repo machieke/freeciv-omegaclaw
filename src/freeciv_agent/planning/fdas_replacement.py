@@ -51,6 +51,17 @@ class FdasCoordinatedReplacementAdapter(object):
     def requirement_contexts(self):
         return tuple(self._contexts[key] for key in sorted(self._contexts))
 
+    def active_record_for(self, spec):
+        """Resolve one logical current lifecycle for a snapshot-bound spec."""
+        key = self.lifecycle_key(spec)
+        matches = tuple(
+            value for value in self.store.nonterminal_records()
+            if (value.spec.operation_type == _OPERATION_TYPE
+                and self.lifecycle_key(value.spec) == key))
+        if len(matches) > 1:
+            raise RuntimeError("replacement logical lifecycle is ambiguous")
+        return None if not matches else matches[0]
+
     @staticmethod
     def _participants(record):
         return dict(

@@ -292,6 +292,12 @@ from .fdas_observation import (
     FdasObservationReturnAbstention,
 )
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
+from .fdas_replacement_readout import (
+    COORDINATED_REPLACEMENT_READOUT_IDENTITY,
+    FdasCoordinatedReplacementPair,
+    FdasCoordinatedReplacementReadout,
+    FdasCoordinatedReplacementReadoutEvaluator,
+)
 from .fdas_transport import (
     FdasFounderTransportProjectionAdapter,
     declared_transport_intents,
@@ -488,6 +494,10 @@ __all__ = [
     "FdasObservationExecutionBridge",
     "FdasObservationReturnAbstention",
     "FdasCoordinatedReplacementAdapter",
+    "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
+    "FdasCoordinatedReplacementPair",
+    "FdasCoordinatedReplacementReadout",
+    "FdasCoordinatedReplacementReadoutEvaluator",
     "FdasFounderTransportProjectionAdapter",
     "declared_transport_intents",
     "FdasCombatProjectionAdapter",

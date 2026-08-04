@@ -78,6 +78,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     EpisodeControlPrediction,
                                     FdasDefenseActorPersistenceLabeler,
                                     FdasCoordinatedReplacementAdapter,
+                                    FdasCoordinatedReplacementReadoutEvaluator,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2699,6 +2700,7 @@ async def _play(run_dir, manifest, context):
         run_dir, "fdas-coordinated-replacement-operations.json")
     fdas_replacement_store = None
     fdas_replacement_adapter = None
+    fdas_replacement_readout_evaluator = None
     fdas_replacement_shadow = (
         fdas_manifest["capabilities"].get(
             "coordinated_replacement_lifecycle") == "shadow-live")
@@ -2722,6 +2724,32 @@ async def _play(run_dir, manifest, context):
         # Persist the empty store as activation evidence even when a game has
         # no exact coordinated-replacement opportunity.
         fdas_replacement_store.save(fdas_replacement_path)
+    fdas_replacement_readout_capability = fdas_manifest["capabilities"].get(
+        "coordinated_replacement_candidate_readout")
+    fdas_replacement_readout_diagnostic = fdas_manifest.get(
+        "coordinated_replacement_candidate_readout_diagnostic")
+    fdas_replacement_readout = bool(
+        fdas_replacement_readout_capability is not None
+        or fdas_replacement_readout_diagnostic is not None)
+    if fdas_replacement_readout:
+        expected_replacement_readout = {
+            "action_selection_changed": False,
+            "combined_native_route_grounding_required": True,
+            "direct_control_semantics": "protected-source-garrison-direct-move",
+            "policy_authority": False,
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (fdas_replacement_readout_capability != "shadow-live"
+                or fdas_replacement_readout_diagnostic
+                != expected_replacement_readout
+                or fdas_replacement_adapter is None):
+            raise RuntimeError(
+                "FDAS coordinated replacement candidate readout differs")
+        fdas_replacement_readout_evaluator = (
+            FdasCoordinatedReplacementReadoutEvaluator(
+                fdas_replacement_adapter))
     fdas_transport_path = os.path.join(
         run_dir, "fdas-transport-lifecycle.json")
     fdas_transport_lifecycle = None
@@ -4132,6 +4160,12 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_step_advances": 0,
         "fdas_replacement_completions": 0,
         "fdas_replacement_expirations": 0,
+        "fdas_replacement_readout_evaluations": 0,
+        "fdas_replacement_readout_candidates": 0,
+        "fdas_replacement_readout_direct_controls": 0,
+        "fdas_replacement_readout_grounded_pairs": 0,
+        "fdas_replacement_readout_rejections": 0,
+        "fdas_replacement_readout_abstentions": 0,
         "fdas_belief_decay_revisions": 0,
         "fdas_belief_rematerializations": 0,
         "fdas_belief_conflict_model_priors": 0,
@@ -6029,6 +6063,45 @@ async def _play(run_dir, manifest, context):
                             fdas_shadow = fdas_runtime.evaluate_shadow(
                                 snapshot,
                                 impact_planner.last_candidate_catalog)
+                    replacement_candidates = (
+                        () if fdas_shadow is None else tuple(
+                            value for value in fdas_shadow.candidates
+                            if value.operation.operation_type
+                            == "fdas-defense:coordinated-replacement"))
+                    if (replacement_candidates
+                            and fdas_replacement_readout_evaluator is not None):
+                        replacement_revision = (
+                            fdas_store.current_dependent_revision(
+                                manifest["game_id"], player_id))
+                        replacement_readout = (
+                            fdas_replacement_readout_evaluator.evaluate(
+                                snapshot, replacement_revision,
+                                fdas_shadow.candidates))
+                        decision_stats[
+                            "fdas_replacement_readout_evaluations"] += 1
+                        decision_stats[
+                            "fdas_replacement_readout_candidates"] += (
+                                replacement_readout
+                                .replacement_candidate_count)
+                        decision_stats[
+                            "fdas_replacement_readout_direct_controls"] += (
+                                replacement_readout.direct_candidate_count)
+                        decision_stats[
+                            "fdas_replacement_readout_grounded_pairs"] += len(
+                                replacement_readout.pairs)
+                        decision_stats[
+                            "fdas_replacement_readout_rejections"] += len(
+                                replacement_readout.rejected)
+                        decision_stats[
+                            "fdas_replacement_readout_abstentions"] += int(
+                                replacement_readout.status == "abstained")
+                        replacement_readout_event = (
+                            fdas_runtime
+                            .emit_coordinated_replacement_candidate_readout(
+                                writer, snapshot, replacement_readout,
+                                caused_by=(parent,)))
+                        if replacement_readout_event is not None:
+                            parent = replacement_readout_event["event_id"]
                     if fdas_shadow is not None:
                         fdas_shadow_events = fdas_runtime.emit_shadow(
                             writer, snapshot, fdas_shadow,
@@ -8434,6 +8507,18 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_replacement_completions"]),
         ("fdas_replacement_expirations",
          decision_stats["fdas_replacement_expirations"]),
+        ("fdas_replacement_readout_evaluations",
+         decision_stats["fdas_replacement_readout_evaluations"]),
+        ("fdas_replacement_readout_candidates",
+         decision_stats["fdas_replacement_readout_candidates"]),
+        ("fdas_replacement_readout_direct_controls",
+         decision_stats["fdas_replacement_readout_direct_controls"]),
+        ("fdas_replacement_readout_grounded_pairs",
+         decision_stats["fdas_replacement_readout_grounded_pairs"]),
+        ("fdas_replacement_readout_rejections",
+         decision_stats["fdas_replacement_readout_rejections"]),
+        ("fdas_replacement_readout_abstentions",
+         decision_stats["fdas_replacement_readout_abstentions"]),
         ("fdas_belief_decay_revisions",
          decision_stats["fdas_belief_decay_revisions"]),
         ("fdas_belief_rematerializations",
@@ -9125,6 +9210,18 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_replacement_completions"]),
             "fdas_replacement_expirations": (
                 decision_stats["fdas_replacement_expirations"]),
+            "fdas_replacement_readout_evaluations": (
+                decision_stats["fdas_replacement_readout_evaluations"]),
+            "fdas_replacement_readout_candidates": (
+                decision_stats["fdas_replacement_readout_candidates"]),
+            "fdas_replacement_readout_direct_controls": (
+                decision_stats["fdas_replacement_readout_direct_controls"]),
+            "fdas_replacement_readout_grounded_pairs": (
+                decision_stats["fdas_replacement_readout_grounded_pairs"]),
+            "fdas_replacement_readout_rejections": (
+                decision_stats["fdas_replacement_readout_rejections"]),
+            "fdas_replacement_readout_abstentions": (
+                decision_stats["fdas_replacement_readout_abstentions"]),
             "fdas_belief_decay_revisions": (
                 decision_stats["fdas_belief_decay_revisions"]),
             "fdas_belief_rematerializations": (
@@ -9675,6 +9772,18 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_replacement_completions"]),
         "fdas_replacement_expirations": (
             decision_stats["fdas_replacement_expirations"]),
+        "fdas_replacement_readout_evaluations": (
+            decision_stats["fdas_replacement_readout_evaluations"]),
+        "fdas_replacement_readout_candidates": (
+            decision_stats["fdas_replacement_readout_candidates"]),
+        "fdas_replacement_readout_direct_controls": (
+            decision_stats["fdas_replacement_readout_direct_controls"]),
+        "fdas_replacement_readout_grounded_pairs": (
+            decision_stats["fdas_replacement_readout_grounded_pairs"]),
+        "fdas_replacement_readout_rejections": (
+            decision_stats["fdas_replacement_readout_rejections"]),
+        "fdas_replacement_readout_abstentions": (
+            decision_stats["fdas_replacement_readout_abstentions"]),
         "fdas_belief_decay_revisions": (
             decision_stats["fdas_belief_decay_revisions"]),
         "fdas_belief_rematerializations": (

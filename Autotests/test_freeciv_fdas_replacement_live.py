@@ -1,6 +1,9 @@
 import json
 
 from freeciv.harness.fdas_replacement_live import audit_fdas_replacement_live
+from freeciv.harness.fdas_replacement_readout_live import (
+    audit_fdas_replacement_readout_live,
+)
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
 
@@ -136,6 +139,103 @@ def _fixture(tmp_path, with_operation=True):
         caused_by=(() if parent is None else (parent,)))
 
 
+def _add_candidate_readout(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "coordinated_replacement_candidate_readout"] = "shadow-live"
+    activation["coordinated_replacement_candidate_readout_diagnostic"] = {
+        "action_selection_changed": False,
+        "combined_native_route_grounding_required": True,
+        "direct_control_semantics": "protected-source-garrison-direct-move",
+        "policy_authority": False,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+
+    pair = {
+        "combined_estimated_turns": 2,
+        "combined_movement_cost": 2,
+        "direct_action_key": "direct-action",
+        "direct_operation_id": "direct-proof",
+        "direct_unsafe_reason": "protected-source-garrison",
+        "lifecycle_operation_id": "replacement-proof",
+        "replacement_action_key": "replacement-action",
+        "replacement_actor_id": 8,
+        "replacement_estimated_turns": 1,
+        "replacement_movement_cost": 1,
+        "replacement_operation_id": "replacement-proof",
+        "reinforcement_actor_id": 7,
+        "reinforcement_estimated_turns": 1,
+        "reinforcement_movement_cost": 1,
+        "requirement_context_hash": "requirement-proof",
+        "safe_chain_grounded": True,
+        "source_city_id": 3,
+        "target_city_id": 4,
+    }
+    pair["result_hash"] = structural_hash(pair)
+    details = {
+        "action_selection_changed": False,
+        "candidate_recall_changed": True,
+        "direct_candidate_count": 1,
+        "identity": "fdas-coordinated-replacement-candidate-readout/1.0",
+        "pairs": [pair],
+        "policy_authority": False,
+        "readout_authority": False,
+        "reason": "grounded-safe-chain-recalled",
+        "rejected": [],
+        "replacement_candidate_count": 1,
+        "revision_id": "revision-1",
+        "snapshot_id": "snapshot-4",
+        "status": "eligible-shadow",
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    details["result_hash"] = structural_hash(details)
+    payload = {
+        "component_id": "fdas-coordinated-replacement-candidate-readout",
+        "component_version": "1.0",
+        "details": details,
+        "revision_id": "revision-1",
+        "ruleset_digest": "ruleset-proof",
+        "snapshot_id": "snapshot-4",
+    }
+    payload["structural_hash"] = structural_hash(payload)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    readout_event = {
+        **events[-1],
+        "caused_by": [events[0]["event_id"]],
+        "event_id": "event-readout",
+        "payload": payload,
+        "seq": 1,
+        "type": "atomspace_shadow_decision",
+    }
+    events[-1]["caused_by"] = ["event-readout"]
+    events[-1]["seq"] = 2
+    counters = {
+        "fdas_replacement_readout_abstentions": 0,
+        "fdas_replacement_readout_candidates": 1,
+        "fdas_replacement_readout_direct_controls": 1,
+        "fdas_replacement_readout_evaluations": 1,
+        "fdas_replacement_readout_grounded_pairs": 1,
+        "fdas_replacement_readout_rejections": 0,
+    }
+    events[-1]["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n"
+                for row in (events[0], readout_event, events[-1])),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def test_replacement_live_accepts_observed_shadow_lifecycle(tmp_path):
     _fixture(tmp_path)
 
@@ -174,3 +274,14 @@ def test_replacement_live_rejects_authority_leak(tmp_path):
     assert report["acceptance"]["accepted"] is False
     assert report["acceptance"]["checks"][
         "lifecycle_events_are_revision_bound_and_non_authorizing"] is False
+
+
+def test_replacement_readout_live_accepts_grounded_safe_chain(tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+
+    report = audit_fdas_replacement_readout_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["grounded_pairs"] == 1
+    assert report["summary"]["replacement_candidates"] == 1

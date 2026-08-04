@@ -12,6 +12,7 @@ if SRC not in sys.path:
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     FdasCoordinatedReplacementAdapter,
+    FdasCoordinatedReplacementReadoutEvaluator,
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
     OperationSpec,
@@ -124,6 +125,32 @@ def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof"):
         structural_hash(semantic))
 
 
+def _direct_candidate(snapshot, operation_id="fdas-direct-move-proof"):
+    participants = (
+        OperationParticipant("reinforcement", "7", "unit", True),)
+    steps = (
+        OperationStep(
+            "step-direct", "unit_move", "reinforcement", "city:4",
+            "requirements-direct", "reinforcement-at-target", 3),)
+    spec = OperationSpec(
+        OPERATION_SCHEMA_VERSION, operation_id,
+        "fdas-shadow:city-garrison-deficit:unit_move",
+        ("pf-impact:survival",), participants, "city:4", steps,
+        snapshot.turn, snapshot.turn + 3, 0.0,
+        ("fdas-shadow-candidate-factory/1.0",), "ruleset-proof")
+    action_key = next(
+        value for value in snapshot.legal_action_json
+        if json.loads(value).get("actor_id") == 7)
+    action = json.loads(action_key)
+    semantic = {"action_key": action_key, "operation": spec.to_dict()}
+    return ShadowOperationCandidate(
+        spec, action, action_key, ("unit-action:7:current",),
+        True, False,
+        ("protected-source-garrison", "uncompiled-action-effect"),
+        ("fdas-shadow-candidate-factory/1.0",),
+        structural_hash(semantic))
+
+
 def test_replacement_deduplicates_snapshot_specific_operation_ids():
     payload = _payload(12)
     payload["legal_actions"] = [_move(8, 2)]
@@ -144,6 +171,72 @@ def test_replacement_deduplicates_snapshot_specific_operation_ids():
     assert updates[-1].operation_id == "replacement-a"
     assert adapter.lifecycle_key(store.records()[0].spec) == (
         8, 7, "city:3", "city:4")
+
+
+def test_replacement_readout_recalls_grounded_chain_without_value_claim():
+    payload = _payload(12)
+    payload["legal_actions"] = [_move(8, 2), _move(7, 3)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 508),
+        _route(7, 82, 84, 83, 12, 508),
+    ]
+    snapshot = _snapshot(payload, 508)
+    store = OperationStore("fdas-replacement:readout-proof")
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+    replacement = _candidate(snapshot)
+    direct = _direct_candidate(snapshot)
+    adapter.reconcile(snapshot, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            store, adapter.bindings,
+            adapter.requirement_contexts)).build(snapshot)
+
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(snapshot, revision, (replacement, direct))
+
+    assert readout.status == "eligible-shadow"
+    assert readout.to_dict()["action_selection_changed"] is False
+    assert readout.to_dict()["transition_value_estimated"] is False
+    assert len(readout.pairs) == 1
+    pair = readout.pairs[0]
+    assert pair.replacement_actor_id == 8
+    assert pair.reinforcement_actor_id == 7
+    assert pair.source_city_id == 3
+    assert pair.target_city_id == 4
+    assert pair.combined_estimated_turns == 2
+    assert pair.combined_movement_cost == 2
+    assert pair.to_dict()["direct_unsafe_reason"] == (
+        "protected-source-garrison")
+
+
+def test_replacement_readout_abstains_when_source_coverage_is_not_current():
+    payload = _payload(
+        12, replacement_tile=81, replacement_x=1,
+        reinforcement_tile=83, reinforcement_x=3)
+    payload["legal_actions"] = [_move(8, 2), _move(7, 4)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 509),
+        _route(7, 83, 84, 84, 12, 509),
+    ]
+    snapshot = _snapshot(payload, 509)
+    store = OperationStore("fdas-replacement:readout-blocked")
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+    replacement = _candidate(snapshot)
+    direct = _direct_candidate(snapshot)
+    adapter.reconcile(snapshot, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            store, adapter.bindings,
+            adapter.requirement_contexts)).build(snapshot)
+
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(snapshot, revision, (replacement, direct))
+
+    assert readout.status == "abstained"
+    assert readout.pairs == ()
+    assert readout.rejected == (
+        replacement.operation.operation_id
+        + ":current-step-not-reservable",)
 
 
 def test_two_step_replacement_persists_refreshes_and_completes_exactly():

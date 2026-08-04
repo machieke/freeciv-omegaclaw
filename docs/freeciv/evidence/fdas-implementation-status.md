@@ -1100,3 +1100,14 @@ operations do not enter the direct move/fortify scalar choice surface. A
 protected multi-step readout representation is required before they can
 increase preference yield. See
 `fdas-pr77-coordinated-replacement-live-wiring.md` and its JSON report.
+
+PR78 begins the next bounded readout step without contaminating the calibrated
+direct move/fortify surface. A separately gated component pairs a protected
+direct reinforcement move with its durable coordinated replacement only when
+the current lifecycle is reservable, its binding and RequirementSet context
+are current and unblocked, both native routes are authoritative, and combined
+ETA/cost compose exactly. The component recalls the safe chain but estimates
+no transition value and grants no readout, policy, truth, or action authority.
+Known seed `109459` is frozen to require at least one real grounded pair before
+any fresh-seed recall study. See
+`fdas-pr78-coordinated-replacement-candidate-readout-preregistration.md`.
