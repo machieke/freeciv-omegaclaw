@@ -138,6 +138,46 @@ def test_replacement_capacity_declaration_fails_closed_on_authority_drift():
         build_runtime(declaration)
 
 
+def test_replacement_capacity_production_declaration_fails_closed_on_relief():
+    declaration = _enabled_city_declaration()
+    declaration["manifest"]["capabilities"][
+        "replacement_capacity_demand"] = "shadow-live"
+    declaration["manifest"]["replacement_capacity_demand_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "policy_authority": False,
+        "precondition": (
+            "cross-city-critical-reinforcement-without-spare"),
+        "truth_mutated": False,
+    }
+    declaration["manifest"]["capabilities"][
+        "replacement_capacity_production_operation"] = "shadow-live"
+    declaration["manifest"][
+        "replacement_capacity_production_operation_diagnostic"] = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "completion_semantics": (
+                "queue-selection-then-authoritative-product-observation"),
+            "maximum_observation_horizon_turns": 64,
+            "policy_authority": False,
+            "queue_selection_is_goal_relief": True,
+            "resource_semantics": (
+                "exact-current-and-conditional-future-claims"),
+            "truth_mutated": False,
+        }
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+
+    with pytest.raises(
+            FdasRuntimeConfigurationError,
+            match=(
+                "replacement capacity production operation declaration "
+                "differs")):
+        build_runtime(declaration)
+
+
 def test_calibrated_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

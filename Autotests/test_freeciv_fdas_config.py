@@ -327,6 +327,46 @@ def test_replacement_capacity_manifest_is_additive_and_shadow_only():
     }
 
 
+def test_replacement_capacity_production_operation_is_additive_and_delayed():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_capacity_production_operation_"
+            "shadow.json"), encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_capacity_shadow.json"),
+            encoding="utf-8") as stream:
+        parent = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    additive = copy.deepcopy(manifest)
+    assert additive["capabilities"].pop(
+        "replacement_capacity_production_operation") == "shadow-live"
+    diagnostic = additive.pop(
+        "replacement_capacity_production_operation_diagnostic")
+
+    assert config.enabled is True
+    assert additive == parent
+    assert diagnostic == {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "completion_semantics": (
+            "queue-selection-then-authoritative-product-observation"),
+        "maximum_observation_horizon_turns": 64,
+        "policy_authority": False,
+        "queue_selection_is_goal_relief": False,
+        "resource_semantics": (
+            "exact-current-and-conditional-future-claims"),
+        "truth_mutated": False,
+    }
+
+
 def test_scalar_baseline_readout_profile_has_distinct_control_semantics():
     with open(os.path.join(
             REPO, "profile",

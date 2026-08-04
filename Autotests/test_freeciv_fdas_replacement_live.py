@@ -23,6 +23,12 @@ from freeciv.harness.fdas_replacement_capacity_cohort import (
 from freeciv.harness.fdas_replacement_capacity_live import (
     audit_fdas_replacement_capacity_live,
 )
+from freeciv.harness.fdas_replacement_capacity_production_cohort import (
+    audit_fdas_replacement_capacity_production_cohort,
+)
+from freeciv.harness.fdas_replacement_capacity_production_live import (
+    audit_fdas_replacement_capacity_production_live,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
@@ -430,6 +436,70 @@ def _add_replacement_capacity_evidence(tmp_path):
     _write_json(status_path, status)
 
 
+def _add_replacement_capacity_production_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "replacement_capacity_production_operation"] = "shadow-live"
+    activation["replacement_capacity_production_operation_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "completion_semantics": (
+            "queue-selection-then-authoritative-product-observation"),
+        "maximum_observation_horizon_turns": 64,
+        "policy_authority": False,
+        "queue_selection_is_goal_relief": False,
+        "resource_semantics": (
+            "exact-current-and-conditional-future-claims"),
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    candidate = next(
+        row for row in events
+        if (row["type"] == "operation_candidate_rejected"
+            and row["payload"].get("component_id")
+            == "fdas-goal-pressure-shadow"
+            and row["payload"]["details"].get("operation_type") == (
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production")))
+    candidate["payload"]["details"]["blockers"] = [
+        "delayed-production-completion-unobserved"]
+    candidate["payload"]["details"]["grounded_production_operation"] = {
+        "completion_eta": {
+            "earliest_completion_turn": candidate["turn"] + 1,
+            "latest_completion_turn": candidate["turn"] + 2,
+        },
+        "initial_step_index": 0,
+        "model_artifact_hash": "grounded-model-hash",
+        "policy_authority": False,
+        "queue_selection_is_goal_relief": False,
+        "requirement_set_id": "replacement-production-requirements",
+        "resource_claim_count": 3,
+        "shadow_only": True,
+        "step_count": 2,
+    }
+    semantic = dict(candidate["payload"])
+    semantic.pop("structural_hash", None)
+    candidate["payload"]["structural_hash"] = structural_hash(semantic)
+    counters = {
+        "fdas_replacement_capacity_grounded_production_operations": 1,
+        "fdas_replacement_capacity_production_model_abstentions": 0,
+    }
+    events[-1]["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
 def _add_reproposal_hardening_evidence(tmp_path):
     events_path = tmp_path / "events.jsonl"
     events = [json.loads(line) for line in events_path.read_text(
@@ -828,3 +898,32 @@ def test_replacement_capacity_cohort_audits_shadow_recall(tmp_path):
     assert report["summary"]["evaluation_count"] == 2
     assert report["summary"]["capacity_deficit_goal_count"] == 2
     assert report["summary"]["capacity_production_candidate_count"] == 2
+
+
+def test_replacement_capacity_production_cohort_audits_delayed_grounding(
+        tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103, 107, 109):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+        _add_opportunity_funnel(game_dir)
+        _add_replacement_capacity_evidence(game_dir)
+        _add_replacement_capacity_production_evidence(game_dir)
+        live = audit_fdas_replacement_capacity_production_live(str(game_dir))
+        assert live["acceptance"]["accepted"] is True
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 4, "infrastructure_failures": 0,
+        "jobs": 4, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_capacity_production_cohort(
+        str(run_dir), (101, 103, 107, 109),
+        expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["capacity_production_candidate_count"] == 4
+    assert report["summary"]["grounded_production_operation_count"] == 4
+    assert report["summary"]["production_model_abstention_count"] == 0

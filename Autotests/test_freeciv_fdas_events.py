@@ -123,7 +123,8 @@ def test_fdas_event_vocabulary_is_complete_and_unknown_type_fails():
         "atomspace_authority_decision",
         "episode_opened", "episode_effect_observed",
         "episode_relief_attributed", "episode_outcome_label_opened",
-        "episode_outcome_label_observed", "conductance_sample_recorded",
+        "episode_outcome_label_observed", "operation_outcome_label_opened",
+        "operation_outcome_label_observed", "conductance_sample_recorded",
         "induced_rule_quarantined", "induced_rule_promoted",
         "induced_rule_demoted",
     }

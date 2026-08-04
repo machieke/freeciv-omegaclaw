@@ -735,6 +735,9 @@ def test_replacement_capacity_demand_routes_source_defender_production(ir):
         "production_value": 10,
         "target": {"production_type": "Riflemen"},
     })
+    payload["cities"]["3"]["buildability"]["unit_ids"].append(10)
+    payload["cities"]["3"]["buildability"]["options"].append({
+        "type": "unit", "id": 10, "name": "Riflemen"})
     payload["authoritative"]["movement_routes"] = [
         _native_route(7, 84, 472)]
     snapshot = _snapshot(payload, 472)
@@ -770,6 +773,50 @@ def test_replacement_capacity_demand_routes_source_defender_production(ir):
     assert candidates[0].operation.target_ref == "city:3"
     assert candidates[0].resource_keys == ("city-production-slot:3",)
     assert candidates[0].authority_eligible is False
+
+    grounded_candidates = tuple(
+        value for value in CandidateOperationFactory(
+            ir, ruleset_digest(ir),
+            replacement_capacity_production_operations_enabled=True,
+        ).instantiate(snapshot, goals, revision)
+        if value.operation.operation_type == (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+    grounded = grounded_candidates[0]
+    assembly = grounded.production_assembly
+    artifact = assembly.model_artifact
+
+    assert len(grounded_candidates) == 1
+    assert grounded.authority_eligible is False
+    assert grounded.blockers == (
+        "delayed-production-completion-unobserved",)
+    assert grounded.action == assembly.queue_action()
+    assert grounded.operation == assembly.spec
+    assert len(grounded.operation.steps) == 2
+    assert [value.action_type for value in grounded.operation.steps] == [
+        "city_production", "observe_production_completion"]
+    assert [value.completion_predicate_id
+            for value in grounded.operation.steps] == [
+        "production:queue-selected", "production:product-observed"]
+    assert assembly.shadow_only is True
+    assert assembly.policy_authority is False
+    assert artifact["availability"]["product_available_now"] is False
+    assert artifact["availability"]["queueable_now"] is True
+    assert artifact["availability"][
+        "requires_completion_observation"] is True
+    assert artifact["availability"][
+        "unit_under_construction_is_participant"] is False
+    assert artifact["completion_eta"]["latest_completion_turn"] is not None
+    assert artifact["current_production"]["same_target"] is False
+    assert assembly.requirement_set.complete(
+        dict(assembly.initial_premise_packets))
+    assert len(assembly.requirement_set.premise_ids) == 6
+    assert any(
+        value.hardness.value == "hard_current"
+        for value in assembly.resource_request.claims)
+    assert any(
+        value.hardness.value == "conditional_future"
+        for value in assembly.resource_request.claims)
+    assert grounded.to_dict()["production_assembly"] == assembly.to_dict()
 
     replacement = copy.deepcopy(payload["units"]["7"])
     replacement.update({
@@ -807,3 +854,90 @@ def test_replacement_capacity_demand_routes_source_defender_production(ir):
 
     assert "city-replacement-capacity-deficit" not in _predicates(ready)
     assert "city-replacement-capacity-ready" in _predicates(ready)
+
+
+def test_replacement_capacity_production_retains_queue_and_abstains_closed(ir):
+    payload = _payload()
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({"id": 4, "name": "Antium", "tile": 84, "x": 4, "y": 2})
+    payload["cities"]["4"] = target
+    payload["units"]["7"]["transported"] = False
+    payload["cities"]["3"]["production_kind"] = 6
+    payload["cities"]["3"]["production_value"] = 10
+    action = {
+        "action_type": "city_production",
+        "city_id": 3,
+        "is_valid": True,
+        "production_kind": 6,
+        "production_value": 10,
+        "target": {"production_type": "Riflemen"},
+    }
+    payload["legal_actions"].append(action)
+    payload["cities"]["3"]["buildability"]["unit_ids"].append(10)
+    payload["cities"]["3"]["buildability"]["options"].append({
+        "type": "unit", "id": 10, "name": "Riflemen"})
+    payload["authoritative"]["movement_routes"] = [
+        _native_route(7, 84, 474)]
+    snapshot = _snapshot(payload, 474)
+    store = DependentAtomSpaceStore(domain_projector=UnitDefenseProjector(
+        ir, ruleset_digest(ir), replacement_capacity_enabled=True))
+    revision = store.build(snapshot)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+    default = CandidateOperationFactory(
+        ir, ruleset_digest(ir)).instantiate(snapshot, goals, revision)
+    grounded = CandidateOperationFactory(
+        ir, ruleset_digest(ir),
+        replacement_capacity_production_operations_enabled=True,
+    ).instantiate(snapshot, goals, revision)
+    capacity = tuple(
+        value for value in grounded
+        if value.operation.operation_type == (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+
+    assert not any(
+        value.operation.operation_type == (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production")
+        for value in default)
+    assert len(capacity) == 1
+    assert capacity[0].production_assembly.initial_step_index == 1
+    assert not any(
+        value.hardness.value == "hard_current"
+        for value in capacity[0].production_assembly.resource_request.claims)
+    assert any(
+        value.hardness.value == "conditional_future"
+        for value in capacity[0].production_assembly.resource_request.claims)
+    assert capacity[0].blockers == (
+        "delayed-production-completion-unobserved",)
+
+    broken_payload = copy.deepcopy(payload)
+    broken_payload["cities"]["3"]["buildability"]["unit_ids"].remove(10)
+    broken_payload["cities"]["3"]["buildability"]["options"] = [
+        value for value
+        in broken_payload["cities"]["3"]["buildability"]["options"]
+        if value["id"] != 10]
+    broken_payload["authoritative"]["source_seq"] = 475
+    broken_payload["authoritative"]["movement_routes"][0]["source_seq"] = 475
+    broken_snapshot = _snapshot(broken_payload, 475)
+    broken_store = DependentAtomSpaceStore(
+        domain_projector=UnitDefenseProjector(
+            ir, ruleset_digest(ir), replacement_capacity_enabled=True))
+    broken_revision = broken_store.build(broken_snapshot)
+    broken_goals = GoalFactory().instantiate(
+        broken_revision,
+        broken_store.query_current(
+            broken_snapshot.identity.game_id, broken_snapshot.player_id),
+    )
+    broken = tuple(
+        value for value in CandidateOperationFactory(
+            ir, ruleset_digest(ir),
+            replacement_capacity_production_operations_enabled=True,
+        ).instantiate(broken_snapshot, broken_goals, broken_revision)
+        if value.operation.operation_type == (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+
+    assert len(broken) == 1
+    assert broken[0].production_assembly is None
+    assert broken[0].blockers == ("grounded-production-model-abstained",)

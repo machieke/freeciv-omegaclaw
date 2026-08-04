@@ -1303,3 +1303,16 @@ capacity-specific delayed defender-production operation with exact queue
 semantics, production ETA, RequirementSets, and shadow outcome observation—not
 a generic effect waiver or an authority change. See
 `fdas-pr88-replacement-capacity.md` and its JSON report.
+
+PR89 implements and preregisters that bounded delayed-production slice. Behind
+an independent shadow-only gate, replacement-capacity production candidates
+reuse the existing grounded production transition model and enabling-operation
+assembler. A grounded route now carries an exact two-step queue/observation
+operation, a six-premise RequirementSet with complete initial packets,
+ruleset-grounded target/ETA evidence, and hard-current plus conditional-future
+resource claims. Matching current queues are represented as retained step-1
+operations. Missing inputs abstain explicitly. Every route remains blocked by
+`delayed-production-completion-unobserved`, grants zero immediate goal relief,
+and has no candidate, readout, policy, or action authority. The fixed fresh
+16-game engine confirmation and strict byte-stable aggregate audit are pending;
+see `fdas-pr89-replacement-capacity-production-preregistration.md`.

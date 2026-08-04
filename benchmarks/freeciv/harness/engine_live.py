@@ -2813,6 +2813,36 @@ async def _play(run_dir, manifest, context):
                 != expected_replacement_capacity):
             raise RuntimeError(
                 "FDAS replacement capacity demand declaration differs")
+    replacement_capacity_production_operation_capability = (
+        fdas_manifest["capabilities"].get(
+            "replacement_capacity_production_operation"))
+    replacement_capacity_production_operation_diagnostic = fdas_manifest.get(
+        "replacement_capacity_production_operation_diagnostic")
+    replacement_capacity_production_operation_enabled = bool(
+        replacement_capacity_production_operation_capability is not None
+        or replacement_capacity_production_operation_diagnostic is not None)
+    if replacement_capacity_production_operation_enabled:
+        expected_replacement_capacity_production_operation = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "completion_semantics": (
+                "queue-selection-then-authoritative-product-observation"),
+            "maximum_observation_horizon_turns": 64,
+            "policy_authority": False,
+            "queue_selection_is_goal_relief": False,
+            "resource_semantics": (
+                "exact-current-and-conditional-future-claims"),
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_enabled
+                or replacement_capacity_production_operation_capability
+                != "shadow-live"
+                or replacement_capacity_production_operation_diagnostic
+                != expected_replacement_capacity_production_operation
+        ):
+            raise RuntimeError(
+                "FDAS replacement capacity production operation differs")
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4533,6 +4563,8 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_evaluations": 0,
         "fdas_replacement_capacity_deficit_goals": 0,
         "fdas_replacement_capacity_production_candidates": 0,
+        "fdas_replacement_capacity_grounded_production_operations": 0,
+        "fdas_replacement_capacity_production_model_abstentions": 0,
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -6441,6 +6473,11 @@ async def _play(run_dir, manifest, context):
                         if evaluate_fdas_shadow else None)
                     if (fdas_shadow is not None
                             and replacement_capacity_enabled):
+                        capacity_production_candidates = tuple(
+                            value for value in fdas_shadow.candidates
+                            if value.operation.operation_type == (
+                                "fdas-shadow:city-replacement-capacity-"
+                                "deficit:city_production"))
                         decision_stats[
                             "fdas_replacement_capacity_evaluations"] += 1
                         decision_stats[
@@ -6450,12 +6487,21 @@ async def _play(run_dir, manifest, context):
                                 for value in fdas_shadow.goals)
                         decision_stats[
                             "fdas_replacement_capacity_production_candidates"
-                        ] += sum(
-                            value.operation.operation_type
-                            == (
-                                "fdas-shadow:city-replacement-capacity-deficit:"
-                                "city_production")
-                            for value in fdas_shadow.candidates)
+                        ] += len(capacity_production_candidates)
+                        if replacement_capacity_production_operation_enabled:
+                            grounded_production_count = sum(
+                                value.production_assembly is not None
+                                for value in capacity_production_candidates)
+                            decision_stats[
+                                "fdas_replacement_capacity_grounded_"
+                                "production_operations"
+                            ] += grounded_production_count
+                            decision_stats[
+                                "fdas_replacement_capacity_production_model_"
+                                "abstentions"
+                            ] += (
+                                len(capacity_production_candidates)
+                                - grounded_production_count)
                     if (fdas_shadow is not None
                             and reconcile_fdas_replacement is not None):
                         replacement_updates, replacement_changed = (
@@ -9303,6 +9349,12 @@ async def _play(run_dir, manifest, context):
         ("fdas_replacement_capacity_production_candidates",
          decision_stats[
              "fdas_replacement_capacity_production_candidates"]),
+        ("fdas_replacement_capacity_grounded_production_operations",
+         decision_stats[
+             "fdas_replacement_capacity_grounded_production_operations"]),
+        ("fdas_replacement_capacity_production_model_abstentions",
+         decision_stats[
+             "fdas_replacement_capacity_production_model_abstentions"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10065,6 +10117,12 @@ async def _play(run_dir, manifest, context):
             "fdas_replacement_capacity_production_candidates": (
                 decision_stats[
                     "fdas_replacement_capacity_production_candidates"]),
+            "fdas_replacement_capacity_grounded_production_operations": (
+                decision_stats[
+                    "fdas_replacement_capacity_grounded_production_operations"]),
+            "fdas_replacement_capacity_production_model_abstentions": (
+                decision_stats[
+                    "fdas_replacement_capacity_production_model_abstentions"]),
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -10686,6 +10744,12 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_capacity_production_candidates": (
             decision_stats[
                 "fdas_replacement_capacity_production_candidates"]),
+        "fdas_replacement_capacity_grounded_production_operations": (
+            decision_stats[
+                "fdas_replacement_capacity_grounded_production_operations"]),
+        "fdas_replacement_capacity_production_model_abstentions": (
+            decision_stats[
+                "fdas_replacement_capacity_production_model_abstentions"]),
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

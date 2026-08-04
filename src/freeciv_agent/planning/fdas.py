@@ -54,6 +54,7 @@ class ShadowOperationCandidate:
     blockers: tuple
     provenance: tuple
     candidate_hash: str
+    production_assembly: object = None
 
     def __post_init__(self):
         if not isinstance(self.action, dict):
@@ -65,6 +66,27 @@ class ShadowOperationCandidate:
         object.__setattr__(self, "resource_keys", tuple(self.resource_keys))
         object.__setattr__(self, "blockers", tuple(self.blockers))
         object.__setattr__(self, "provenance", tuple(self.provenance))
+        if self.production_assembly is not None:
+            from .production_operations import ProductionOperationAssembly
+            if not isinstance(
+                    self.production_assembly, ProductionOperationAssembly):
+                raise TypeError(
+                    "shadow production evidence must be a grounded assembly")
+            if (
+                    self.operation != self.production_assembly.spec
+                    or self.action != self.production_assembly.queue_action()
+            ):
+                raise ValueError(
+                    "shadow production candidate and assembly differ")
+            if (
+                    self.authority_eligible
+                    or not self.production_assembly.shadow_only
+                    or self.production_assembly.policy_authority
+                    or "delayed-production-completion-unobserved"
+                    not in self.blockers
+            ):
+                raise ValueError(
+                    "grounded production candidate overstates delayed authority")
         if self.authority_eligible:
             target = self.action.get("target")
             reserve = (
@@ -137,6 +159,9 @@ class ShadowOperationCandidate:
             "legal_bound": self.legal_bound,
             "operation": self.operation.to_dict(),
             "provenance": list(self.provenance),
+            "production_assembly": (
+                None if self.production_assembly is None
+                else self.production_assembly.to_dict()),
             "resource_keys": list(self.resource_keys),
         }
 
@@ -391,9 +416,11 @@ class CandidateOperationFactory(object):
         "research-throughput-stalled": frozenset(("tech_research",)),
     }
     _GARRISON_POLICY_LIMIT = 3
+    _REPLACEMENT_CAPACITY_COMPLETION_HORIZON_TURNS = 64
 
     def __init__(self, ruleset_ir, ruleset_digest,
-                 maximum_unprotected_candidates_per_goal=8):
+                 maximum_unprotected_candidates_per_goal=8,
+                 replacement_capacity_production_operations_enabled=False):
         if (isinstance(maximum_unprotected_candidates_per_goal, bool)
                 or not isinstance(
                     maximum_unprotected_candidates_per_goal, int)
@@ -404,6 +431,12 @@ class CandidateOperationFactory(object):
         self.ruleset_digest = str(ruleset_digest)
         self.maximum_unprotected_candidates_per_goal = (
             maximum_unprotected_candidates_per_goal)
+        if not isinstance(
+                replacement_capacity_production_operations_enabled, bool):
+            raise TypeError(
+                "replacement capacity production operation gate must be boolean")
+        self.replacement_capacity_production_operations_enabled = (
+            replacement_capacity_production_operations_enabled)
         self._schemas = dict(
             (schema.action_type, schema)
             for schema in ruleset_ir.action_schemas)
@@ -452,10 +485,12 @@ class CandidateOperationFactory(object):
                 city = snapshot.city(city_id)
                 return bool(
                     city is not None
-                    and not (
+                    and (
+                        self.replacement_capacity_production_operations_enabled
+                        or not (
                         action.get("production_kind") == city.production_kind
                         and action.get("production_value")
-                        == city.production_value))
+                        == city.production_value)))
             if goal.deficit_predicate == "city-garrison-deficit":
                 if action.get("action_type") != "unit_move" or snapshot is None:
                     return False
@@ -543,6 +578,111 @@ class CandidateOperationFactory(object):
         elif removal.value["creates_deficit"] is True:
             blockers.append("protected-source-garrison")
         return tuple(sorted(set(blockers)))
+
+    def _replacement_capacity_production_assembly(
+            self, snapshot, goal, action, action_key):
+        """Ground queue selection without equating it to defender delivery."""
+        from .domain_models import (
+            DomainEstimateRequest,
+            EstimateAuthority,
+            EstimateValidity,
+            GroundedProductionTransitionModel,
+        )
+        from .impact import ImpactCandidate
+        from .production_operations import (
+            ProductionEnablingIntent,
+            ProductionEnablingOperationAssembler,
+        )
+
+        target = action.get("target")
+        target_name = (
+            target.get("production_type")
+            if isinstance(target, dict) else None)
+        fields = (
+            action.get("city_id"),
+            action.get("production_kind"),
+            action.get("production_value"),
+        )
+        if (
+                not isinstance(target_name, str)
+                or not target_name
+                or any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    for value in fields)
+        ):
+            return None, ("grounded-production-action-shape-invalid",)
+        deadline = (
+            int(snapshot.turn)
+            + self._REPLACEMENT_CAPACITY_COMPLETION_HORIZON_TURNS)
+        request_id = structural_hash({
+            "action_key": action_key,
+            "component": "fdas-replacement-capacity-production/1.0",
+            "goal_id": goal.goal.goal_id,
+            "legal_actions_digest": snapshot.legal_actions_digest,
+            "ruleset_digest": self.ruleset_digest,
+            "snapshot_id": snapshot.snapshot_id,
+        })
+        candidate = ImpactCandidate(
+            action=dict(action),
+            category="production_defense",
+            utility=float(goal.goal.weight_basis),
+            rationale="grounded replacement-capacity shadow route",
+            projection={})
+        request = DomainEstimateRequest(
+            request_id=request_id,
+            snapshot=snapshot,
+            ruleset_ir=self.ruleset_ir,
+            legal_action=dict(action),
+            candidate=candidate,
+            goal_losses=((goal.goal.goal_id, 1.0),),
+            operation_context=None,
+            validity=EstimateValidity(
+                snapshot_id=snapshot.snapshot_id,
+                legal_actions_digest=snapshot.legal_actions_digest,
+                ruleset_digest=self.ruleset_digest,
+                estimated_at_turn=int(snapshot.turn),
+                valid_through_turn=int(snapshot.turn)),
+            horizon_turn=deadline)
+        estimate = GroundedProductionTransitionModel().estimate(request)
+        if estimate.authority == EstimateAuthority.ABSTAIN:
+            return None, ("grounded-production-model-abstained",)
+        artifact = estimate.to_dict().get("model_artifact")
+        if not isinstance(artifact, dict):
+            return None, ("grounded-production-model-abstained",)
+        eta = artifact.get("completion_eta")
+        if not isinstance(eta, dict):
+            return None, ("production-completion-eta-unavailable",)
+        latest_completion = eta.get("latest_completion_turn")
+        if (
+                isinstance(latest_completion, bool)
+                or not isinstance(latest_completion, int)
+        ):
+            return None, ("production-completion-eta-unavailable",)
+        if latest_completion > deadline:
+            return None, (
+                "production-completion-beyond-observation-horizon",)
+        intent = ProductionEnablingIntent(
+            operation_type=(
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production"),
+            city_id=int(fields[0]),
+            production_kind=int(fields[1]),
+            production_value=int(fields[2]),
+            target_name=target_name,
+            downstream_operation_id=(
+                "fdas-replacement-capacity:{}".format(
+                    goal.deficit_atom_id)),
+            completion_deadline_turn=deadline,
+            scheduling_bid=max(0.0, float(goal.goal.weight_basis)),
+            emergency=False)
+        assembly = ProductionEnablingOperationAssembler.assemble(
+            snapshot, intent, estimate, (goal.goal.goal_id,),
+            self.ruleset_digest)
+        if assembly is None:
+            return None, ("grounded-production-operation-unavailable",)
+        return assembly, ("delayed-production-completion-unobserved",)
 
     def _coordinated_replacement_candidates(
             self, snapshot, goal_contexts, revision):
@@ -839,15 +979,43 @@ class CandidateOperationFactory(object):
                          if route_window_grounded else ()),
                     self.ruleset_digest,
                 )
-                blockers = self._route_blockers(goal, action, snapshot)
+                production_assembly = None
+                if (
+                        self.replacement_capacity_production_operations_enabled
+                        and goal.deficit_predicate
+                        == "city-replacement-capacity-deficit"
+                        and action_type == "city_production"
+                ):
+                    production_assembly, blockers = (
+                        self._replacement_capacity_production_assembly(
+                            snapshot, goal, action, action_key))
+                    if production_assembly is not None:
+                        operation = production_assembly.spec
+                else:
+                    blockers = self._route_blockers(goal, action, snapshot)
                 if control_routed:
                     blockers = tuple(sorted(set(blockers).union((
                         "legacy-shadow-control-route-uncompiled",))))
+                provenance = (
+                    "fdas-city-economy-shadow/1.0",
+                    "ruleset-ir-action-schema/2.0",
+                ) + ((
+                    "fdas-replacement-capacity-production/1.0",
+                    "grounded-production-transition-model",
+                    "queue-selection-is-not-goal-relief",
+                    "authoritative-product-observation-required",
+                ) if production_assembly is not None else ()) + ((
+                    "legacy-impact-control-route/1.0",)
+                    if control_routed else ())
                 semantic = {
                     "action_key": action_key,
                     "blockers": list(blockers),
                     "goal_id": goal.goal.goal_id,
                     "operation": operation.to_dict(),
+                    "production_assembly": (
+                        None if production_assembly is None
+                        else production_assembly.to_dict()),
+                    "provenance": list(provenance),
                     "resource_keys": list(self._resource(
                         action, snapshot.player_id)),
                 }
@@ -859,12 +1027,9 @@ class CandidateOperationFactory(object):
                     action_key in snapshot.legal_action_json,
                     False,
                     blockers,
-                    (
-                        "fdas-city-economy-shadow/1.0",
-                        "ruleset-ir-action-schema/2.0",
-                    ) + (("legacy-impact-control-route/1.0",)
-                         if control_routed else ()),
+                    provenance,
                     structural_hash(semantic),
+                    production_assembly=production_assembly,
                 ))
         candidates.extend(self._coordinated_replacement_candidates(
             snapshot, goal_contexts, revision))

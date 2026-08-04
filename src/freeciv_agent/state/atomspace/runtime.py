@@ -1532,6 +1532,34 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
                 != expected_replacement_capacity):
             raise FdasRuntimeConfigurationError(
                 "replacement capacity demand declaration differs")
+    replacement_capacity_production_capability = manifest[
+        "capabilities"].get("replacement_capacity_production_operation")
+    replacement_capacity_production_diagnostic = manifest.get(
+        "replacement_capacity_production_operation_diagnostic")
+    replacement_capacity_production_enabled = bool(
+        replacement_capacity_production_capability is not None
+        or replacement_capacity_production_diagnostic is not None)
+    if replacement_capacity_production_enabled:
+        expected_replacement_capacity_production = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "completion_semantics": (
+                "queue-selection-then-authoritative-product-observation"),
+            "maximum_observation_horizon_turns": 64,
+            "policy_authority": False,
+            "queue_selection_is_goal_relief": False,
+            "resource_semantics": (
+                "exact-current-and-conditional-future-claims"),
+            "truth_mutated": False,
+        }
+        if (
+                not replacement_capacity_enabled
+                or replacement_capacity_production_capability != "shadow-live"
+                or replacement_capacity_production_diagnostic
+                != expected_replacement_capacity_production
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity production operation declaration differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:
         projectors.append(CityEconomyProjector(ruleset_ir, digest))
@@ -1621,7 +1649,10 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         from ...planning import CandidateOperationFactory, GoalFactory
         from ...pressure import DependentAtomPressureAdapter
         runtime.configure_shadow_evaluation(
-            GoalFactory(), CandidateOperationFactory(ruleset_ir, digest),
+            GoalFactory(), CandidateOperationFactory(
+                ruleset_ir, digest,
+                replacement_capacity_production_operations_enabled=(
+                    replacement_capacity_production_enabled)),
             DependentAtomPressureAdapter())
         if config.authority_enabled:
             from ...planning import (

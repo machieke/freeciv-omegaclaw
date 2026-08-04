@@ -300,9 +300,7 @@ class AtomSpaceEventEmitter(object):
             if detail_count >= max(0, self.maximum_detail_events - 2):
                 omitted_count += 1
                 continue
-            emit(
-                "operation_candidate_rejected" if candidate.blockers
-                else "operation_candidate_instantiated", {
+            details = {
                     "action_key": candidate.action_key,
                     "authority_eligible": False,
                     "blockers": list(candidate.blockers),
@@ -310,7 +308,26 @@ class AtomSpaceEventEmitter(object):
                     "legal_bound": candidate.legal_bound,
                     "operation_id": candidate.operation.operation_id,
                     "operation_type": candidate.operation.operation_type,
-                })
+                }
+            assembly = getattr(candidate, "production_assembly", None)
+            if assembly is not None:
+                artifact = assembly.model_artifact
+                details["grounded_production_operation"] = {
+                    "completion_eta": artifact.get("completion_eta"),
+                    "initial_step_index": assembly.initial_step_index,
+                    "model_artifact_hash": structural_hash(artifact),
+                    "policy_authority": False,
+                    "queue_selection_is_goal_relief": False,
+                    "requirement_set_id": (
+                        assembly.requirement_set.requirement_set_id),
+                    "resource_claim_count": len(
+                        assembly.resource_request.claims),
+                    "shadow_only": True,
+                    "step_count": len(assembly.spec.steps),
+                }
+            emit(
+                "operation_candidate_rejected" if candidate.blockers
+                else "operation_candidate_instantiated", details)
             detail_count += 1
         pressure = evaluation.pressure
         instantiation = evaluation.candidate_instantiation
