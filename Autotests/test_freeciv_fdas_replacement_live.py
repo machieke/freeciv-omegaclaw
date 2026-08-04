@@ -42,6 +42,7 @@ from freeciv.harness.fdas_replacement_capacity_retained_queue_cohort import (
     audit_fdas_replacement_capacity_retained_queue_cohort,
 )
 from freeciv.harness.fdas_replacement_capacity_retained_queue_outcome_live import (
+    _terminal_refresh_cause,
     audit_fdas_replacement_capacity_retained_queue_outcome_live,
 )
 from freeciv.harness.fdas_replacement_capacity_retained_queue_outcome_cohort import (
@@ -1624,6 +1625,45 @@ def test_retained_capacity_outcome_live_separates_product_and_relief(tmp_path):
         "relief_positive": 1,
         "relief_negative": 0,
     }
+
+
+def test_retained_capacity_terminal_outcome_accepts_only_exact_refresh_chain():
+    operation_id = "retained-capacity-terminal-operation"
+    rows = ({
+        "event_id": "terminal",
+        "type": "operation_abandoned",
+        "caused_by": (),
+        "payload": {
+            "mechanism": (
+                "fdas-replacement-capacity-retained-queue-lifecycle"),
+            "operation_id": operation_id,
+        },
+    }, {
+        "event_id": "started", "type": "atomspace_revision_started",
+        "caused_by": ("terminal",), "payload": {},
+    }, {
+        "event_id": "delta", "type": "snapshot_delta_computed",
+        "caused_by": ("started",), "payload": {},
+    }, {
+        "event_id": "batch", "type": "projection_batch_applied",
+        "caused_by": ("delta",), "payload": {},
+    }, {
+        "event_id": "committed", "type": "atomspace_revision_committed",
+        "caused_by": ("batch",), "payload": {},
+    })
+    event_by_id = dict((row["event_id"], row) for row in rows)
+    outcome = {"caused_by": ("committed",)}
+
+    assert _terminal_refresh_cause(outcome, operation_id, event_by_id) is True
+
+    wrong_bridge = dict(event_by_id)
+    wrong_bridge["batch"] = dict(rows[3], type="metric_sample")
+    assert _terminal_refresh_cause(outcome, operation_id, wrong_bridge) is False
+    assert _terminal_refresh_cause(
+        outcome, "another-operation", event_by_id) is False
+    cycle = dict(event_by_id)
+    cycle["committed"] = dict(rows[4], caused_by=("committed",))
+    assert _terminal_refresh_cause(outcome, operation_id, cycle) is False
 
 
 def test_retained_capacity_outcome_live_rejects_authority_escape(tmp_path):

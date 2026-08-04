@@ -56,6 +56,10 @@ _RELIEF_KEYS = frozenset((
     "product_present", "product_type_matches",
     "source_city_owned_and_present", "target_city_owned_and_present",
 ))
+_TERMINAL_REFRESH_BRIDGE_TYPES = frozenset((
+    "atomspace_revision_started", "snapshot_delta_computed",
+    "projection_batch_applied", "atomspace_revision_committed",
+))
 
 
 def _load(path):
@@ -95,6 +99,30 @@ def _typed_label(value):
 def _valid_digest(value):
     return (isinstance(value, str) and len(value) == 64
             and all(character in "0123456789abcdef" for character in value))
+
+
+def _terminal_refresh_cause(row, operation_id, event_by_id):
+    """Require one exact lifecycle terminal through only the FDAS refresh."""
+    parent_ids = tuple(row.get("caused_by", ()))
+    seen = set()
+    while True:
+        if len(parent_ids) != 1 or parent_ids[0] in seen:
+            return False
+        event_id = parent_ids[0]
+        seen.add(event_id)
+        cause = event_by_id.get(event_id)
+        if cause is None:
+            return False
+        if (cause.get("type") in (
+                "operation_abandoned", "operation_expired",
+                "operation_failed")
+                and cause.get("payload", {}).get("mechanism") == _MECHANISM
+                and cause.get("payload", {}).get("operation_id")
+                    == operation_id):
+            return True
+        if cause.get("type") not in _TERMINAL_REFRESH_BRIDGE_TYPES:
+            return False
+        parent_ids = tuple(cause.get("caused_by", ()))
 
 
 def audit_fdas_replacement_capacity_retained_queue_outcome_live(
@@ -139,6 +167,9 @@ def audit_fdas_replacement_capacity_retained_queue_outcome_live(
         row for row in lifecycle if row.get("type") == "operation_proposed")
     lifecycle_by_id = dict(
         (row.get("event_id"), row) for row in lifecycle
+        if isinstance(row.get("event_id"), str))
+    event_by_id = dict(
+        (row.get("event_id"), row) for row in events
         if isinstance(row.get("event_id"), str))
     proposal_by_operation = dict(
         (row.get("payload", {}).get("operation_id"), row) for row in proposals)
@@ -258,12 +289,8 @@ def audit_fdas_replacement_capacity_retained_queue_outcome_live(
                         == label.product_ref):
                 return False
         if label.outcome_kind == "terminal-no-progress":
-            terminal_row = observed_rows[0]
-            causes = [lifecycle_by_id.get(value)
-                      for value in terminal_row.get("caused_by", ())]
-            if not any(row is not None and row.get("type") in (
-                    "operation_abandoned", "operation_expired",
-                    "operation_failed") for row in causes):
+            if not _terminal_refresh_cause(
+                    observed_rows[0], label.operation_id, event_by_id):
                 return False
         return True
 
