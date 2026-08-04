@@ -1,0 +1,56 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "active_logical_lifecycles_are_unique": true,
+      "candidate_counter_covers_persisted_operations": true,
+      "event_ledger_valid_without_warnings": true,
+      "lifecycle_events_are_revision_bound_and_non_authorizing": true,
+      "lifecycle_events_reference_persisted_operations": true,
+      "manifest_activates_shadow_live_replacement": true,
+      "source_is_clean_and_run_completed": true,
+      "status_and_terminal_counters_match_evidence": true,
+      "store_is_valid_unquarantined_and_identity_bound": true
+    }
+  },
+  "claim_scope": "engine-live activation, persistence, logical deduplication, and revision-current non-authorizing lifecycle evidence only; zero opportunity is mechanically acceptable; no action, outcome, score, or win-rate improvement claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2/games/main/e_full_loop/109459-00/events.jsonl",
+      "sha256": "75818f352065a5a85142d5bc00a0b3c24fde768ff8bdfc62830b55fddd38760e"
+    },
+    "fdas-coordinated-replacement-operations.json": {
+      "path": "artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-operations.json",
+      "sha256": "db56638bd2dc7bc701a2a2aced83de34f0f3715a5d85d8079d5b78f41c4db14d"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2/games/main/e_full_loop/109459-00/manifest.json",
+      "sha256": "ead26f1b70ec99b268605250013d5fba5d16f299fefcf9e9fedb8c93e2bae0f9"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2/games/main/e_full_loop/109459-00/status.json",
+      "sha256": "ae19368ce8471652f00be6317012f8ef8c8c7dc07457cd486a87ea47e5f90b47"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "f97b682aa27d138608491c787a794e78b839dc81",
+    "dirty": false,
+    "implementation_sha256": "08f176a0a1974c05b257edfd39974e731d6e81b4eb548be2062cda4d98ec5aff",
+    "source_files": 293
+  },
+  "structural_hash": "3138ad0216e39ab1b3d293643925c8094d343a976e1572b2158ba3de2c5e2e9f",
+  "summary": {
+    "candidates": 33,
+    "dispositions": {
+      "blocked": 116,
+      "expired": 15,
+      "reconciled": 30,
+      "reservable": 34
+    },
+    "lifecycle_events": 195,
+    "operations": 15,
+    "opportunity_observed": true,
+    "store_digest": "97fee5145cd4160ecfb306f41830ac48d650c64a684aabe5b530e9c6e3509d72"
+  }
+}

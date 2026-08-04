@@ -1087,3 +1087,16 @@ authorized by the replacement path. The correction makes the harness consume
 the same canonical identity and adds a regression that proves it differs from
 the formerly used raw semantic hash. Confirmation must use a new artifact
 version and clean source commit; the failed `v1` evidence is not overwritten.
+
+The corrected PR77 `v2` confirmation passes all nine audit gates from clean
+commit `f97b682`. The 160-turn known-seed run completed with 297 accepted
+engine actions, zero rejections, and 54,007 valid events. It exercised 33
+replacement candidate observations, 15 durable operations, and 195 lifecycle
+updates: 34 reservable, 30 reconciled, 116 blocked, and 15 expired. There are
+no step advances or completions because the lifecycle remains shadow-only.
+The deterministic report hash is `3138ad0216e39ab1b3d293643925c8094d343a976e1572b2158ba3de2c5e2e9f`.
+This closes mechanics but also exposes the next boundary: replacement
+operations do not enter the direct move/fortify scalar choice surface. A
+protected multi-step readout representation is required before they can
+increase preference yield. See
+`fdas-pr77-coordinated-replacement-live-wiring.md` and its JSON report.
