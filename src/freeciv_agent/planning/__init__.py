@@ -309,6 +309,16 @@ from .fdas_replacement_execution import (
     FdasReplacementExecutionDecision,
     FdasReplacementExecutionStore,
 )
+from .fdas_replacement_intention import (
+    REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
+    REPLACEMENT_INTENTION_OUTCOME_TARGET,
+    REPLACEMENT_INTENTION_SCHEMA_VERSION,
+    REPLACEMENT_INTENTION_TREATMENT_ID,
+    FdasReplacementIntentionAssignment,
+    FdasReplacementIntentionOutcome,
+    FdasReplacementIntentionStore,
+    FdasReplacementIntentionTracker,
+)
 from .fdas_replacement_readout import (
     COORDINATED_REPLACEMENT_READOUT_IDENTITY,
     FdasCoordinatedReplacementPair,

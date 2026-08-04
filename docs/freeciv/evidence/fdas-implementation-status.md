@@ -1196,3 +1196,11 @@ why the next cross-arm endpoint must be indexed from the shared first grounded
 opportunity rather than treatment-only completion. This is consequence
 decomposition for one known run, not causal value or policy evidence. See
 `fdas-pr83-replacement-chain-consequence-diagnostic.md` and its JSON report.
+
+PR84 is preregistered as a 16-pair intention-indexed control/treatment pilot.
+Its first component checkpoint adds an atomic one-assignment tracker with arm,
+logical chain, assignment turn, +32 due turn, city retention, ruleset-grounded
+garrison counts, actor presence/placement/transport, operation state, restart,
+and censoring semantics. The tracker has no action authority. Engine manifests,
+events, paired execution, and all fresh outcomes remain open; see
+`fdas-pr84-intention-outcome-component.md`.

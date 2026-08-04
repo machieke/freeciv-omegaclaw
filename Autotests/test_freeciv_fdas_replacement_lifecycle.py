@@ -21,6 +21,8 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasReplacementChainOutcomeStore,
     FdasReplacementExecutionAssignment,
     FdasReplacementExecutionStore,
+    FdasReplacementIntentionStore,
+    FdasReplacementIntentionTracker,
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
     OperationSpec,
@@ -606,6 +608,84 @@ def test_bounded_replacement_execution_tamper_quarantines_restart(tmp_path):
 
     assert restarted.quarantined is True
     assert "identity differs" in restarted.quarantine_reason
+
+
+def test_paired_replacement_intention_tracks_control_outcome_and_restart(
+        tmp_path):
+    payload = _payload(12)
+    payload["legal_actions"] = [_move(8, 2), _move(7, 3)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 530),
+        _route(7, 82, 84, 83, 12, 530),
+    ]
+    first = _snapshot(payload, 530)
+    operation_store = OperationStore("fdas-replacement:intention-operation")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    replacement = _candidate(first, "replacement-intention-proof")
+    direct = _direct_candidate(first)
+    adapter.reconcile(first, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(first)
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(first, revision, (replacement, direct))
+    identity = "fdas-replacement:intention-control"
+    store = FdasReplacementIntentionStore(identity)
+    tracker = FdasReplacementIntentionTracker(
+        adapter, store, "control", "replacement-paired-test",
+        first.identity.game_id, first.player_id)
+
+    status, assignment, created = tracker.evaluate(first, readout)
+
+    assert status == "pending"
+    assert created is True
+    assert assignment.assigned_arm == "control"
+    assert assignment.logical_pair == (8, 7, 3, 4)
+    assert assignment.due_turn == 44
+    path = tmp_path / "replacement-intention.json"
+    store.save(str(path))
+    restarted_store = FdasReplacementIntentionStore.load(str(path), identity)
+    restarted = FdasReplacementIntentionTracker(
+        adapter, restarted_store, "control", "replacement-paired-test",
+        first.identity.game_id, first.player_id)
+
+    observed_payload = _payload(
+        44, replacement_tile=82, replacement_x=2,
+        reinforcement_tile=84, reinforcement_x=4)
+    observed = _snapshot(observed_payload, 562)
+    empty_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(observed)
+    empty_readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(observed, empty_revision, ())
+
+    status, assignment, created = restarted.evaluate(observed, empty_readout)
+
+    assert status == "observed"
+    assert created is False
+    assert assignment.outcome.city_retention_count == 2
+    assert assignment.outcome.defended_city_count == 2
+    assert assignment.outcome.assigned_actor_survival_count == 2
+    assert assignment.outcome.replacement_at_source is True
+    assert assignment.outcome.reinforcement_at_target is True
+    restarted_store.save(str(path))
+    round_trip = FdasReplacementIntentionStore.load(str(path), identity)
+    assert round_trip.assignment == assignment
+
+
+def test_paired_replacement_intention_censor_is_terminal_and_arm_bound(
+        tmp_path):
+    store = FdasReplacementIntentionStore("intention-empty")
+    path = tmp_path / "intention-empty.json"
+    store.save(str(path))
+
+    mismatched = FdasReplacementIntentionStore.load(
+        str(path), "intention-other")
+
+    assert mismatched.quarantined is True
 
 
 def test_replacement_readout_abstains_when_source_coverage_is_not_current():
