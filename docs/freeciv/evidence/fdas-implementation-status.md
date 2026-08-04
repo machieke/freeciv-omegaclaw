@@ -1304,15 +1304,26 @@ semantics, production ETA, RequirementSets, and shadow outcome observation—not
 a generic effect waiver or an authority change. See
 `fdas-pr88-replacement-capacity.md` and its JSON report.
 
-PR89 implements and preregisters that bounded delayed-production slice. Behind
-an independent shadow-only gate, replacement-capacity production candidates
-reuse the existing grounded production transition model and enabling-operation
-assembler. A grounded route now carries an exact two-step queue/observation
+PR89 implements and confirms that bounded delayed-production slice. Behind an
+independent shadow-only gate, replacement-capacity production candidates reuse
+the existing grounded production transition model and enabling-operation
+assembler. A grounded route carries an exact two-step queue/observation
 operation, a six-premise RequirementSet with complete initial packets,
 ruleset-grounded target/ETA evidence, and hard-current plus conditional-future
 resource claims. Matching current queues are represented as retained step-1
 operations. Missing inputs abstain explicitly. Every route remains blocked by
 `delayed-production-completion-unobserved`, grants zero immediate goal relief,
-and has no candidate, readout, policy, or action authority. The fixed fresh
-16-game engine confirmation and strict byte-stable aggregate audit are pending;
-see `fdas-pr89-replacement-capacity-production-preregistration.md`.
+and has no candidate, readout, policy, or action authority.
+
+The fixed fresh 16-game cohort passes from clean commit `f46fffc`: 16/16 games
+completed, with zero infrastructure failures, resumes, or rejected actions.
+Across 996 shadow evaluations, all 16 games produced grounded operations:
+1,153 typed capacity deficits and 1,857 capacity production candidates, all
+1,857 grounded and zero abstained. Fifteen games reached turn 160; one ended at
+genuine player elimination on turn 159. That endpoint exposed and corrected an
+audit-only horizon assumption in the oldest parent lifecycle audit; matching
+status and terminal-event evidence is now required. No gameplay evidence was
+changed. The corrected aggregate audit passes and is byte-identical on a second
+full pass. This proves recurrent exact delayed candidate mechanics, not queue
+selection, product completion, capacity relief, score, or win-rate value. See
+`fdas-pr89-replacement-capacity-production.md` and its JSON report.

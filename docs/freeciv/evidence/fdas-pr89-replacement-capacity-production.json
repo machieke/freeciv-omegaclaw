@@ -1,0 +1,190 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_expected_games_complete_without_infrastructure_failure": true,
+      "all_game_level_production_operation_audits_pass": true,
+      "all_sources_are_clean_and_commit_bound": true,
+      "grounded_production_operation_yield_is_nonzero": true,
+      "grounded_production_operations_recur_across_games": true
+    }
+  },
+  "claim_scope": "fixed fresh-game distribution of ruleset-grounded delayed replacement-defender production candidate mechanics only; no completion, goal-relief, action, score, or win-rate claim",
+  "evidence": {
+    "run-summary.json": {
+      "path": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/run-summary.json",
+      "sha256": "2c72874a7795efd6ded5a38fa134c45e95cbad08c31801a004de165c814f700d"
+    }
+  },
+  "games": [
+    {
+      "accepted": true,
+      "capacity_production_candidates": 39,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111143-00",
+      "grounded_production_operations": 39,
+      "production_model_abstentions": 0,
+      "report_hash": "495dc4faf648ec053fe8dd27cfb9ac9d6dd9c63b4ef3099dddcec2a8e4333f25",
+      "seed": 111143,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 42,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111149-00",
+      "grounded_production_operations": 42,
+      "production_model_abstentions": 0,
+      "report_hash": "9783b36c801815c7e71065628fd5427d294c261a903eba7cc9b098a68cc95f9c",
+      "seed": 111149,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 65,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111187-00",
+      "grounded_production_operations": 65,
+      "production_model_abstentions": 0,
+      "report_hash": "f20032ee4adbdefc148a4b22789d6dab8170e931be692d10289703838cfc7488",
+      "seed": 111187,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 68,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111191-00",
+      "grounded_production_operations": 68,
+      "production_model_abstentions": 0,
+      "report_hash": "f353dec3d5384369651571fe15bb2699de4f3b921f6bdd25874392cd4d5fa2ae",
+      "seed": 111191,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 280,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111211-00",
+      "grounded_production_operations": 280,
+      "production_model_abstentions": 0,
+      "report_hash": "d87244d753d0a18458e80c9dbe2e34091e0afb1022d433f5740a55ae8e5cd522",
+      "seed": 111211,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 236,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111217-00",
+      "grounded_production_operations": 236,
+      "production_model_abstentions": 0,
+      "report_hash": "9ba87404f40d9ed322df580118f1a3c47f8392fb464de0c23442ab8024d7d89b",
+      "seed": 111217,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 69,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111227-00",
+      "grounded_production_operations": 69,
+      "production_model_abstentions": 0,
+      "report_hash": "c71bb770abf545e330d983fd6752e45a6cb780d94da33dbc063a5dd6e6c9b442",
+      "seed": 111227,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 8,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111229-00",
+      "grounded_production_operations": 8,
+      "production_model_abstentions": 0,
+      "report_hash": "418e9aafb29f628e6db1486e4e6de5e589e66d18ba9c717a42d7434795bacfc9",
+      "seed": 111229,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 112,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111253-00",
+      "grounded_production_operations": 112,
+      "production_model_abstentions": 0,
+      "report_hash": "b157688d209c3df9bffa3ca05f8637106f7dcdb3d9efae1c09b4f8d3eee3b783",
+      "seed": 111253,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 227,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111263-00",
+      "grounded_production_operations": 227,
+      "production_model_abstentions": 0,
+      "report_hash": "d54a9756f64671ebcd67b8430838832e0d76ad678b19025ed6511c9d4b4199b4",
+      "seed": 111263,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 286,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111269-00",
+      "grounded_production_operations": 286,
+      "production_model_abstentions": 0,
+      "report_hash": "b96823c328befdca4baf5a9952379b8e8d1122d27830f6d560af69d8fbb341e8",
+      "seed": 111269,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 24,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111271-00",
+      "grounded_production_operations": 24,
+      "production_model_abstentions": 0,
+      "report_hash": "bc04197381aca754fec7c4c9b00872818a12db8e13051711f9cd5ce7bef10aa4",
+      "seed": 111271,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 70,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111301-00",
+      "grounded_production_operations": 70,
+      "production_model_abstentions": 0,
+      "report_hash": "6d0649cd3e41f6f5fb1a3388ff749ee0a4e6a5c6adb0b57d4b15ee5c4a4c1842",
+      "seed": 111301,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 166,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111317-00",
+      "grounded_production_operations": 166,
+      "production_model_abstentions": 0,
+      "report_hash": "c3a57b9662ea30f7abc4e31e79f69a7873c0c5df70095397b906e637808be719",
+      "seed": 111317,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 69,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111323-00",
+      "grounded_production_operations": 69,
+      "production_model_abstentions": 0,
+      "report_hash": "b2ce84ea48b6a291c0f1254bcf04fc22d7574aec6a936ed58ba55ce5b87ad7a0",
+      "seed": 111323,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    },
+    {
+      "accepted": true,
+      "capacity_production_candidates": 96,
+      "game_dir": "artifacts/freeciv/fdas-pr89-replacement-capacity-production-v1/games/main/e_full_loop/111337-00",
+      "grounded_production_operations": 96,
+      "production_model_abstentions": 0,
+      "report_hash": "553663cd9bfd15218b3389ac424bb66943a5c9c38dedf096235cfd2734b75864",
+      "seed": 111337,
+      "source_commit": "f46fffc2d1347f432d4c1751aa275610ba180b4f"
+    }
+  ],
+  "schema_version": "1.0",
+  "structural_hash": "98e70d6a25f92e146e2200311e0deccfd0d49aa5f77df19d9e1d9ed0a3300d5a",
+  "summary": {
+    "capacity_production_candidate_count": 1857,
+    "game_count": 16,
+    "games_with_grounded_production_operation": 16,
+    "grounded_production_operation_count": 1857,
+    "production_model_abstention_count": 0
+  }
+}

@@ -737,6 +737,35 @@ def test_replacement_live_accepts_auditable_zero_opportunity(tmp_path):
     assert report["summary"]["opportunity_observed"] is False
 
 
+def test_replacement_live_accepts_genuine_absorbing_terminal(tmp_path):
+    _fixture(tmp_path)
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update({
+        "horizon_reached": False,
+        "terminal_game_over": False,
+        "terminal_player_elimination": True,
+    })
+    _write_json(status_path, status)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    events[-1]["payload"]["summary"].update({
+        "horizon_reached": False,
+        "terminal_game_over": False,
+        "terminal_player_elimination": True,
+    })
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+
+    report = audit_fdas_replacement_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["completion_endpoint"] == (
+        "terminal-player-elimination")
+
+
 def test_replacement_live_rejects_authority_leak(tmp_path):
     _fixture(tmp_path)
     path = tmp_path / "events.jsonl"

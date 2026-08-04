@@ -143,6 +143,17 @@ def audit_fdas_replacement_live(game_dir, repo=None):
     counter_match = all(
         status.get(name) == value and terminal.get(name) == value
         for name, value in expected_counters.items())
+    absorbing_terminal = bool(
+        status.get("terminal_game_over") is True
+        or status.get("terminal_player_elimination") is True)
+    terminal_evidence_matches = bool(
+        (status.get("terminal_game_over") is True
+         and terminal.get("terminal_game_over") is True)
+        or (status.get("terminal_player_elimination") is True
+            and terminal.get("terminal_player_elimination") is True))
+    completed_endpoint = bool(
+        status.get("horizon_reached") is True
+        or (absorbing_terminal and terminal_evidence_matches))
 
     checks = {
         "event_ledger_valid_without_warnings": (
@@ -155,7 +166,7 @@ def audit_fdas_replacement_live(game_dir, repo=None):
         "source_is_clean_and_run_completed": (
             manifest.get("source", {}).get("dirty") is False
             and status.get("completed") is True
-            and status.get("horizon_reached") is True
+            and completed_endpoint
             and len(final) == 1),
         "store_is_valid_unquarantined_and_identity_bound": (
             store.get("schema_version") == 1
@@ -201,6 +212,13 @@ def audit_fdas_replacement_live(game_dir, repo=None):
         "schema_version": "1.0",
         "source": manifest.get("source"),
         "summary": {
+            "completion_endpoint": (
+                "fixed-horizon" if status.get("horizon_reached") is True
+                else "terminal-game-over"
+                if status.get("terminal_game_over") is True
+                else "terminal-player-elimination"
+                if status.get("terminal_player_elimination") is True
+                else "incomplete"),
             "candidates": status.get("fdas_replacement_candidates"),
             "dispositions": dict(
                 (value, dispositions.count(value))
