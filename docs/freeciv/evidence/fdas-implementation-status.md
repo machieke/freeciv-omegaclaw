@@ -1344,7 +1344,17 @@ known-seed diagnostic found this in one game, with two registrations and two
 queue observations. Both queues later diverged and produced no observed unit.
 The first implementation repeated blocked events until expiry; the hardened
 lifecycle now attributes divergence once as immediate terminal abandonment.
-Those used-seed diagnostics are not confirmation evidence. A fresh fixed
-16-game cohort, retaining every zero-yield game and requiring recurrence in two
-games plus one authoritative product observation, is preregistered in
-`fdas-pr91-replacement-capacity-retained-queue-preregistration.md`.
+Those used-seed diagnostics are not confirmation evidence.
+
+The fresh fixed PR91 cohort passes from clean commit `b89287e`. All 16 games
+reached turn 160 with zero infrastructure failures, resumes, or rejected
+actions. Across 1,156 evaluations, 15 selected matches occurred in 6/16 games
+and produced eight unique idempotent lifecycle registrations. Two operations
+completed into exact authoritative units; six terminated once on queue
+divergence, with no repeated blocked-event churn. Both frozen recurrence gates
+pass, every zero-yield game remains in the denominator, all parent audits pass,
+and the complete report is byte-identical on a second pass. This establishes
+retained-queue selection and terminal observation mechanics only. The next
+bounded target is exact delayed capacity-goal relief/no-progress attribution,
+not controller retuning or an outcome claim. See
+`fdas-pr91-replacement-capacity-retained-queue.md` and its JSON report.
