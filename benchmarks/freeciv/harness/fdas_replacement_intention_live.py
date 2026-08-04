@@ -32,6 +32,15 @@ FIXED_SEEDS = (
 )
 
 
+def expected_arm_order(seed):
+    """Return the frozen SHA-256 low-bit launch order for one seed."""
+    payload = "{}:{}".format(EXPERIMENT_ID, int(seed)).encode("utf-8")
+    low_bit = hashlib.sha256(payload).digest()[-1] & 1
+    return (
+        ("control", "treatment")
+        if low_bit == 0 else ("treatment", "control"))
+
+
 def _load(path):
     with open(path, encoding="utf-8") as stream:
         return json.load(stream)
@@ -193,6 +202,8 @@ def audit_fdas_replacement_intention_arm(
         in ("observed", "censored"))
     run_completed = tuple(
         row for row in events if row.get("type") == "run_completed")
+    run_started = tuple(
+        row for row in events if row.get("type") == "run_started")
     terminal = (
         run_completed[0].get("payload", {}).get("summary", {})
         if len(run_completed) == 1 else {})
@@ -381,6 +392,8 @@ def audit_fdas_replacement_intention_arm(
         "logical_pair": (
             None if assignment is None else list(assignment.logical_pair)),
         "opportunity": assignment is not None,
+        "run_started_at": (
+            run_started[0].get("ts") if len(run_started) == 1 else None),
         "seed": manifest.get("seed"),
     }
     report = {
@@ -436,12 +449,26 @@ def paired_replacement_intention_analysis(control_by_seed, treatment_by_seed):
             "seed": seed,
             "treatment": treatment,
         }
+        expected_order = expected_arm_order(seed)
+        starts = (
+            None if control is None else control.get("run_started_at"),
+            None if treatment is None else treatment.get("run_started_at"),
+        )
+        observed_order = None
+        if all(isinstance(value, str) and value for value in starts):
+            observed_order = (
+                ("control", "treatment")
+                if starts[0] < starts[1] else ("treatment", "control"))
+        row["expected_arm_order"] = list(expected_order)
+        row["observed_arm_order"] = (
+            None if observed_order is None else list(observed_order))
+        row["arm_order_valid"] = observed_order == expected_order
         rows.append(row)
         if classification == "matched-observed":
             observed.append(row)
-        if classification in (
+        if (classification in (
                 "incomplete-pair", "opportunity-mismatch",
-                "outcome-mismatch"):
+                "outcome-mismatch") or not row["arm_order_valid"]):
             mechanical_failures.append(seed)
 
     def values(arm, key):

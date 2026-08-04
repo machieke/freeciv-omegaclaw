@@ -45,6 +45,12 @@ inspection. Launch order within each pair is deterministically alternated by
 the low bit of `SHA256(experiment ID, seed)`; this controls systematic arm-order
 effects without changing assignment.
 
+The byte encoding is frozen as UTF-8
+`fdas-replacement-intention-paired-pilot-v1:<base-10-seed>`. A zero low bit
+launches control then treatment; a one low bit launches treatment then control.
+Different seed pairs may run concurrently, but the two arms within one pair
+must remain serial.
+
 ## Intention-indexed outcome
 
 Both arms open one immutable outcome record at the shared assignment turn. Its

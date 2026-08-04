@@ -9,6 +9,7 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
 
 from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
     FIXED_SEEDS,
+    expected_arm_order,
     paired_replacement_intention_analysis,
 )
 
@@ -33,6 +34,12 @@ def _summary(seed, arm, both=True, opportunity=True, observed=True,
         "execution_completion_turn": 44 if completion else None,
         "logical_pair": [8, 7, 3, 4] if opportunity else None,
         "opportunity": opportunity,
+        "run_started_at": (
+            "2026-08-04T00:00:{:02d}Z".format(
+                10 if arm == "control" else 20)
+            if expected_arm_order(seed)[0] == "control"
+            else "2026-08-04T00:00:{:02d}Z".format(
+                20 if arm == "control" else 10)),
         "seed": seed,
     }
 
