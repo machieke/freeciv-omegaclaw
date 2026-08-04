@@ -13,9 +13,11 @@ actor `122` in control and `112` in treatment. PR84 correctly classifies that
 seed as an opportunity mismatch and remains frozen; no PR84 arm will be
 retried, replaced, or pooled with this correction.
 
-## Frozen correction
+## Frozen corrections
 
-PR85 changes only the first-opportunity order key. A grounded pair is ordered
+PR85 changes three mechanically coupled boundaries: first-opportunity ordering,
+route-derived attempt capacity, and treatment materialization when the legacy
+planner has no action. A grounded pair is ordered
 lexicographically by:
 
 ```text
@@ -27,10 +29,34 @@ lexicographically by:
 ```
 
 The operation ID is only a final deterministic tie-breaker after the complete
-logical tuple. All grounding, safety checks, manifests, intention vector,
-32-turn observation window, PR82 treatment executor, and legacy control policy
-remain unchanged. The manifest must declare
-`selection_policy=lexicographic-logical-tuple-v1`.
+logical tuple.
+
+Before any PR85 seed was run, PR84 treatment seed `109721` exposed a second
+mechanical defect: a native route needed more accepted tile actions than the
+operation step's turn-ETA-derived attempt limit. PR85 therefore also freezes
+`maximum_attempts=native_route.path_length+1` for each movement step. Candidate
+readout requires the persisted limits to equal both current native route path
+lengths plus one. Immediately before each treatment action, the remaining
+attempt budget must still cover the current native path length; otherwise the
+operation terminates failed before submission instead of raising or exceeding
+the bound. No rejected action is retried.
+
+Two later PR84 treatment arms exposed the third defect before any PR85 seed was
+run: an exact, grounded, current legal replacement action could be authorized
+when the legacy planner returned no action, but the integration layer required
+a legacy decision solely to construct an `ImpactDecision`. PR85 permits the
+existing exact-current-candidate materialization boundary to accept a null
+baseline. It records `baseline_candidate_key=null` and `changed_winner=true`;
+the authority action must still pass the current snapshot, legal-action,
+category, operation, requirement, and downstream commit gates.
+
+All other grounding, safety checks, intention vector, 32-turn observation
+window, treatment authority boundary, and legacy control policy remain
+unchanged. The manifest must declare
+`selection_policy=lexicographic-logical-tuple-v1`,
+`attempt_budget_policy=native-route-path-length-plus-one-v1`, and
+`attempt_budget_failure=terminal-fail-before-submit`, and
+`baseline_absence_policy=exact-current-candidate-materialization-v1`.
 
 ## Fixed paired cohort
 

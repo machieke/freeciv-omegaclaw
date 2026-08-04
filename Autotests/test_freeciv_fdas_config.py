@@ -174,6 +174,38 @@ def test_replacement_intention_paired_manifests_are_arm_locked(arm):
     ) is (arm == "treatment")
 
 
+@pytest.mark.parametrize("arm", ("control", "treatment"))
+def test_replacement_intention_logical_order_manifests_freeze_correction(arm):
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_intention_logical_{}.json"
+            .format(arm)), encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest[
+        "coordinated_replacement_intention_outcome_diagnostic"]
+
+    assert config.authority_enabled is True
+    assert diagnostic["assigned_arm"] == arm
+    assert diagnostic["experiment_id"] == (
+        "fdas-replacement-intention-logical-order-paired-pilot-v2")
+    assert diagnostic["selection_policy"] == (
+        "lexicographic-logical-tuple-v1")
+    assert diagnostic["attempt_budget_policy"] == (
+        "native-route-path-length-plus-one-v1")
+    assert diagnostic["attempt_budget_failure"] == (
+        "terminal-fail-before-submit")
+    assert diagnostic["baseline_absence_policy"] == (
+        "exact-current-candidate-materialization-v1")
+    assert diagnostic["treatment_executor_required"] is (arm == "treatment")
+
+
 def test_causal_induction_profile_is_explicit_and_readout_disabled():
     with open(os.path.join(
             REPO, "profile",

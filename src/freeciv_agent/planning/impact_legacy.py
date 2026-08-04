@@ -6949,8 +6949,10 @@ class GroundedImpactPlanner(object):
         path.  No alternate action is introduced and the final execution gate
         remains downstream.
         """
-        if not isinstance(prior_decision, ImpactDecision):
-            raise TypeError("exact rematerialization requires a prior decision")
+        if (prior_decision is not None
+                and not isinstance(prior_decision, ImpactDecision)):
+            raise TypeError(
+                "exact rematerialization prior decision is untyped")
         if not isinstance(authority_readout, OperationAuthorityReadout):
             raise TypeError("exact rematerialization requires typed authority")
         if (authority_readout.snapshot_id != snapshot.snapshot_id
@@ -6988,10 +6990,13 @@ class GroundedImpactPlanner(object):
         # of one byte-identical action.  The catalog is already deterministically
         # ordered; choosing its first exact row cannot change engine behavior.
         candidate = matches[0]
-        changed = candidate.action_key != prior_decision.candidate.action_key
+        baseline_candidate_key = (
+            None if prior_decision is None
+            else prior_decision.candidate.action_key)
+        changed = candidate.action_key != baseline_candidate_key
         authority_result = {
             "applied": True,
-            "baseline_candidate_key": prior_decision.candidate.action_key,
+            "baseline_candidate_key": baseline_candidate_key,
             "changed_winner": changed,
             "readout": authority_readout,
         }

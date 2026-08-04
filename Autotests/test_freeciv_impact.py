@@ -337,6 +337,34 @@ def test_exact_authority_handles_duplicate_or_broader_current_candidate():
     assert diagnostics["authority_catalog_reprojections"] == 1
 
 
+def test_exact_authority_materializes_current_candidate_without_baseline():
+    actions = [
+        {"action_type": "unit_fortify", "actor_id": 12,
+         "is_valid": True},
+    ]
+    snapshot = _snapshot([_unit(12, "Alpine Troops")], actions)
+    planner = GroundedImpactPlanner()
+    treatment = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 12},
+        "city_defense", 10.0, "treatment")
+    planner.last_candidate_catalog = (treatment,)
+    authority = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-no-baseline-operation", "test-defense-operation",
+        treatment.action, treatment.action_key, treatment.category,
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-no-baseline-authority",))
+
+    materialized = planner.rematerialize_exact_authority(
+        snapshot, None, authority)
+
+    assert materialized.candidate == treatment
+    assert materialized.operation_authority["applied"] is True
+    assert materialized.operation_authority["changed_winner"] is True
+    assert materialized.operation_authority["baseline_candidate_key"] is None
+    assert materialized.pressure_artifact is None
+
+
 def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
     city = _city(production_kind=6, production_value=11)
     city["buildability"]["options"].extend([

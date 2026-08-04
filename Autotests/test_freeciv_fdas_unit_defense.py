@@ -710,6 +710,8 @@ def test_coordinated_replacement_relation_assembles_two_step_shadow_schema(ir):
         ("replacement", "city:3"),
         ("reinforcement", "city:4"),
     ]
+    assert [value.maximum_attempts for value
+            in candidate.operation.steps] == [2, 3]
     assert candidate.operation.expiry_turn == 14
     assert any(
         value.startswith("atom:") for value in candidate.provenance)

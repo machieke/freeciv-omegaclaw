@@ -87,7 +87,10 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
                                     REPLACEMENT_EXECUTION_TREATMENT_ID,
                                     REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
+                                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
+                                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
                                     REPLACEMENT_INTENTION_OUTCOME_TARGET,
+                                    REPLACEMENT_INTENTION_SELECTION_POLICY,
                                     REPLACEMENT_INTENTION_TREATMENT_ID,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     FdasDefenseEpisodeRecorder,
@@ -2878,11 +2881,15 @@ async def _play(run_dir, manifest, context):
         assigned_arm = fdas_replacement_intention_diagnostic.get(
             "assigned_arm") if isinstance(
                 fdas_replacement_intention_diagnostic, dict) else None
+        intention_experiment_id = (
+            fdas_replacement_intention_diagnostic.get("experiment_id")
+            if isinstance(fdas_replacement_intention_diagnostic, dict)
+            else None)
         expected_replacement_intention = {
             "assigned_arm": assigned_arm,
             "assignment_unit": REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
             "claim_eligible": False,
-            "experiment_id": "fdas-replacement-intention-paired-pilot-v1",
+            "experiment_id": intention_experiment_id,
             "maximum_assignments": 1,
             "observation_window_turns": 32,
             "outcome_target": REPLACEMENT_INTENTION_OUTCOME_TARGET,
@@ -2891,8 +2898,20 @@ async def _play(run_dir, manifest, context):
             "treatment_executor_required": assigned_arm == "treatment",
             "truth_mutated": False,
         }
+        if intention_experiment_id == REPLACEMENT_INTENTION_EXPERIMENT_ID_V2:
+            expected_replacement_intention.update({
+                "attempt_budget_failure": "terminal-fail-before-submit",
+                "attempt_budget_policy": (
+                    "native-route-path-length-plus-one-v1"),
+                "baseline_absence_policy": (
+                    "exact-current-candidate-materialization-v1"),
+                "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
+            })
         if (fdas_replacement_intention_capability != "shadow-live"
                 or assigned_arm not in ("control", "treatment")
+                or intention_experiment_id not in (
+                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
+                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V2)
                 or fdas_replacement_intention_diagnostic
                 != expected_replacement_intention
                 or fdas_replacement_adapter is None
@@ -6600,13 +6619,11 @@ async def _play(run_dir, manifest, context):
                                     "replacement intention and execution "
                                     "assignments differ")
                             if replacement_execution_decision.authority is not None:
-                                if decision is None:
-                                    raise RuntimeError(
-                                        "replacement execution lacks baseline "
-                                        "planner decision")
                                 replacement_execution_authority = (
                                     replacement_execution_decision.authority)
-                                baseline_action_key = decision.candidate.action_key
+                                baseline_action_key = (
+                                    None if decision is None else
+                                    decision.candidate.action_key)
                                 decision = (
                                     impact_planner
                                     .rematerialize_exact_authority(

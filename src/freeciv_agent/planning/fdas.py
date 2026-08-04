@@ -631,7 +631,7 @@ class CandidateOperationFactory(object):
                         "city:{}".format(source_city_id),
                         source_requirement,
                         "city-defense:replacement-at-source-city",
-                        max(1, int(replacement_route.estimated_turns) + 1)),
+                        max(1, int(replacement_route.path_length) + 1)),
                     OperationStep(
                         "step-" + structural_hash({
                             "operation_id": operation_id,
@@ -641,7 +641,7 @@ class CandidateOperationFactory(object):
                         "city:{}".format(target_city_id),
                         target_requirement,
                         "city-defense:protected-defender-at-target-city",
-                        max(1, int(target_route.estimated_turns) + 1)),
+                        max(1, int(target_route.path_length) + 1)),
                 )
                 operation = OperationSpec(
                     OPERATION_SCHEMA_VERSION,

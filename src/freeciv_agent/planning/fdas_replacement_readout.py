@@ -14,6 +14,17 @@ _DIRECT_MOVE_TYPE = "fdas-shadow:city-garrison-deficit:unit_move"
 _REPLACEMENT_TYPE = "fdas-defense:coordinated-replacement"
 
 
+def coordinated_replacement_pair_order_key(pair):
+    """Order stable logical identity before arm-local operation hashes."""
+    return (
+        pair.replacement_actor_id,
+        pair.reinforcement_actor_id,
+        pair.source_city_id,
+        pair.target_city_id,
+        pair.lifecycle_operation_id,
+    )
+
+
 @dataclass(frozen=True)
 class FdasCoordinatedReplacementPair:
     replacement_operation_id: str
@@ -294,6 +305,13 @@ class FdasCoordinatedReplacementReadoutEvaluator:
                     reinforcement_route, snapshot, reinforcement.tile,
                     target_city.tile):
                 rejected.append(operation_id + ":reinforcement-route-invalid")
+                continue
+            if (record.spec.steps[0].maximum_attempts
+                    != replacement_route.path_length + 1
+                    or record.spec.steps[1].maximum_attempts
+                    != reinforcement_route.path_length + 1):
+                rejected.append(
+                    operation_id + ":route-attempt-budget-mismatch")
                 continue
             values = {
                 "combined_estimated_turns": (

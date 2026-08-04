@@ -128,3 +128,21 @@ def test_paired_replacement_intention_analysis_fails_closed_on_mismatch():
     assert result["mechanical_failure_seeds"] == list(FIXED_SEEDS)
     assert result["primary"]["risk_difference"]["estimate"] is None
     assert result["progression"]["no_mechanical_failures"] is False
+
+
+def test_paired_replacement_intention_excludes_failed_no_opportunity_arm():
+    seed = FIXED_SEEDS[0]
+    control_row = _summary(seed, "control", opportunity=False)
+    treatment_row = _summary(seed, "treatment", opportunity=False)
+    treatment_row["arm_audit_accepted"] = False
+    treatment_row["infrastructure_failure"] = True
+    treatment_row["infrastructure_error"] = "bounded pilot failed"
+
+    result = paired_replacement_intention_analysis(
+        {seed: control_row}, {seed: treatment_row})
+
+    row = result["rows"][0]
+    assert row["classification"] == "no-opportunity"
+    assert row["arm_audits_valid"] is False
+    assert seed in result["mechanical_failure_seeds"]
+    assert result["progression"]["no_mechanical_failures"] is False

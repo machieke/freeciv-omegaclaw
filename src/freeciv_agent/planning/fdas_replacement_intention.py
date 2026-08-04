@@ -8,7 +8,10 @@ import tempfile
 from ..events.schema import canonical_json_bytes, structural_hash
 from ..state.atomspace.grounding import persistent_defender_type
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
-from .fdas_replacement_readout import FdasCoordinatedReplacementReadout
+from .fdas_replacement_readout import (
+    FdasCoordinatedReplacementReadout,
+    coordinated_replacement_pair_order_key,
+)
 
 
 REPLACEMENT_INTENTION_SCHEMA_VERSION = 1
@@ -18,6 +21,12 @@ REPLACEMENT_INTENTION_ASSIGNMENT_UNIT = (
     "game-first-grounded-coordinated-replacement-chain-intention/1.0")
 REPLACEMENT_INTENTION_OUTCOME_TARGET = (
     "first-grounded-coordinated-replacement/32-turn/vector/1.0")
+REPLACEMENT_INTENTION_EXPERIMENT_ID_V1 = (
+    "fdas-replacement-intention-paired-pilot-v1")
+REPLACEMENT_INTENTION_EXPERIMENT_ID_V2 = (
+    "fdas-replacement-intention-logical-order-paired-pilot-v2")
+REPLACEMENT_INTENTION_SELECTION_POLICY = (
+    "lexicographic-logical-tuple-v1")
 
 
 def _required_text(value, name):
@@ -431,6 +440,11 @@ class FdasReplacementIntentionTracker(object):
             assignment_id="replacement-intention-assignment-" +
             structural_hash(values)[:24], outcome=None, **values)
 
+    @staticmethod
+    def pair_order_key(pair):
+        """Order arm-independent logical identity before local operation IDs."""
+        return coordinated_replacement_pair_order_key(pair)
+
     def _observe(self, assignment, snapshot):
         source = snapshot.city(assignment.source_city_id)
         target = snapshot.city(assignment.target_city_id)
@@ -481,9 +495,7 @@ class FdasReplacementIntentionTracker(object):
         assignment = self.store.assignment
         created = False
         if assignment is None and readout.pairs:
-            pair = sorted(
-                readout.pairs,
-                key=lambda value: value.lifecycle_operation_id)[0]
+            pair = sorted(readout.pairs, key=self.pair_order_key)[0]
             assignment = self.store.record(self._new_assignment(pair, snapshot))
             created = True
         if assignment is None:

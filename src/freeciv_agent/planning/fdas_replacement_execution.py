@@ -7,7 +7,10 @@ import tempfile
 
 from ..events.schema import canonical_json_bytes, structural_hash
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
-from .fdas_replacement_readout import FdasCoordinatedReplacementReadout
+from .fdas_replacement_readout import (
+    FdasCoordinatedReplacementReadout,
+    coordinated_replacement_pair_order_key,
+)
 from .operations import (
     OperationAuthorityKind,
     OperationAuthorityReadout,
@@ -510,6 +513,34 @@ class FdasCoordinatedReplacementExecutionPilot(object):
                 "truth-authority:false",
             ))
 
+    @staticmethod
+    def _attempt_budget_blocker(assignment, record, snapshot):
+        step = record.spec.steps[record.progress.current_step_index]
+        participants = dict(
+            (value.role, int(value.actor_id))
+            for value in record.spec.participants)
+        actor = snapshot.unit(participants[step.actor_role])
+        target_city_id = int(step.target_ref.split(":", 1)[1])
+        target = snapshot.city(target_city_id)
+        route = (
+            None if actor is None or actor.tile is None
+            or target is None or target.tile is None else
+            snapshot.movement_route(actor.unit_id, target.tile))
+        remaining = step.maximum_attempts - record.progress.attempt_count
+        if (route is None or not route.reachable
+                or route.origin_tile != actor.tile
+                or route.destination_tile != target.tile
+                or route.turn != snapshot.turn
+                or route.source_seq > snapshot.identity.source_seq):
+            return "selected-step-route-unavailable-for-attempt-budget"
+        if route.path_length > remaining:
+            return (
+                "selected-step-route-length-{}-exceeds-remaining-attempts-{}"
+                .format(route.path_length, remaining))
+        if assignment.operation_id != record.spec.operation_id:
+            return "selected-step-assignment-operation-differs"
+        return None
+
     def evaluate(self, snapshot, readout, candidate_catalog=()):
         if not isinstance(readout, FdasCoordinatedReplacementReadout):
             raise TypeError("replacement execution requires grounded readout")
@@ -525,7 +556,7 @@ class FdasCoordinatedReplacementExecutionPilot(object):
                     "unassigned", "no-grounded-chain-yet", None, None, (), False)
             pair = sorted(
                 readout.pairs,
-                key=lambda value: value.lifecycle_operation_id)[0]
+                key=coordinated_replacement_pair_order_key)[0]
             assignment = self.store.record(self._new_assignment(pair, snapshot))
             created = True
         if (assignment.game_id != self.game_id
@@ -553,7 +584,18 @@ class FdasCoordinatedReplacementExecutionPilot(object):
             return FdasReplacementExecutionDecision(
                 "abstained", "selected-operation-{}".format(
                     record.progress.state.value), assignment, None,
-                updates, created)
+                    updates, created)
+        attempt_budget_blocker = self._attempt_budget_blocker(
+            assignment, record, snapshot)
+        if attempt_budget_blocker is not None:
+            budget_update = self.adapter.fail_execution(
+                record.spec.operation_id, snapshot, attempt_budget_blocker)
+            assignment = self.store.record(replace(
+                assignment, terminal_state=OperationState.FAILED.value,
+                terminal_reason=attempt_budget_blocker))
+            return FdasReplacementExecutionDecision(
+                "terminal", attempt_budget_blocker, assignment, None,
+                tuple(updates) + (budget_update,), created)
         authority = self._authority(
             assignment, record, snapshot, candidate_catalog)
         return FdasReplacementExecutionDecision(

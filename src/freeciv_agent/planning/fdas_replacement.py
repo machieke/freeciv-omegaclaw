@@ -157,6 +157,21 @@ class FdasCoordinatedReplacementAdapter(object):
             record, previous, "execution-attempt-rejected", failure,
             snapshot, binding)
 
+    def fail_execution(self, operation_id, snapshot, reason):
+        """Terminate a selected chain before an impossible bounded attempt."""
+        record = self.store.get(str(operation_id))
+        if record is None or record.progress.state != OperationState.ACTIVE:
+            raise ValueError("replacement execution operation is not active")
+        if not isinstance(reason, str) or not reason:
+            raise ValueError("replacement execution failure reason is required")
+        previous = record.progress.state
+        record = self.store.transition(
+            record.spec.operation_id, OperationState.FAILED,
+            snapshot.snapshot_id, int(snapshot.turn), reason=reason)
+        self._clear(record.spec.operation_id)
+        return self._update(
+            record, previous, "execution-budget-failed", reason, snapshot)
+
     def reproposal_suppressions(self):
         """Return candidate ID, prior operation ID, and release turn."""
         return self._reproposal_suppressions

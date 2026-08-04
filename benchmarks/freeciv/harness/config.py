@@ -1392,14 +1392,21 @@ def load(path=None):
     diagnostic_seed_cohort = value.get("diagnostic_seed_cohort")
     minimum_seeds = 30
     if diagnostic_seed_cohort is not None:
-        expected_diagnostic_seed_cohort = {
+        expected_diagnostic_seed_cohorts = ({
             "claim_eligible": False,
             "cohort_id": "fdas-replacement-intention-paired-pilot-v1",
             "paired_arms": ["control", "treatment"],
             "purpose": "descriptive-intention-indexed-paired-pilot",
             "required_unique_seeds": 16,
-        }
-        if diagnostic_seed_cohort != expected_diagnostic_seed_cohort:
+        }, {
+            "claim_eligible": False,
+            "cohort_id": (
+                "fdas-replacement-intention-logical-order-paired-pilot-v2"),
+            "paired_arms": ["control", "treatment"],
+            "purpose": "descriptive-logical-order-paired-pilot",
+            "required_unique_seeds": 16,
+        })
+        if diagnostic_seed_cohort not in expected_diagnostic_seed_cohorts:
             raise ValueError("diagnostic seed cohort declaration differs")
         minimum_seeds = diagnostic_seed_cohort["required_unique_seeds"]
     if (not isinstance(seeds, list)

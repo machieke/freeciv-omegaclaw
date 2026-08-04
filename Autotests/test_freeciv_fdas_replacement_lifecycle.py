@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -63,7 +64,8 @@ def _payload(turn, replacement_tile=81, replacement_x=1,
     return payload
 
 
-def _route(unit_id, origin, destination, first_step, turn, source_seq):
+def _route(unit_id, origin, destination, first_step, turn, source_seq,
+           path_length=1):
     return {
         "authority": "freeciv-server-pathfinder",
         "destination_tile": destination,
@@ -74,8 +76,8 @@ def _route(unit_id, origin, destination, first_step, turn, source_seq):
         "movement_points_remaining": 2,
         "moves_left_at_request": 3,
         "origin_tile": origin,
-        "path_directions": [0],
-        "path_length": 1,
+        "path_directions": [0] * path_length,
+        "path_length": path_length,
         "reachable": True,
         "schema_version": "1.0",
         "source_seq": source_seq,
@@ -109,11 +111,11 @@ def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof",
     steps = (
         OperationStep(
             "step-replacement", "unit_move", "replacement", "city:3",
-            "requirements-replacement", "replacement-at-source", 3),
+            "requirements-replacement", "replacement-at-source", 2),
         OperationStep(
             "step-reinforcement", "unit_move", "reinforcement",
             "city:{}".format(target_city_id),
-            "requirements-reinforcement", "reinforcement-at-target", 3),
+            "requirements-reinforcement", "reinforcement-at-target", 2),
     )
     spec = OperationSpec(
         OPERATION_SCHEMA_VERSION, operation_id,
@@ -674,6 +676,83 @@ def test_paired_replacement_intention_tracks_control_outcome_and_restart(
     restarted_store.save(str(path))
     round_trip = FdasReplacementIntentionStore.load(str(path), identity)
     assert round_trip.assignment == assignment
+
+
+def test_paired_replacement_intention_orders_by_logical_tuple_before_local_id():
+    rows = (
+        SimpleNamespace(
+            replacement_actor_id=122, reinforcement_actor_id=108,
+            source_city_id=103, target_city_id=116,
+            lifecycle_operation_id="operation-0"),
+        SimpleNamespace(
+            replacement_actor_id=112, reinforcement_actor_id=108,
+            source_city_id=103, target_city_id=116,
+            lifecycle_operation_id="operation-z"),
+        SimpleNamespace(
+            replacement_actor_id=118, reinforcement_actor_id=108,
+            source_city_id=103, target_city_id=116,
+            lifecycle_operation_id="operation-a"),
+    )
+
+    selected = sorted(
+        rows, key=FdasReplacementIntentionTracker.pair_order_key)[0]
+
+    assert selected.replacement_actor_id == 112
+
+
+def test_bounded_replacement_execution_fails_before_exhausting_route_budget():
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2), _move(7, 3)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 570),
+        _route(7, 82, 84, 83, 12, 570),
+    ]
+    first = _snapshot(first_payload, 570)
+    operation_store = OperationStore("fdas-replacement:budget-operation")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    replacement = _candidate(first, "replacement-budget-proof")
+    direct = _direct_candidate(first)
+    adapter.reconcile(first, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(first)
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(first, revision, (replacement, direct))
+    pilot = FdasCoordinatedReplacementExecutionPilot(
+        adapter, FdasReplacementExecutionStore("replacement-budget-store"),
+        "replacement-budget-test", first.identity.game_id, first.player_id)
+    decision = pilot.evaluate(first, readout)
+    pilot.record_outcome(
+        first, decision.authority.action, True, "budget-action-result")
+
+    drift_payload = _payload(13)
+    drift_payload["legal_actions"] = [_move(8, 2)]
+    drift_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 13, 571, path_length=2),
+    ]
+    drift = _snapshot(drift_payload, 571)
+    adapter.reconcile(drift)
+    drift_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(drift)
+    drift_readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(drift, drift_revision, ())
+
+    terminal = pilot.evaluate(drift, drift_readout)
+
+    assert terminal.status == "terminal"
+    assert terminal.authority is None
+    assert terminal.reason == (
+        "selected-step-route-length-2-exceeds-remaining-attempts-1")
+    assert terminal.assignment.terminal_state == "failed"
+    assert terminal.lifecycle_updates[-1].disposition == (
+        "execution-budget-failed")
+    assert operation_store.get(
+        replacement.operation.operation_id).progress.state == (
+            OperationState.FAILED)
 
 
 def test_paired_replacement_intention_censor_is_terminal_and_arm_bound(

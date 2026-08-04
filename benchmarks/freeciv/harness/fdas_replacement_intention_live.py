@@ -12,7 +12,10 @@ from freeciv_agent.planning import (
     FdasReplacementIntentionAssignment,
     FdasReplacementIntentionStore,
     REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
+    REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
+    REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
     REPLACEMENT_INTENTION_OUTCOME_TARGET,
+    REPLACEMENT_INTENTION_SELECTION_POLICY,
     REPLACEMENT_INTENTION_TREATMENT_ID,
 )
 
@@ -23,18 +26,25 @@ from .statistics import (
 )
 
 
-EXPERIMENT_ID = "fdas-replacement-intention-paired-pilot-v1"
+EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V1
+CORRECTED_EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V2
 COMPONENT_ID = "fdas-coordinated-replacement-intention-outcome"
 EXECUTION_COMPONENT_ID = "fdas-coordinated-replacement-execution-pilot"
 FIXED_SEEDS = (
     109701, 109703, 109709, 109721, 109723, 109727, 109741, 109751,
     109789, 109793, 109807, 109819, 109829, 109831, 109841, 109843,
 )
+CORRECTED_FIXED_SEEDS = (
+    109903, 109913, 109919, 109937, 109943, 109961, 110017, 110023,
+    110039, 110051, 110059, 110063, 110069, 110083, 110119, 110129,
+)
 
 
-def expected_arm_order(seed):
+def expected_arm_order(seed, experiment_id=EXPERIMENT_ID):
     """Return the frozen SHA-256 low-bit launch order for one seed."""
-    payload = "{}:{}".format(EXPERIMENT_ID, int(seed)).encode("utf-8")
+    if experiment_id not in (EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID):
+        raise ValueError("replacement intention experiment differs")
+    payload = "{}:{}".format(experiment_id, int(seed)).encode("utf-8")
     low_bit = hashlib.sha256(payload).digest()[-1] & 1
     return (
         ("control", "treatment")
@@ -129,12 +139,12 @@ def _removal(events, actor_id, assignment, present):
     }
 
 
-def _expected_diagnostic(arm):
-    return {
+def _expected_diagnostic(arm, experiment_id):
+    value = {
         "assigned_arm": arm,
         "assignment_unit": REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
         "claim_eligible": False,
-        "experiment_id": EXPERIMENT_ID,
+        "experiment_id": experiment_id,
         "maximum_assignments": 1,
         "observation_window_turns": 32,
         "outcome_target": REPLACEMENT_INTENTION_OUTCOME_TARGET,
@@ -143,10 +153,20 @@ def _expected_diagnostic(arm):
         "treatment_executor_required": arm == "treatment",
         "truth_mutated": False,
     }
+    if experiment_id == CORRECTED_EXPERIMENT_ID:
+        value.update({
+            "attempt_budget_failure": "terminal-fail-before-submit",
+            "attempt_budget_policy": "native-route-path-length-plus-one-v1",
+            "baseline_absence_policy": (
+                "exact-current-candidate-materialization-v1"),
+            "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
+        })
+    return value
 
 
 def audit_fdas_replacement_intention_arm(
-        game_dir, repo=None, expected_source_commit=None):
+        game_dir, repo=None, expected_source_commit=None,
+        expected_experiment_id=None):
     """Verify one control or treatment arm and return its outcome vector."""
     game_dir = os.path.abspath(game_dir)
     names = (
@@ -174,6 +194,11 @@ def audit_fdas_replacement_intention_arm(
     arm = diagnostic.get("assigned_arm")
     if arm not in ("control", "treatment"):
         raise ValueError("replacement intention arm is unavailable")
+    experiment_id = diagnostic.get("experiment_id")
+    if (experiment_id not in (EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID)
+            or (expected_experiment_id is not None
+                and experiment_id != expected_experiment_id)):
+        raise ValueError("replacement intention experiment differs")
     assignment_value = intention_store.get("assignment")
     assignment = (
         None if assignment_value is None else
@@ -185,7 +210,7 @@ def audit_fdas_replacement_intention_arm(
     ])
     expected_store_identity = structural_hash([
         replacement_identity, REPLACEMENT_INTENTION_TREATMENT_ID,
-        EXPERIMENT_ID, arm,
+        experiment_id, arm,
     ])
     semantic_store = dict(intention_store)
     claimed_store_digest = semantic_store.pop("store_digest", None)
@@ -342,7 +367,7 @@ def audit_fdas_replacement_intention_arm(
         "manifest_is_arm_locked_and_claim_ineligible": bool(
             declaration.get("capabilities", {}).get(
                 "coordinated_replacement_intention_outcome") == "shadow-live"
-            and diagnostic == _expected_diagnostic(arm)),
+            and diagnostic == _expected_diagnostic(arm, experiment_id)),
         "intention_store_is_identity_bound_and_unquarantined": bool(
             intention_store.get("schema_version") == 1
             and intention_store.get("store_identity")
@@ -350,7 +375,9 @@ def audit_fdas_replacement_intention_arm(
             and intention_store.get("persistence_identity")
             == expected_store_identity
             and intention_store.get("quarantine_reason") is None
-            and claimed_store_digest == structural_hash(semantic_store)),
+            and claimed_store_digest == structural_hash(semantic_store)
+            and (assignment is None
+                 or assignment.experiment_id == experiment_id)),
         "assignment_and_outcome_events_match_store": assignment_events_match,
         "outcome_is_terminal_and_vector_is_complete": bool(
             assignment is None
@@ -376,6 +403,7 @@ def audit_fdas_replacement_intention_arm(
         None if assignment is None else records.get(assignment.operation_id))
     summary = {
         "arm": arm,
+        "arm_audit_accepted": all(checks.values()),
         "assignment_turn": (
             None if assignment is None else assignment.assignment_turn),
         "consequence": consequence,
@@ -391,10 +419,14 @@ def audit_fdas_replacement_intention_arm(
             else selected_record.get("progress", {}).get("last_updated_turn")),
         "logical_pair": (
             None if assignment is None else list(assignment.logical_pair)),
+        "experiment_id": experiment_id,
+        "infrastructure_error": status.get("error"),
+        "infrastructure_failure": bool(status.get("infrastructure_failure")),
         "opportunity": assignment is not None,
         "run_started_at": (
             run_started[0].get("ts") if len(run_started) == 1 else None),
         "seed": manifest.get("seed"),
+        "status": status.get("status"),
     }
     report = {
         "acceptance": {"accepted": all(checks.values()), "checks": checks},
@@ -413,12 +445,15 @@ def audit_fdas_replacement_intention_arm(
     return report
 
 
-def paired_replacement_intention_analysis(control_by_seed, treatment_by_seed):
+def paired_replacement_intention_analysis(
+        control_by_seed, treatment_by_seed, fixed_seeds=FIXED_SEEDS,
+        experiment_id=EXPERIMENT_ID):
     """Classify fixed pairs and compute the preregistered descriptive effects."""
     rows = []
     observed = []
     mechanical_failures = []
-    for seed in FIXED_SEEDS:
+    fixed_seeds = tuple(fixed_seeds)
+    for seed in fixed_seeds:
         control = control_by_seed.get(seed)
         treatment = treatment_by_seed.get(seed)
         classification = None
@@ -449,7 +484,7 @@ def paired_replacement_intention_analysis(control_by_seed, treatment_by_seed):
             "seed": seed,
             "treatment": treatment,
         }
-        expected_order = expected_arm_order(seed)
+        expected_order = expected_arm_order(seed, experiment_id)
         starts = (
             None if control is None else control.get("run_started_at"),
             None if treatment is None else treatment.get("run_started_at"),
@@ -463,12 +498,17 @@ def paired_replacement_intention_analysis(control_by_seed, treatment_by_seed):
         row["observed_arm_order"] = (
             None if observed_order is None else list(observed_order))
         row["arm_order_valid"] = observed_order == expected_order
+        row["arm_audits_valid"] = bool(
+            control is not None and treatment is not None
+            and control.get("arm_audit_accepted", True)
+            and treatment.get("arm_audit_accepted", True))
         rows.append(row)
-        if classification == "matched-observed":
+        if classification == "matched-observed" and row["arm_audits_valid"]:
             observed.append(row)
         if (classification in (
                 "incomplete-pair", "opportunity-mismatch",
-                "outcome-mismatch") or not row["arm_order_valid"]):
+                "outcome-mismatch") or not row["arm_order_valid"]
+                or not row["arm_audits_valid"]):
             mechanical_failures.append(seed)
 
     def values(arm, key):
@@ -524,7 +564,8 @@ def paired_replacement_intention_analysis(control_by_seed, treatment_by_seed):
 
 def audit_fdas_replacement_intention_cohort(
         control_game_dirs, treatment_game_dirs, repo=None,
-        expected_source_commit=None):
+        expected_source_commit=None, experiment_id=EXPERIMENT_ID,
+        fixed_seeds=FIXED_SEEDS):
     """Audit all fixed arms and apply the preregistered paired analysis."""
     reports = {"control": {}, "treatment": {}}
     for arm, directories in (
@@ -533,7 +574,8 @@ def audit_fdas_replacement_intention_cohort(
         for directory in sorted(os.path.abspath(path) for path in directories):
             report = audit_fdas_replacement_intention_arm(
                 directory, repo=repo,
-                expected_source_commit=expected_source_commit)
+                expected_source_commit=expected_source_commit,
+                expected_experiment_id=experiment_id)
             summary = report["summary"]
             if summary["arm"] != arm:
                 raise ValueError("replacement intention cohort arm differs")
@@ -550,16 +592,17 @@ def audit_fdas_replacement_intention_cohort(
         (seed, report["summary"])
         for seed, report in reports["treatment"].items())
     analysis = paired_replacement_intention_analysis(
-        control_summaries, treatment_summaries)
+        control_summaries, treatment_summaries,
+        fixed_seeds=fixed_seeds, experiment_id=experiment_id)
     source_commits = sorted(set(
         report.get("source", {}).get("commit")
         for arm in reports.values() for report in arm.values()),
         key=lambda value: "" if value is None else value)
     checks = {
         "all_fixed_control_arms_are_present": (
-            sorted(reports["control"]) == list(FIXED_SEEDS)),
+            sorted(reports["control"]) == list(fixed_seeds)),
         "all_fixed_treatment_arms_are_present": (
-            sorted(reports["treatment"]) == list(FIXED_SEEDS)),
+            sorted(reports["treatment"]) == list(fixed_seeds)),
         "all_arm_audits_pass": all(
             report["acceptance"]["accepted"]
             for arm in reports.values() for report in arm.values()),
@@ -587,8 +630,8 @@ def audit_fdas_replacement_intention_cohort(
         "claim_scope": (
             "16-seed paired descriptive mechanism pilot; no calibrated "
             "transition-value, general policy, score, or win-rate claim"),
-        "experiment_id": EXPERIMENT_ID,
-        "fixed_seeds": list(FIXED_SEEDS),
+        "experiment_id": experiment_id,
+        "fixed_seeds": list(fixed_seeds),
         "schema_version": "1.0",
         "source_commits": source_commits,
     }
