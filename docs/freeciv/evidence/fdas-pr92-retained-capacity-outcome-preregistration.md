@@ -56,6 +56,10 @@ new downstream attribution mechanism. All games remain in the denominator,
 including zero-label, zero-product, and right-censored games. No game is
 replaced, retried, resumed, or appended based on yield.
 
+The harness profile registers the required 14 reserve seeds after these 16,
+but `--limit-seeds 16` excludes them from execution and analysis. They may not
+be used to rescue a failed recurrence gate.
+
 The corrected single-game engine smoke on seed `111539` is development
 evidence, not part of this cohort. It observed two exact products, followed by
 one durable positive and one negative at their respective 32-turn due points.
@@ -105,7 +109,7 @@ python3 scripts/freeciv/run_harness.py \
   --out artifacts/freeciv/fdas-pr92-retained-capacity-outcome-v1 \
   --config profile/freeciv_harness_fdas_pr92_retained_capacity_outcome_160_turn.yaml \
   --backend engine-live --workers 4 --base-port 6001 \
-  --condition e_full_loop --main-only --no-resume
+  --condition e_full_loop --main-only --limit-seeds 16 --no-resume
 
 PYTHONPATH=src:benchmarks \
 python3 scripts/freeciv/audit_fdas_replacement_capacity_retained_queue_outcome_cohort.py \
