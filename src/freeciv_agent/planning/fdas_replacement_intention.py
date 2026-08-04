@@ -25,6 +25,8 @@ REPLACEMENT_INTENTION_EXPERIMENT_ID_V1 = (
     "fdas-replacement-intention-paired-pilot-v1")
 REPLACEMENT_INTENTION_EXPERIMENT_ID_V2 = (
     "fdas-replacement-intention-logical-order-paired-pilot-v2")
+REPLACEMENT_INTENTION_EXPERIMENT_ID_V3 = (
+    "fdas-replacement-intention-isolated-launch-paired-pilot-v3")
 REPLACEMENT_INTENTION_SELECTION_POLICY = (
     "lexicographic-logical-tuple-v1")
 

@@ -89,6 +89,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
                                     REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
                                     REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
+                                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V3,
                                     REPLACEMENT_INTENTION_OUTCOME_TARGET,
                                     REPLACEMENT_INTENTION_SELECTION_POLICY,
                                     REPLACEMENT_INTENTION_TREATMENT_ID,
@@ -2898,7 +2899,9 @@ async def _play(run_dir, manifest, context):
             "treatment_executor_required": assigned_arm == "treatment",
             "truth_mutated": False,
         }
-        if intention_experiment_id == REPLACEMENT_INTENTION_EXPERIMENT_ID_V2:
+        if intention_experiment_id in (
+                REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
+                REPLACEMENT_INTENTION_EXPERIMENT_ID_V3):
             expected_replacement_intention.update({
                 "attempt_budget_failure": "terminal-fail-before-submit",
                 "attempt_budget_policy": (
@@ -2911,11 +2914,19 @@ async def _play(run_dir, manifest, context):
                     "operation-attempt-budget-controls-exact-authority-v1"),
                 "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
             })
+        if intention_experiment_id == REPLACEMENT_INTENTION_EXPERIMENT_ID_V3:
+            expected_replacement_intention.update({
+                "launch_isolation_policy": (
+                    "explicit-dedicated-server-port-per-worker-v1"),
+                "launch_preflight_policy": (
+                    "unique-port-empty-output-root-clean-source-v1"),
+            })
         if (fdas_replacement_intention_capability != "shadow-live"
                 or assigned_arm not in ("control", "treatment")
                 or intention_experiment_id not in (
                     REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
-                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V2)
+                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
+                    REPLACEMENT_INTENTION_EXPERIMENT_ID_V3)
                 or fdas_replacement_intention_diagnostic
                 != expected_replacement_intention
                 or fdas_replacement_adapter is None

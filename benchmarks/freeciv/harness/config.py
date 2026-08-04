@@ -1405,6 +1405,13 @@ def load(path=None):
             "paired_arms": ["control", "treatment"],
             "purpose": "descriptive-logical-order-paired-pilot",
             "required_unique_seeds": 16,
+        }, {
+            "claim_eligible": False,
+            "cohort_id": (
+                "fdas-replacement-intention-isolated-launch-paired-pilot-v3"),
+            "paired_arms": ["control", "treatment"],
+            "purpose": "descriptive-isolated-launch-paired-pilot",
+            "required_unique_seeds": 16,
         })
         if diagnostic_seed_cohort not in expected_diagnostic_seed_cohorts:
             raise ValueError("diagnostic seed cohort declaration differs")

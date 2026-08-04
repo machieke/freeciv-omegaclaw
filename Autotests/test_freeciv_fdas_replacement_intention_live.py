@@ -9,12 +9,28 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
         sys.path.insert(0, path)
 
 from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
+    CORRECTED_FIXED_SEEDS,
     FIXED_SEEDS,
+    ISOLATED_EXPERIMENT_ID,
+    ISOLATED_FIXED_SEEDS,
     _assignment_readout_evidence,
     _removal,
     expected_arm_order,
     paired_replacement_intention_analysis,
 )
+
+
+def test_isolated_experiment_arm_order_is_deterministic_and_seed_fresh():
+    assert len(ISOLATED_FIXED_SEEDS) == len(set(ISOLATED_FIXED_SEEDS)) == 16
+    assert not set(ISOLATED_FIXED_SEEDS).intersection(FIXED_SEEDS)
+    assert not set(ISOLATED_FIXED_SEEDS).intersection(CORRECTED_FIXED_SEEDS)
+    first = tuple(expected_arm_order(
+        seed, ISOLATED_EXPERIMENT_ID) for seed in ISOLATED_FIXED_SEEDS)
+    second = tuple(expected_arm_order(
+        seed, ISOLATED_EXPERIMENT_ID) for seed in ISOLATED_FIXED_SEEDS)
+
+    assert first == second
+    assert all(set(order) == {"control", "treatment"} for order in first)
 
 
 def test_intention_removal_includes_assignment_turn_exact_evidence():

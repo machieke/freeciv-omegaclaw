@@ -17,6 +17,8 @@ from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
     CORRECTED_FIXED_SEEDS,
     EXPERIMENT_ID,
     FIXED_SEEDS,
+    ISOLATED_EXPERIMENT_ID,
+    ISOLATED_FIXED_SEEDS,
     audit_fdas_replacement_intention_cohort,
 )
 
@@ -41,7 +43,8 @@ def main():
     parser.add_argument("--treatment-root", action="append", required=True)
     parser.add_argument("--expected-source-commit")
     parser.add_argument(
-        "--experiment-id", choices=(EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID),
+        "--experiment-id", choices=(
+            EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID, ISOLATED_EXPERIMENT_ID),
         default=EXPERIMENT_ID)
     parser.add_argument("--output", required=True)
     arguments = parser.parse_args()
@@ -50,9 +53,11 @@ def main():
         _game_dirs(arguments.treatment_root), repo=REPO,
         expected_source_commit=arguments.expected_source_commit,
         experiment_id=arguments.experiment_id,
-        fixed_seeds=(
-            FIXED_SEEDS if arguments.experiment_id == EXPERIMENT_ID
-            else CORRECTED_FIXED_SEEDS))
+        fixed_seeds={
+            EXPERIMENT_ID: FIXED_SEEDS,
+            CORRECTED_EXPERIMENT_ID: CORRECTED_FIXED_SEEDS,
+            ISOLATED_EXPERIMENT_ID: ISOLATED_FIXED_SEEDS,
+        }[arguments.experiment_id])
     output = os.path.abspath(arguments.output)
     os.makedirs(os.path.dirname(output), exist_ok=True)
     with open(output, "w", encoding="utf-8") as stream:

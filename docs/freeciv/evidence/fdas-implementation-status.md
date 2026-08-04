@@ -1225,3 +1225,11 @@ three other turn-0 arms were interrupted. No arm will be retried or resumed.
 See `fdas-pr85-logical-order-paired-replacement-launch-failure.md` and its JSON
 report. PR86 must add a checked-in unique-port/empty-root paired launcher and
 use a new experiment ID with entirely fresh seeds.
+
+PR86 is preregistered as the isolated-launch replacement cohort. It retains
+the V2 semantic and execution corrections while adding a checked-in paired
+launcher that fails closed on a dirty source, any existing output root,
+profile drift, or shared/unsupported ports. Four process workers explicitly
+receive ports 6001–6004, each seed pair stays serial on one worker, and all 16
+seeds are fresh relative to PR84 and every registered PR85 seed. See
+`fdas-pr86-isolated-launch-paired-replacement-preregistration.md`.

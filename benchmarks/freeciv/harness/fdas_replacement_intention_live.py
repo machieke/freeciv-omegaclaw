@@ -14,6 +14,7 @@ from freeciv_agent.planning import (
     REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
     REPLACEMENT_INTENTION_EXPERIMENT_ID_V1,
     REPLACEMENT_INTENTION_EXPERIMENT_ID_V2,
+    REPLACEMENT_INTENTION_EXPERIMENT_ID_V3,
     REPLACEMENT_INTENTION_OUTCOME_TARGET,
     REPLACEMENT_INTENTION_SELECTION_POLICY,
     REPLACEMENT_INTENTION_TREATMENT_ID,
@@ -28,6 +29,7 @@ from .statistics import (
 
 EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V1
 CORRECTED_EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V2
+ISOLATED_EXPERIMENT_ID = REPLACEMENT_INTENTION_EXPERIMENT_ID_V3
 COMPONENT_ID = "fdas-coordinated-replacement-intention-outcome"
 EXECUTION_COMPONENT_ID = "fdas-coordinated-replacement-execution-pilot"
 READOUT_COMPONENT_ID = "fdas-coordinated-replacement-candidate-readout"
@@ -39,11 +41,16 @@ CORRECTED_FIXED_SEEDS = (
     109903, 109913, 109919, 109937, 109943, 109961, 110017, 110023,
     110039, 110051, 110059, 110063, 110069, 110083, 110119, 110129,
 )
+ISOLATED_FIXED_SEEDS = (
+    110161, 110183, 110221, 110233, 110237, 110251, 110261, 110269,
+    110273, 110281, 110291, 110311, 110321, 110323, 110339, 110359,
+)
 
 
 def expected_arm_order(seed, experiment_id=EXPERIMENT_ID):
     """Return the frozen SHA-256 low-bit launch order for one seed."""
-    if experiment_id not in (EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID):
+    if experiment_id not in (
+            EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID, ISOLATED_EXPERIMENT_ID):
         raise ValueError("replacement intention experiment differs")
     payload = "{}:{}".format(experiment_id, int(seed)).encode("utf-8")
     low_bit = hashlib.sha256(payload).digest()[-1] & 1
@@ -154,7 +161,7 @@ def _expected_diagnostic(arm, experiment_id):
         "treatment_executor_required": arm == "treatment",
         "truth_mutated": False,
     }
-    if experiment_id == CORRECTED_EXPERIMENT_ID:
+    if experiment_id in (CORRECTED_EXPERIMENT_ID, ISOLATED_EXPERIMENT_ID):
         value.update({
             "attempt_budget_failure": "terminal-fail-before-submit",
             "attempt_budget_policy": "native-route-path-length-plus-one-v1",
@@ -165,6 +172,13 @@ def _expected_diagnostic(arm, experiment_id):
             "legacy_suppression_policy": (
                 "operation-attempt-budget-controls-exact-authority-v1"),
             "selection_policy": REPLACEMENT_INTENTION_SELECTION_POLICY,
+        })
+    if experiment_id == ISOLATED_EXPERIMENT_ID:
+        value.update({
+            "launch_isolation_policy": (
+                "explicit-dedicated-server-port-per-worker-v1"),
+            "launch_preflight_policy": (
+                "unique-port-empty-output-root-clean-source-v1"),
         })
     return value
 
@@ -241,7 +255,8 @@ def audit_fdas_replacement_intention_arm(
     if arm not in ("control", "treatment"):
         raise ValueError("replacement intention arm is unavailable")
     experiment_id = diagnostic.get("experiment_id")
-    if (experiment_id not in (EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID)
+    if (experiment_id not in (
+            EXPERIMENT_ID, CORRECTED_EXPERIMENT_ID, ISOLATED_EXPERIMENT_ID)
             or (expected_experiment_id is not None
                 and experiment_id != expected_experiment_id)):
         raise ValueError("replacement intention experiment differs")

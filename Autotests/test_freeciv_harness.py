@@ -245,6 +245,27 @@ def test_config_accepts_exact_pr85_logical_order_seed_cohort(arm):
     }
 
 
+@pytest.mark.parametrize("arm", ("control", "treatment"))
+def test_config_accepts_exact_pr86_isolated_launch_seed_cohort(arm):
+    config = load(os.path.join(
+        REPO, "profile",
+        "freeciv_harness_fdas_pr86_replacement_intention_isolated_{}_"
+        "160_turn.yaml".format(arm)))
+
+    assert config["seeds"] == [
+        110161, 110183, 110221, 110233, 110237, 110251, 110261, 110269,
+        110273, 110281, 110291, 110311, 110321, 110323, 110339, 110359,
+    ]
+    assert config["diagnostic_seed_cohort"] == {
+        "claim_eligible": False,
+        "cohort_id": (
+            "fdas-replacement-intention-isolated-launch-paired-pilot-v3"),
+        "paired_arms": ["control", "treatment"],
+        "purpose": "descriptive-isolated-launch-paired-pilot",
+        "required_unique_seeds": 16,
+    }
+
+
 def test_config_accepts_pr60_transition_calibration_partition():
     config = load(os.path.join(
         REPO, "profile",
