@@ -1111,3 +1111,14 @@ no transition value and grants no readout, policy, truth, or action authority.
 Known seed `109459` is frozen to require at least one real grounded pair before
 any fresh-seed recall study. See
 `fdas-pr78-coordinated-replacement-candidate-readout-preregistration.md`.
+
+PR78 passes all six live audit gates from clean commit `9d0f5be`. The
+160-turn known-seed run completed with 297 accepted actions and 54,022 valid
+events. Nine readouts mapped all 33 replacement candidate rows to 33 grounded
+safe-chain pairs and 41 protected direct controls, with zero rejection or
+abstention. Every pair is lifecycle-bound and route-compositional; no value or
+authority is asserted. Candidate recall is therefore mechanically solved on
+the known seed. The next scientific gate is fresh-seed recall in at least two
+independent games, followed by a chain-completion-specific outcome target—not
+reuse of the current direct-action calibration. See
+`fdas-pr78-coordinated-replacement-candidate-readout.md` and its JSON report.

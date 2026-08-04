@@ -1,0 +1,49 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "at_least_one_grounded_safe_chain_is_recalled": true,
+      "manifest_freezes_non_authorizing_grounded_recall": true,
+      "pair_routes_and_lifecycle_references_are_exact": true,
+      "parent_replacement_lifecycle_audit_passes": true,
+      "readout_events_are_revision_current_and_non_authorizing": true,
+      "status_and_terminal_counters_match_readout_events": true
+    }
+  },
+  "claim_scope": "known-seed grounded recall of a protected two-step replacement chain only; no transition value, preference, action, outcome, score, or win-rate claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr78-coordinated-replacement-candidate-readout-v1/games/main/e_full_loop/109459-00/events.jsonl",
+      "sha256": "b580c7b6a7299a536ba9b45f2012bac8e6655495a93ce3e54c08edc30a2109b5"
+    },
+    "fdas-coordinated-replacement-operations.json": {
+      "path": "artifacts/freeciv/fdas-pr78-coordinated-replacement-candidate-readout-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-operations.json",
+      "sha256": "feb3a2c4e45b8f7b6e436b31252994147a23020d30ae31a23df0fa90b741e4b6"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr78-coordinated-replacement-candidate-readout-v1/games/main/e_full_loop/109459-00/manifest.json",
+      "sha256": "506c6367a123399ab1f5026a8d00cb6b3aa327b0b894d67d32edcc8e209b98aa"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr78-coordinated-replacement-candidate-readout-v1/games/main/e_full_loop/109459-00/status.json",
+      "sha256": "b8c02e71fb9d7faaf01a202c4b4dfb3ddbce5e860e20c2693d059ff045ac4197"
+    }
+  },
+  "parent_audit_hash": "f32519848a62e1298a3c70c255c137965d1f1c1ad27bd9be96eca527e0809eaa",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "9d0f5be342441bd53fc2bb994609176fdd27bda0",
+    "dirty": false,
+    "implementation_sha256": "d4a7d17bb15fb36abf50f9dba3c049c4ddfa10d0f4867a47192c90fb0efca5da",
+    "source_files": 295
+  },
+  "structural_hash": "9cc6274f068637a459c000c3e6a5bbd00efeef5621c656d4cb29cb3a6432b4e1",
+  "summary": {
+    "abstentions": 0,
+    "direct_candidates": 41,
+    "evaluations": 9,
+    "grounded_pairs": 33,
+    "rejections": 0,
+    "replacement_candidates": 33
+  }
+}
