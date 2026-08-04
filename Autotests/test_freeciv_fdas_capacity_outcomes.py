@@ -6,6 +6,9 @@ from types import SimpleNamespace
 import pytest
 
 from freeciv_agent.planning import (
+    DecisionEpisodeStore,
+    FdasEpisodeLearningAdapter,
+    FdasRetainedCapacityEpisodeBridge,
     FdasRetainedCapacityOutcomeLabel,
     FdasRetainedCapacityOutcomeLabeler,
     FdasRetainedCapacityOutcomeStore,
@@ -88,7 +91,23 @@ def _proposal(snapshot, revision):
             "operation_type": (
                 "fdas-shadow:city-replacement-capacity-deficit:"
                 "city_production"),
+            "goal_ids": ["fdas-goal-capacity-proof"],
             "policy_authority": False,
+            "claims": [{
+                "exclusive": True,
+                "resource": {
+                    "kind": "city_production_slot",
+                    "owner_id": "city:3",
+                },
+            }],
+            "provenance": [
+                "current-authoritative-queue-byte-exact-match",
+                "no-queue-action-submitted",
+            ],
+            "requirement_set": {
+                "requirement_set_id": "requirement-set-capacity-proof",
+                "premise_ids": ["city:3:owned"],
+            },
             "shadow_only": True,
             "snapshot_id": snapshot.snapshot_id,
         },
@@ -241,3 +260,112 @@ def test_retained_capacity_store_survives_restart_and_quarantines_corruption(
     path.write_text(json.dumps(value), encoding="utf-8")
     quarantined = FdasRetainedCapacityOutcomeStore.load(str(path), identity)
     assert quarantined.quarantined is True
+
+
+def test_retained_capacity_positive_encodes_goal_relief_without_learning():
+    labeler, _pending, opened_snapshot = _open_label()
+    product = _snapshot(14, 506)
+    waiting = labeler.observe_lifecycle_event(
+        _terminal(product, "operation_completed",
+                  "authoritative-product-identity-observed", "unit:9"),
+        product, "revision-product")
+    due = _snapshot(46, 507)
+    observed = labeler.observe_due_relief(
+        waiting.label_id, due,
+        _Revision(due.snapshot_id, deficit=False,
+                  revision_id="revision-positive"))
+    episode_store = DecisionEpisodeStore("capacity-episode-positive")
+    bridge = FdasRetainedCapacityEpisodeBridge(episode_store)
+    proposal = _proposal(
+        opened_snapshot, _Revision(opened_snapshot.snapshot_id))
+
+    episode = bridge.encode(observed, proposal)
+    repeated = bridge.encode(observed, proposal)
+
+    assert repeated == episode
+    assert episode.outcome_status == "goal-relief-observed"
+    assert dict(episode.realized_goal_relief) == {
+        "fdas-goal-capacity-proof": 1.0}
+    assert episode.prediction_ids == ()
+    assert episode.execution_event_id is None
+    assert dict(episode.context_signature)["action_submitted"] == "false"
+    learning = FdasEpisodeLearningAdapter(episode_store, ())
+    result = learning.apply(episode.episode_id)
+    assert result.applied is False
+    assert result.reason == "episode-requires-one-current-control-prediction"
+    assert learning.metrics().calibration_sample_count == 0
+
+
+def test_retained_capacity_product_without_relief_encodes_effect_only():
+    labeler, _pending, opened_snapshot = _open_label()
+    product = _snapshot(14, 508)
+    waiting = labeler.observe_lifecycle_event(
+        _terminal(product, "operation_completed",
+                  "authoritative-product-identity-observed", "unit:9"),
+        product, "revision-product")
+    due = _snapshot(46, 509, product=False)
+    observed = labeler.observe_due_relief(
+        waiting.label_id, due,
+        _Revision(due.snapshot_id, deficit=False,
+                  revision_id="revision-negative"))
+    bridge = FdasRetainedCapacityEpisodeBridge(
+        DecisionEpisodeStore("capacity-episode-negative"))
+
+    episode = bridge.encode(
+        observed, _proposal(
+            opened_snapshot, _Revision(opened_snapshot.snapshot_id)))
+
+    assert episode.outcome_status == "effect-without-goal-relief"
+    assert episode.realized_goal_relief == ()
+    assert episode.attributed_effects == ({
+        "effect": "exact-retained-capacity-product-observed",
+        "product_ref": "unit:9",
+        "product_snapshot_id": product.snapshot_id,
+        "product_turn": 14,
+        "production_target_name": "Musketeers",
+    },)
+
+
+def test_retained_capacity_terminal_divergence_encodes_no_effect():
+    labeler, _pending, opened_snapshot = _open_label()
+    observed = labeler.observe_lifecycle_event(
+        _terminal(
+            opened_snapshot, "operation_abandoned",
+            "production-target-diverged-before-product-observation"),
+        opened_snapshot, "revision-diverged")
+    bridge = FdasRetainedCapacityEpisodeBridge(
+        DecisionEpisodeStore("capacity-episode-no-effect"))
+
+    episode = bridge.encode(
+        observed, _proposal(
+            opened_snapshot, _Revision(opened_snapshot.snapshot_id)))
+
+    assert episode.outcome_status == "no-effect-observed"
+    assert episode.attributed_effects == ()
+    assert episode.realized_goal_relief == ()
+    assert episode.observed_delta["product_ref"] is None
+
+
+def test_retained_capacity_episode_bridge_rejects_pending_or_submitted_claim():
+    _labeler, pending, opened_snapshot = _open_label()
+    bridge = FdasRetainedCapacityEpisodeBridge(
+        DecisionEpisodeStore("capacity-episode-rejection"))
+    proposal = _proposal(
+        opened_snapshot, _Revision(opened_snapshot.snapshot_id))
+
+    with pytest.raises(ValueError, match="terminal label"):
+        bridge.encode(pending, proposal)
+    proposal["payload"]["provenance"].remove("no-queue-action-submitted")
+    terminal = _terminal(
+        opened_snapshot, "operation_abandoned",
+        "production-target-diverged-before-product-observation")
+    observed = _labeler.observe_lifecycle_event(
+        terminal, opened_snapshot, "revision-diverged")
+    with pytest.raises(ValueError, match="proposal evidence differs"):
+        bridge.encode(observed, proposal)
+
+    duplicated = _proposal(
+        opened_snapshot, _Revision(opened_snapshot.snapshot_id))
+    duplicated["payload"]["claims"] *= 2
+    with pytest.raises(ValueError, match="resource claims are duplicated"):
+        bridge.encode(observed, duplicated)

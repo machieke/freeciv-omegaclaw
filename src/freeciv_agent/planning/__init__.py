@@ -306,6 +306,10 @@ from .fdas_capacity_outcomes import (
     FdasRetainedCapacityOutcomeLabeler,
     FdasRetainedCapacityOutcomeStore,
 )
+from .fdas_capacity_episode_bridge import (
+    RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+    FdasRetainedCapacityEpisodeBridge,
+)
 from .fdas_replacement_execution import (
     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
     REPLACEMENT_EXECUTION_SCHEMA_VERSION,
@@ -548,6 +552,8 @@ __all__ = [
     "FdasRetainedCapacityOutcomeLabel",
     "FdasRetainedCapacityOutcomeLabeler",
     "FdasRetainedCapacityOutcomeStore",
+    "RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY",
+    "FdasRetainedCapacityEpisodeBridge",
     "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
     "FdasCoordinatedReplacementPair",
     "FdasCoordinatedReplacementReadout",
