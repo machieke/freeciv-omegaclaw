@@ -1,0 +1,60 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "capacity_episodes_are_isolated_from_learning_and_induction_store": true,
+      "episode_counters_match_store_status_and_terminal_exactly": true,
+      "episodes_recompute_exactly_from_proposal_and_outcome_evidence": true,
+      "final_store_digest_is_last_episode_event_digest": true,
+      "incremental_event_store_digests_replay_to_final_store": true,
+      "manifest_freezes_observation_only_episode_contract": true,
+      "one_episode_exists_for_every_terminal_outcome_label": true,
+      "one_typed_causal_non_authorizing_event_exists_per_episode": true,
+      "parent_delayed_outcome_audit_passes": true,
+      "separate_episode_store_is_typed_identity_bound_and_digest_valid": true
+    }
+  },
+  "claim_scope": "exact observation-only mapping of retained-capacity terminal labels into common decision episodes; the isolated store has no learning, induction, transition-value, policy, score, or win-rate authority",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/events.jsonl",
+      "sha256": "c377d9b01da4487d636e8cc8f8e4415524c124d1e38d6621d47a15e3994cf2fc"
+    },
+    "fdas-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/fdas-decision-episodes.json",
+      "sha256": "01e8417c4ef70c93268a9deb241744249c0b30d79ba07cd8f206cb4a3bde6a89"
+    },
+    "fdas-retained-capacity-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/fdas-retained-capacity-decision-episodes.json",
+      "sha256": "ac7441b61388541c9b86cd6bbb025b6d454fa2d4d3832f939cb791996898d478"
+    },
+    "fdas-retained-capacity-outcome-labels.json": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/fdas-retained-capacity-outcome-labels.json",
+      "sha256": "26dd0cd2cad5aec178602419cb14244005fe50da15448f3f4c9a2c830a26b2e6"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/manifest.json",
+      "sha256": "53dcbf32a105e83df64189a3da6f6ec1c0d57c1a822d7fe4a3eea788c94448e2"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr93-retained-capacity-episode-smoke-v2/games/main/e_full_loop/111539-00/status.json",
+      "sha256": "bd4ea83ad92e7d73d13282b25fac54bafe454cc7f8d3154cfec2a4edc20326bd"
+    }
+  },
+  "parent_audit_hash": "a3c1b8770c9f2a13e967c5b5c1925ab607028b21b16a1a6cc1f269aeccdec16a",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "deea2c1b2c25e7cbf773caaff0ec3fbc4106447f",
+    "dirty": false,
+    "implementation_sha256": "6db431565ef2084f1184c53b55fd3a036f3689bf13bcd84328c2556dc1825036",
+    "source_files": 319
+  },
+  "structural_hash": "be3a3e511f6af619c11daadaf1bd37263f83b4f256570aa1d9cc7ee519a1a786",
+  "summary": {
+    "effect_without_goal_relief": 1,
+    "episodes_encoded": 2,
+    "goal_relief_observed": 1,
+    "no_effect_observed": 0,
+    "terminal_labels": 2
+  }
+}

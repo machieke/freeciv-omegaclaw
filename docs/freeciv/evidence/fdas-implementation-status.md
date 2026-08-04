@@ -1381,3 +1381,23 @@ This proves delayed outcome mechanics, not causal value, score, or win rate.
 See `fdas-pr92-retained-capacity-outcome.md` and its JSON report. The next
 bounded target is common decision-episode encoding with all learning/readout
 authority still disabled.
+
+PR93 implements that bounded target. Terminal retained-capacity labels now map
+into the common decision-episode vocabulary in a separate observation-only
+store: terminal no-progress becomes `no-effect-observed`, a produced unit
+without durable relief becomes `effect-without-goal-relief`, and durable relief
+becomes `goal-relief-observed`. Exact proposal action, RequirementSet, claims,
+deficit, product, revisions, and label provenance are retained. Prediction IDs
+are empty, no execution event is asserted, and the bridge has no truth,
+learning, induction, readout, transition-value, or policy authority.
+
+The first engine smoke failed at turn zero because bridge validation referenced
+the learning config before its existing assignment; it is preserved as
+infrastructure-failure evidence. Commit `deea2c1` corrected only initialization
+order. Its clean replacement completed 1/1 at 160 turns and encoded two exact
+episodes: one durable positive and one produced-unit effect without durable
+relief. A strict composed audit passes all ten gates and reproduces
+byte-identically, with structural hash
+`be3a3e511f6af619c11daadaf1bd37263f83b4f256570aa1d9cc7ee519a1a786`.
+This proves episode encoding and isolation mechanics, not causal value, score,
+or win rate. See `fdas-pr93-retained-capacity-episode.md` and its JSON report.
