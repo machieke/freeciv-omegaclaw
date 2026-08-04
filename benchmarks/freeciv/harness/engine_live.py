@@ -78,6 +78,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     FdasDefenseActorPersistenceLabeler,
                                     FdasCoordinatedReplacementAdapter,
                                     FdasCoordinatedReplacementExecutionPilot,
+                                    FdasReplacementOpportunityFunnelEvaluator,
                                     FdasCoordinatedReplacementReadoutEvaluator,
                                     FdasReplacementChainOutcomeLabeler,
                                     FdasReplacementChainOutcomeStore,
@@ -2716,6 +2717,7 @@ async def _play(run_dir, manifest, context):
     fdas_replacement_store = None
     fdas_replacement_adapter = None
     fdas_replacement_readout_evaluator = None
+    fdas_replacement_opportunity_evaluator = None
     fdas_replacement_shadow = (
         fdas_manifest["capabilities"].get(
             "coordinated_replacement_lifecycle") == "shadow-live")
@@ -2765,6 +2767,31 @@ async def _play(run_dir, manifest, context):
         fdas_replacement_readout_evaluator = (
             FdasCoordinatedReplacementReadoutEvaluator(
                 fdas_replacement_adapter))
+    fdas_replacement_opportunity_capability = fdas_manifest["capabilities"].get(
+        "coordinated_replacement_opportunity_funnel")
+    fdas_replacement_opportunity_diagnostic = fdas_manifest.get(
+        "coordinated_replacement_opportunity_funnel_diagnostic")
+    fdas_replacement_opportunity = bool(
+        fdas_replacement_opportunity_capability is not None
+        or fdas_replacement_opportunity_diagnostic is not None)
+    if fdas_replacement_opportunity:
+        expected_replacement_opportunity = {
+            "action_selection_changed": False,
+            "blocker_taxonomy": (
+                "coordinated-replacement-opportunity-blockers/1.0"),
+            "policy_authority": False,
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (fdas_replacement_opportunity_capability != "shadow-live"
+                or fdas_replacement_opportunity_diagnostic
+                != expected_replacement_opportunity
+                or fdas_replacement_readout_evaluator is None):
+            raise RuntimeError(
+                "FDAS coordinated replacement opportunity funnel differs")
+        fdas_replacement_opportunity_evaluator = (
+            FdasReplacementOpportunityFunnelEvaluator())
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4479,6 +4506,9 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_readout_grounded_pairs": 0,
         "fdas_replacement_readout_rejections": 0,
         "fdas_replacement_readout_abstentions": 0,
+        "fdas_replacement_opportunity_funnel_evaluations": 0,
+        "fdas_replacement_opportunity_grounded": 0,
+        "fdas_replacement_opportunity_no_safe_replacement": 0,
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -6437,7 +6467,8 @@ async def _play(run_dir, manifest, context):
                             == "fdas-defense:coordinated-replacement"))
                     if ((replacement_candidates
                          or fdas_replacement_execution_pilot is not None
-                         or fdas_replacement_intention_tracker is not None)
+                         or fdas_replacement_intention_tracker is not None
+                         or fdas_replacement_opportunity_evaluator is not None)
                             and fdas_replacement_readout_evaluator is not None
                             and fdas_shadow is not None):
                         replacement_revision = (
@@ -6472,6 +6503,29 @@ async def _play(run_dir, manifest, context):
                                 caused_by=(parent,)))
                         if replacement_readout_event is not None:
                             parent = replacement_readout_event["event_id"]
+                        if fdas_replacement_opportunity_evaluator is not None:
+                            replacement_opportunity = (
+                                fdas_replacement_opportunity_evaluator.evaluate(
+                                    replacement_revision, replacement_readout))
+                            decision_stats[
+                                "fdas_replacement_opportunity_funnel_evaluations"
+                            ] += 1
+                            decision_stats[
+                                "fdas_replacement_opportunity_grounded"] += int(
+                                    replacement_opportunity.blocker_stage
+                                    == "grounded-pair-available")
+                            decision_stats[
+                                "fdas_replacement_opportunity_no_safe_replacement"
+                            ] += int(
+                                    replacement_opportunity.blocker_stage
+                                    == "no-safe-replacement-relation")
+                            replacement_opportunity_event = (
+                                fdas_runtime
+                                .emit_coordinated_replacement_opportunity_funnel(
+                                    writer, snapshot, replacement_opportunity,
+                                    caused_by=(parent,)))
+                            if replacement_opportunity_event is not None:
+                                parent = replacement_opportunity_event["event_id"]
                         if fdas_replacement_intention_tracker is not None:
                             prior_intention = (
                                 fdas_replacement_intention_store.assignment)
@@ -9193,6 +9247,14 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_replacement_readout_rejections"]),
         ("fdas_replacement_readout_abstentions",
          decision_stats["fdas_replacement_readout_abstentions"]),
+        ("fdas_replacement_opportunity_funnel_evaluations",
+         decision_stats[
+             "fdas_replacement_opportunity_funnel_evaluations"]),
+        ("fdas_replacement_opportunity_grounded",
+         decision_stats["fdas_replacement_opportunity_grounded"]),
+        ("fdas_replacement_opportunity_no_safe_replacement",
+         decision_stats[
+             "fdas_replacement_opportunity_no_safe_replacement"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -9940,6 +10002,14 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_replacement_readout_rejections"]),
             "fdas_replacement_readout_abstentions": (
                 decision_stats["fdas_replacement_readout_abstentions"]),
+            "fdas_replacement_opportunity_funnel_evaluations": (
+                decision_stats[
+                    "fdas_replacement_opportunity_funnel_evaluations"]),
+            "fdas_replacement_opportunity_grounded": (
+                decision_stats["fdas_replacement_opportunity_grounded"]),
+            "fdas_replacement_opportunity_no_safe_replacement": (
+                decision_stats[
+                    "fdas_replacement_opportunity_no_safe_replacement"]),
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -10546,6 +10616,14 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_replacement_readout_rejections"]),
         "fdas_replacement_readout_abstentions": (
             decision_stats["fdas_replacement_readout_abstentions"]),
+        "fdas_replacement_opportunity_funnel_evaluations": (
+            decision_stats[
+                "fdas_replacement_opportunity_funnel_evaluations"]),
+        "fdas_replacement_opportunity_grounded": (
+            decision_stats["fdas_replacement_opportunity_grounded"]),
+        "fdas_replacement_opportunity_no_safe_replacement": (
+            decision_stats[
+                "fdas_replacement_opportunity_no_safe_replacement"]),
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

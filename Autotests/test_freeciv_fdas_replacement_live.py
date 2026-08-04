@@ -11,6 +11,12 @@ from freeciv.harness.fdas_replacement_readout_live import (
 from freeciv.harness.fdas_replacement_readout_cohort import (
     audit_fdas_replacement_readout_cohort,
 )
+from freeciv.harness.fdas_replacement_opportunity_cohort import (
+    audit_fdas_replacement_opportunity_cohort,
+)
+from freeciv.harness.fdas_replacement_opportunity_live import (
+    audit_fdas_replacement_opportunity_live,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
@@ -245,6 +251,83 @@ def _add_candidate_readout(tmp_path):
     events_path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n"
                 for row in (events[0], readout_event, events[-1])),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
+def _add_opportunity_funnel(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"][
+        "coordinated_replacement_opportunity_funnel"] = "shadow-live"
+    activation["coordinated_replacement_opportunity_funnel_diagnostic"] = {
+        "action_selection_changed": False,
+        "blocker_taxonomy": (
+            "coordinated-replacement-opportunity-blockers/1.0"),
+        "policy_authority": False,
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+    details = {
+        "action_selection_changed": False,
+        "blocker_stage": "grounded-pair-available",
+        "blocker_taxonomy": (
+            "coordinated-replacement-opportunity-blockers/1.0"),
+        "critical_source_garrison_count": 1,
+        "current_replacement_candidate_count": 1,
+        "deficit_target_city_count": 1,
+        "grounded_pair_count": 1,
+        "identity": "fdas-coordinated-replacement-opportunity-funnel/1.0",
+        "policy_authority": False,
+        "protected_direct_control_count": 1,
+        "readout_authority": False,
+        "readout_rejection_count": 0,
+        "reinforcement_route_count": 1,
+        "revision_id": "revision-1",
+        "safe_replacement_relation_count": 1,
+        "snapshot_id": "snapshot-4",
+        "structural_source_target_join_count": 1,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    details["result_hash"] = structural_hash(details)
+    payload = {
+        "component_id": "fdas-coordinated-replacement-opportunity-funnel",
+        "component_version": "1.0",
+        "details": details,
+        "revision_id": "revision-1",
+        "ruleset_digest": "ruleset-proof",
+        "snapshot_id": "snapshot-4",
+    }
+    payload["structural_hash"] = structural_hash(payload)
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    funnel_event = {
+        **events[-1],
+        "caused_by": [events[-2]["event_id"]],
+        "event_id": "event-opportunity-funnel",
+        "payload": payload,
+        "seq": events[-1]["seq"],
+        "type": "atomspace_shadow_decision",
+    }
+    events[-1]["caused_by"] = [funnel_event["event_id"]]
+    events[-1]["seq"] += 1
+    counters = {
+        "fdas_replacement_opportunity_funnel_evaluations": 1,
+        "fdas_replacement_opportunity_grounded": 1,
+        "fdas_replacement_opportunity_no_safe_replacement": 0,
+    }
+    events[-1]["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n"
+                for row in (*events[:-1], funnel_event, events[-1])),
         encoding="utf-8")
     status_path = tmp_path / "status.json"
     status = json.loads(status_path.read_text(encoding="utf-8"))
@@ -520,6 +603,19 @@ def test_replacement_readout_live_accepts_grounded_safe_chain(tmp_path):
     assert report["summary"]["replacement_candidates"] == 1
 
 
+def test_replacement_opportunity_live_accepts_exact_stage_partition(tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_opportunity_funnel(tmp_path)
+
+    report = audit_fdas_replacement_opportunity_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["evaluations"] == 1
+    assert report["summary"]["stage_counts"] == {
+        "grounded-pair-available": 1}
+
+
 def test_replacement_reproposal_audit_accepts_bounded_hardening(tmp_path):
     _fixture(tmp_path)
     _add_candidate_readout(tmp_path)
@@ -588,3 +684,26 @@ def test_replacement_readout_cohort_requires_two_opportunity_games(tmp_path):
     assert report["acceptance"]["accepted"] is True
     assert report["summary"]["opportunity_game_count"] == 2
     assert report["summary"]["grounded_pair_count"] == 2
+
+
+def test_replacement_opportunity_cohort_partitions_all_evaluations(tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+        _add_opportunity_funnel(game_dir)
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 2, "infrastructure_failures": 0,
+        "jobs": 2, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_opportunity_cohort(
+        str(run_dir), (101, 103), expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["evaluation_count"] == 2
+    assert report["summary"]["stage_counts"] == {
+        "grounded-pair-available": 2}

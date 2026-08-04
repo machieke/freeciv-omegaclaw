@@ -338,6 +338,52 @@ def test_coordinated_replacement_readout_event_has_zero_value_authority(
             writer, snapshot, stale)
 
 
+def test_coordinated_replacement_opportunity_event_has_zero_authority(tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "blocker_stage": "no-safe-replacement-relation",
+        "blocker_taxonomy": (
+            "coordinated-replacement-opportunity-blockers/1.0"),
+        "critical_source_garrison_count": 2,
+        "current_replacement_candidate_count": 0,
+        "deficit_target_city_count": 1,
+        "grounded_pair_count": 0,
+        "identity": "fdas-coordinated-replacement-opportunity-funnel/1.0",
+        "policy_authority": False,
+        "protected_direct_control_count": 3,
+        "readout_authority": False,
+        "readout_rejection_count": 0,
+        "reinforcement_route_count": 1,
+        "result_hash": "funnel-result-hash",
+        "revision_id": update.revision_id,
+        "safe_replacement_relation_count": 0,
+        "snapshot_id": snapshot.snapshot_id,
+        "structural_source_target_join_count": 0,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    funnel = SimpleNamespace(to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "replacement-opportunity-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_coordinated_replacement_opportunity_funnel(
+        writer, snapshot, funnel)
+
+    assert event["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-opportunity-funnel")
+    assert event["payload"]["details"]["readout_authority"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        to_dict=lambda: {**details, "revision_id": "stale-revision"})
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_coordinated_replacement_opportunity_funnel(
+            writer, snapshot, stale)
+
+
 def test_coordinated_replacement_chain_outcome_events_have_zero_authority(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

@@ -1255,3 +1255,13 @@ gate passed, but the six observed pairs and one discordance support only a
 favorable descriptive mechanism result, not a statistically reliable general,
 score, or win-rate claim. See
 `fdas-pr86b-isolated-launch-paired-replacement.md` and its JSON audit.
+
+PR87 freezes the next diagnostic boundary without retuning the controller.
+PR86b's nine no-opportunity pairs all contained real defense deficits, critical
+garrisons, and reinforcement routes, but none grounded a safe replacement
+relation. A separately gated, typed opportunity funnel now partitions every
+current readout revision by its first exact blocker, remains causally bound to
+the readout, and grants no truth, value, readout, policy, or action authority.
+The first 16 of 30 previously unused seeds are fixed for a fresh engine cohort;
+no stage frequency is an acceptance condition. See
+`fdas-pr87-replacement-opportunity-funnel-preregistration.md`.

@@ -329,6 +329,12 @@ from .fdas_replacement_readout import (
     FdasCoordinatedReplacementReadout,
     FdasCoordinatedReplacementReadoutEvaluator,
 )
+from .fdas_replacement_opportunity import (
+    REPLACEMENT_OPPORTUNITY_BLOCKER_TAXONOMY,
+    REPLACEMENT_OPPORTUNITY_FUNNEL_IDENTITY,
+    FdasReplacementOpportunityFunnel,
+    FdasReplacementOpportunityFunnelEvaluator,
+)
 from .fdas_transport import (
     FdasFounderTransportProjectionAdapter,
     declared_transport_intents,

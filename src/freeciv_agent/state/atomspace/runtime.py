@@ -1096,6 +1096,33 @@ class FdasRuntime(object):
             component_id="fdas-coordinated-replacement-candidate-readout",
             component_version="1.0")
 
+    def emit_coordinated_replacement_opportunity_funnel(
+            self, writer, snapshot, funnel, caused_by=()):
+        """Emit a revision-current why-not funnel without granting authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        details = funnel.to_dict()
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or details.get("snapshot_id") != snapshot.snapshot_id
+                or details.get("revision_id") != revision.revision_id):
+            raise RuntimeError(
+                "FDAS replacement opportunity funnel is not revision-current")
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "policy_authority",
+                "readout_authority", "transition_value_estimated",
+                "truth_mutated")):
+            raise RuntimeError(
+                "FDAS replacement opportunity funnel grants authority or value")
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-coordinated-replacement-opportunity-funnel",
+            component_version="1.0")
+
     def emit_coordinated_replacement_chain_outcome(
             self, writer, snapshot, label, transition, store_digest,
             caused_by=()):
