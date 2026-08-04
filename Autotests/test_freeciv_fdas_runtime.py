@@ -665,6 +665,54 @@ def test_retained_capacity_episode_event_has_zero_learning_authority(tmp_path):
             writer, snapshot, invalid, "store-digest")
 
 
+def test_retained_capacity_transition_query_event_is_abstained(tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    revision = runtime.snapshot_store.current_dependent_revision(
+        snapshot.identity.game_id, snapshot.player_id)
+    value = {
+        "action_selection_changed": False,
+        "estimate": None,
+        "interval_lower": None,
+        "interval_upper": None,
+        "learning_authority": False,
+        "model_id": None,
+        "policy_authority": False,
+        "query_id": "retained-capacity-query-proof",
+        "readout_authority": False,
+        "status": "abstained",
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
+    query = SimpleNamespace(
+        snapshot_id=snapshot.snapshot_id,
+        revision_id=revision.revision_id,
+        to_dict=lambda: dict(value))
+    path = os.path.join(str(tmp_path), "capacity-query-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_retained_capacity_transition_query(
+        writer, snapshot, query, "query-store-digest")
+
+    assert event["type"] == "transition_prediction_abstained"
+    assert event["payload"]["component_id"] == (
+        "fdas-retained-capacity-transition-query")
+    details = event["payload"]["details"]
+    assert details["learning_authority"] is False
+    assert details["policy_authority"] is False
+    assert details["transition_value_estimated"] is False
+    assert validate_file(path).valid
+
+    invalid = SimpleNamespace(
+        snapshot_id=snapshot.snapshot_id,
+        revision_id=revision.revision_id,
+        to_dict=lambda: {**value, "estimate": 0.5})
+    with pytest.raises(RuntimeError, match="grants authority"):
+        runtime.emit_retained_capacity_transition_query(
+            writer, snapshot, invalid, "store-digest")
+
+
 def test_coordinated_replacement_execution_event_is_pilot_bounded(tmp_path):
     runtime = build_runtime(_enabled_city_declaration())
     snapshot = _snapshot()

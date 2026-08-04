@@ -445,7 +445,7 @@ def test_replacement_capacity_retained_queue_lifecycle_is_additive():
     }
 
 
-def test_replacement_capacity_retained_queue_outcome_and_episode_are_additive():
+def test_replacement_capacity_outcome_episode_and_query_are_additive():
     with open(os.path.join(
             REPO, "profile",
             "dependent_atomspace_defense_choice_surface_shadow.yaml"),
@@ -465,6 +465,10 @@ def test_replacement_capacity_retained_queue_outcome_and_episode_are_additive():
     config = DependentAtomSpaceConfig.from_dict(value, manifest)
     additive = copy.deepcopy(manifest)
     assert additive["capabilities"].pop(
+        "replacement_capacity_transition_prediction_query") == "shadow-live"
+    query_diagnostic = additive.pop(
+        "replacement_capacity_transition_prediction_query_diagnostic")
+    assert additive["capabilities"].pop(
         "replacement_capacity_retained_queue_episode_bridge") == (
             "shadow-live")
     episode_diagnostic = additive.pop(
@@ -476,6 +480,20 @@ def test_replacement_capacity_retained_queue_outcome_and_episode_are_additive():
 
     assert config.enabled is True
     assert additive == parent
+    assert query_diagnostic == {
+        "abstention_reason": (
+            "insufficient-independent-calibration-evidence"),
+        "action_selection_changed": False,
+        "episode_prediction_link": False,
+        "feature_schema": "retained-capacity-transition-features/1.0",
+        "learning_authority": False,
+        "numerical_estimate": False,
+        "policy_authority": False,
+        "query_store": "separate-observation-only",
+        "readout_authority": False,
+        "transition_value_estimated": False,
+        "truth_mutated": False,
+    }
     assert episode_diagnostic == {
         "action_selection_changed": False,
         "action_submitted": False,

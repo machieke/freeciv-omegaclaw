@@ -85,6 +85,8 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     FdasRetainedCapacityOutcomeLabeler,
                                     FdasRetainedCapacityOutcomeStore,
                                     FdasRetainedCapacityEpisodeBridge,
+                                    FdasRetainedCapacityTransitionQueryBuilder,
+                                    FdasRetainedCapacityTransitionQueryStore,
                                     FdasReplacementExecutionStore,
                                     FdasReplacementIntentionStore,
                                     FdasReplacementIntentionTracker,
@@ -100,6 +102,7 @@ from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     RETAINED_CAPACITY_OUTCOME_TARGET,
                                     RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
+                                    RETAINED_CAPACITY_TRANSITION_QUERY_IDENTITY,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasSelectedDefenseActorPersistenceLabeler,
@@ -2958,6 +2961,78 @@ async def _play(run_dir, manifest, context):
                 retained_capacity_outcome_store))
         retained_capacity_outcome_store.save(
             retained_capacity_outcome_path)
+    retained_capacity_transition_query_capability = fdas_manifest[
+        "capabilities"].get("replacement_capacity_transition_prediction_query")
+    retained_capacity_transition_query_diagnostic = fdas_manifest.get(
+        "replacement_capacity_transition_prediction_query_diagnostic")
+    retained_capacity_transition_query_enabled = bool(
+        retained_capacity_transition_query_capability is not None
+        or retained_capacity_transition_query_diagnostic is not None)
+    retained_capacity_transition_query_path = os.path.join(
+        run_dir, "fdas-retained-capacity-transition-queries.json")
+    retained_capacity_transition_query_store = None
+    retained_capacity_transition_query_emitted_ids = set()
+    if retained_capacity_transition_query_enabled:
+        expected_retained_capacity_transition_query = {
+            "abstention_reason": (
+                "insufficient-independent-calibration-evidence"),
+            "action_selection_changed": False,
+            "episode_prediction_link": False,
+            "feature_schema": (
+                "retained-capacity-transition-features/1.0"),
+            "learning_authority": False,
+            "numerical_estimate": False,
+            "policy_authority": False,
+            "query_store": "separate-observation-only",
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_capacity_outcome_enabled
+                or retained_capacity_transition_query_capability
+                    != "shadow-live"
+                or retained_capacity_transition_query_diagnostic
+                    != expected_retained_capacity_transition_query
+        ):
+            raise RuntimeError(
+                "FDAS retained capacity transition query contract differs")
+        retained_capacity_transition_query_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"],
+            RETAINED_CAPACITY_TRANSITION_QUERY_IDENTITY,
+        ])
+        retained_capacity_transition_query_store = (
+            FdasRetainedCapacityTransitionQueryStore.load(
+                retained_capacity_transition_query_path,
+                retained_capacity_transition_query_identity))
+        if retained_capacity_transition_query_store.quarantined:
+            raise RuntimeError(
+                "FDAS retained capacity transition query store is "
+                "quarantined: {}".format(
+                    retained_capacity_transition_query_store
+                    .quarantine_reason))
+        retained_capacity_transition_query_store.save(
+            retained_capacity_transition_query_path)
+        if os.path.exists(events_path):
+            with open(events_path, encoding="utf-8") as stream:
+                for line in stream:
+                    if not line.strip():
+                        continue
+                    prior_event = json.loads(line)
+                    prior_payload = prior_event.get("payload", {})
+                    if (prior_event.get("type") == (
+                            "transition_prediction_abstained")
+                            and prior_payload.get("component_id") == (
+                                "fdas-retained-capacity-transition-query")):
+                        query_id = prior_payload.get(
+                            "details", {}).get("query", {}).get("query_id")
+                        if not isinstance(query_id, str) or not query_id:
+                            raise RuntimeError(
+                                "FDAS retained capacity transition query "
+                                "replay differs")
+                        retained_capacity_transition_query_emitted_ids.add(
+                            query_id)
     retained_capacity_episode_capability = fdas_manifest["capabilities"].get(
         "replacement_capacity_retained_queue_episode_bridge")
     retained_capacity_episode_diagnostic = fdas_manifest.get(
@@ -4826,6 +4901,13 @@ async def _play(run_dir, manifest, context):
                 and value.outcome is False
                 for value in retained_capacity_outcome_store.labels())
             if retained_capacity_outcome_store is not None else 0),
+        "fdas_retained_capacity_transition_queries_captured": (
+            len(retained_capacity_transition_query_store.queries())
+            if retained_capacity_transition_query_store is not None else 0),
+        "fdas_retained_capacity_transition_queries_abstained": (
+            sum(value.status == "abstained"
+                for value in retained_capacity_transition_query_store.queries())
+            if retained_capacity_transition_query_store is not None else 0),
         "fdas_retained_capacity_episodes_encoded": (
             len(retained_capacity_episode_store.episodes())
             if retained_capacity_episode_store is not None else 0),
@@ -5016,19 +5098,46 @@ async def _play(run_dir, manifest, context):
             prior = retained_capacity_outcome_store.for_operation(operation_id)
             label = retained_capacity_outcome_labeler.open(
                 event, revision, manifest["game_id"], player_id)
-            if prior is not None:
-                continue
-            retained_capacity_outcome_store.save(
-                retained_capacity_outcome_path)
-            emitted = fdas_runtime.emit_retained_capacity_outcome(
-                writer, current, label, "opened",
-                retained_capacity_outcome_store.store_digest,
-                caused_by=(event["event_id"],))
-            if emitted is not None:
-                cause = emitted["event_id"]
-            decision_stats["fdas_retained_capacity_outcomes_opened"] += 1
-            decision_stats[
-                "fdas_retained_capacity_outcomes_pending_product"] += 1
+            query_cause = event["event_id"]
+            if prior is None:
+                retained_capacity_outcome_store.save(
+                    retained_capacity_outcome_path)
+                emitted = fdas_runtime.emit_retained_capacity_outcome(
+                    writer, current, label, "opened",
+                    retained_capacity_outcome_store.store_digest,
+                    caused_by=(event["event_id"],))
+                if emitted is not None:
+                    cause = emitted["event_id"]
+                    query_cause = cause
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_opened"] += 1
+                decision_stats[
+                    "fdas_retained_capacity_outcomes_pending_product"] += 1
+            if retained_capacity_transition_query_store is not None:
+                query = retained_capacity_transition_query_store.for_operation(
+                    operation_id)
+                if query is None:
+                    query = FdasRetainedCapacityTransitionQueryBuilder.build(
+                        event, label, current, revision)
+                    retained_capacity_transition_query_store.record(query)
+                    retained_capacity_transition_query_store.save(
+                        retained_capacity_transition_query_path)
+                    decision_stats[
+                        "fdas_retained_capacity_transition_queries_captured"] \
+                        += 1
+                    decision_stats[
+                        "fdas_retained_capacity_transition_queries_abstained"] \
+                        += 1
+                if query.query_id not in (
+                        retained_capacity_transition_query_emitted_ids):
+                    emitted = fdas_runtime.emit_retained_capacity_transition_query(
+                        writer, current, query,
+                        retained_capacity_transition_query_store.store_digest,
+                        caused_by=(query_cause,))
+                    if emitted is not None:
+                        cause = emitted["event_id"]
+                        retained_capacity_transition_query_emitted_ids.add(
+                            query.query_id)
         return cause
 
     def reconcile_retained_capacity_outcomes(current, events, cause):
@@ -10101,6 +10210,12 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_retained_capacity_outcomes_relief_positive"]),
         ("fdas_retained_capacity_outcomes_relief_negative",
          decision_stats["fdas_retained_capacity_outcomes_relief_negative"]),
+        ("fdas_retained_capacity_transition_queries_captured",
+         decision_stats[
+             "fdas_retained_capacity_transition_queries_captured"]),
+        ("fdas_retained_capacity_transition_queries_abstained",
+         decision_stats[
+             "fdas_retained_capacity_transition_queries_abstained"]),
         ("fdas_retained_capacity_episodes_encoded",
          decision_stats["fdas_retained_capacity_episodes_encoded"]),
         ("fdas_retained_capacity_episodes_no_effect",
@@ -10954,6 +11069,12 @@ async def _play(run_dir, manifest, context):
                 "fdas_retained_capacity_outcomes_relief_positive"],
             "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
                 "fdas_retained_capacity_outcomes_relief_negative"],
+            "fdas_retained_capacity_transition_queries_captured": (
+                decision_stats[
+                    "fdas_retained_capacity_transition_queries_captured"]),
+            "fdas_retained_capacity_transition_queries_abstained": (
+                decision_stats[
+                    "fdas_retained_capacity_transition_queries_abstained"]),
             "fdas_retained_capacity_episodes_encoded": decision_stats[
                 "fdas_retained_capacity_episodes_encoded"],
             "fdas_retained_capacity_episodes_no_effect": decision_stats[
@@ -11662,6 +11783,10 @@ async def _play(run_dir, manifest, context):
             "fdas_retained_capacity_outcomes_relief_positive"],
         "fdas_retained_capacity_outcomes_relief_negative": decision_stats[
             "fdas_retained_capacity_outcomes_relief_negative"],
+        "fdas_retained_capacity_transition_queries_captured": decision_stats[
+            "fdas_retained_capacity_transition_queries_captured"],
+        "fdas_retained_capacity_transition_queries_abstained": decision_stats[
+            "fdas_retained_capacity_transition_queries_abstained"],
         "fdas_retained_capacity_episodes_encoded": decision_stats[
             "fdas_retained_capacity_episodes_encoded"],
         "fdas_retained_capacity_episodes_no_effect": decision_stats[

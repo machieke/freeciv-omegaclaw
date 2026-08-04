@@ -113,6 +113,7 @@ KNOWN_EVENT_TYPES = (
     "operation_outcome_label_opened",
     "operation_outcome_label_product_observed",
     "operation_outcome_label_observed",
+    "transition_prediction_abstained",
     "conductance_sample_recorded",
     "induced_rule_quarantined",
     "induced_rule_promoted",

@@ -1235,6 +1235,50 @@ class FdasRuntime(object):
             component_id="fdas-retained-capacity-episode-bridge",
             component_version="1.0")
 
+    def emit_retained_capacity_transition_query(
+            self, writer, snapshot, query, store_digest, caused_by=()):
+        """Emit one proposal-time query that explicitly abstains."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None or revision.snapshot_id != snapshot.snapshot_id
+                or query.snapshot_id != snapshot.snapshot_id
+                or query.revision_id != revision.revision_id):
+            raise RuntimeError(
+                "FDAS retained capacity transition query is not current")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError(
+                "FDAS retained capacity transition query digest is required")
+        value = query.to_dict()
+        if (value.get("status") != "abstained"
+                or any(value.get(name) is not False for name in (
+                    "action_selection_changed", "learning_authority",
+                    "policy_authority", "readout_authority",
+                    "transition_value_estimated", "truth_mutated"))
+                or any(value.get(name) is not None for name in (
+                    "estimate", "interval_lower", "interval_upper",
+                    "model_id"))):
+            raise RuntimeError(
+                "FDAS retained capacity transition query grants authority")
+        details = {
+            "action_selection_changed": False,
+            "identity": "fdas-retained-capacity-transition-query/1.0",
+            "learning_authority": False,
+            "policy_authority": False,
+            "query": value,
+            "readout_authority": False,
+            "store_digest": store_digest,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        return self.event_emitter.emit_component(
+            writer, "transition_prediction_abstained", snapshot.turn,
+            revision, details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-retained-capacity-transition-query",
+            component_version="1.0")
+
     def emit_coordinated_replacement_execution(
             self, writer, snapshot, value, transition, store_digest,
             caused_by=()):
@@ -1720,6 +1764,38 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
             raise FdasRuntimeConfigurationError(
                 "replacement capacity retained queue outcome declaration "
                 "differs")
+    retained_capacity_transition_query_capability = manifest[
+        "capabilities"].get("replacement_capacity_transition_prediction_query")
+    retained_capacity_transition_query_diagnostic = manifest.get(
+        "replacement_capacity_transition_prediction_query_diagnostic")
+    retained_capacity_transition_query_enabled = bool(
+        retained_capacity_transition_query_capability is not None
+        or retained_capacity_transition_query_diagnostic is not None)
+    if retained_capacity_transition_query_enabled:
+        expected_retained_capacity_transition_query = {
+            "abstention_reason": (
+                "insufficient-independent-calibration-evidence"),
+            "action_selection_changed": False,
+            "episode_prediction_link": False,
+            "feature_schema": (
+                "retained-capacity-transition-features/1.0"),
+            "learning_authority": False,
+            "numerical_estimate": False,
+            "policy_authority": False,
+            "query_store": "separate-observation-only",
+            "readout_authority": False,
+            "transition_value_estimated": False,
+            "truth_mutated": False,
+        }
+        if (
+                not retained_capacity_outcome_enabled
+                or retained_capacity_transition_query_capability
+                    != "shadow-live"
+                or retained_capacity_transition_query_diagnostic
+                    != expected_retained_capacity_transition_query
+        ):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity transition query declaration differs")
     retained_capacity_episode_capability = manifest["capabilities"].get(
         "replacement_capacity_retained_queue_episode_bridge")
     retained_capacity_episode_diagnostic = manifest.get(

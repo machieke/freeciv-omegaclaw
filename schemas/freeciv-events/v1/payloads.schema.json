@@ -1506,6 +1506,7 @@
     "operation_outcome_label_opened": {"$ref": "#/$defs/atomspaceEvent"},
     "operation_outcome_label_product_observed": {"$ref": "#/$defs/atomspaceEvent"},
     "operation_outcome_label_observed": {"$ref": "#/$defs/atomspaceEvent"},
+    "transition_prediction_abstained": {"$ref": "#/$defs/atomspaceEvent"},
     "conductance_sample_recorded": {"$ref": "#/$defs/atomspaceEvent"},
     "induced_rule_quarantined": {"$ref": "#/$defs/atomspaceEvent"},
     "induced_rule_promoted": {"$ref": "#/$defs/atomspaceEvent"},
