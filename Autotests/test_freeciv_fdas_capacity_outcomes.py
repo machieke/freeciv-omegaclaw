@@ -12,6 +12,16 @@ from freeciv_agent.planning import (
     FdasRetainedCapacityOutcomeLabel,
     FdasRetainedCapacityOutcomeLabeler,
     FdasRetainedCapacityOutcomeStore,
+    FdasRetainedCapacityTransitionQuery,
+    FdasRetainedCapacityTransitionQueryBuilder,
+    FdasRetainedCapacityTransitionQueryStore,
+)
+from freeciv_agent.planning.fdas_capacity_transition_queries import (
+    _count_band,
+    _horizon_band,
+    _size_band,
+    _surplus_band,
+    _turn_phase,
 )
 from freeciv_agent.state import ProxyStateDTO
 from freeciv_agent.state.atomspace import AtomKey, AtomNamespace, EntityRef
@@ -369,3 +379,109 @@ def test_retained_capacity_episode_bridge_rejects_pending_or_submitted_claim():
     duplicated["payload"]["claims"] *= 2
     with pytest.raises(ValueError, match="resource claims are duplicated"):
         bridge.encode(observed, duplicated)
+
+
+def _transition_query_fixture(turn=10, deadline=74):
+    snapshot = _snapshot(turn, 600 + turn)
+    revision = _Revision(snapshot.snapshot_id, revision_id="revision-query")
+    proposal = _proposal(snapshot, revision)
+    proposal["payload"]["deadline_turn"] = deadline
+    store = FdasRetainedCapacityOutcomeStore("capacity-query-label")
+    label = FdasRetainedCapacityOutcomeLabeler(store).open(
+        proposal, revision, snapshot.identity.game_id, snapshot.player_id)
+    return proposal, label, snapshot, revision
+
+
+def test_retained_capacity_transition_query_is_proposal_time_abstention():
+    proposal, label, snapshot, revision = _transition_query_fixture()
+
+    query = FdasRetainedCapacityTransitionQueryBuilder.build(
+        proposal, label, snapshot, revision)
+    repeated = FdasRetainedCapacityTransitionQueryBuilder.build(
+        proposal, label, snapshot, revision)
+
+    assert repeated == query
+    assert query.status == "abstained"
+    assert query.reason == "insufficient-independent-calibration-evidence"
+    assert (query.estimate, query.interval_lower, query.interval_upper,
+            query.model_id) == (None, None, None, None)
+    features = dict(query.features)
+    assert features["action_category"] == "city_production"
+    assert features["lifecycle_state"] == "retained-authoritative-queue"
+    assert features["production_target"] == "musketeers"
+    assert features["turn_phase_band"] == "0-39"
+    assert features["completion_horizon_band"] == "33-64"
+    assert features["cross_city_deficit"] == "true"
+    assert features["exact_queue_match"] == "true"
+    assert FdasRetainedCapacityTransitionQuery.from_dict(
+        query.to_dict()) == query
+    assert all(query.to_dict()[name] is False for name in (
+        "action_selection_changed", "learning_authority",
+        "policy_authority", "readout_authority",
+        "transition_value_estimated", "truth_mutated"))
+
+
+@pytest.mark.parametrize("value,expected", (
+    (0, "0-39"), (39, "0-39"), (40, "40-79"),
+    (79, "40-79"), (80, "80+")))
+def test_retained_capacity_transition_turn_bands(value, expected):
+    assert _turn_phase(value) == expected
+
+
+@pytest.mark.parametrize("value,expected", (
+    (1, "1-16"), (16, "1-16"), (17, "17-32"), (32, "17-32"),
+    (33, "33-64"), (64, "33-64"), (65, "65+")))
+def test_retained_capacity_transition_horizon_bands(value, expected):
+    assert _horizon_band(value) == expected
+
+
+@pytest.mark.parametrize("function,value,expected", (
+    (_size_band, 1, "1"), (_size_band, 4, "2-4"),
+    (_size_band, 5, "5-8"), (_size_band, 9, "9+"),
+    (_surplus_band, -1, "negative"), (_surplus_band, 0, "zero"),
+    (_surplus_band, 4, "1-4"), (_surplus_band, 5, "5+"),
+    (_count_band, 0, "0"), (_count_band, 2, "2"),
+    (_count_band, 3, "3+")))
+def test_retained_capacity_transition_categorical_bands(
+        function, value, expected):
+    assert function(value) == expected
+
+
+def test_retained_capacity_transition_query_fails_closed_on_stale_inputs():
+    proposal, label, snapshot, revision = _transition_query_fixture()
+
+    with pytest.raises(ValueError, match="snapshot differs"):
+        FdasRetainedCapacityTransitionQueryBuilder.build(
+            proposal, label, _snapshot(11, 701), revision)
+    with pytest.raises(ValueError, match="revision differs"):
+        FdasRetainedCapacityTransitionQueryBuilder.build(
+            proposal, label, snapshot,
+            _Revision(snapshot.snapshot_id, deficit=False))
+    changed = copy.deepcopy(proposal)
+    changed["payload"]["deadline_turn"] = label.proposed_turn
+    with pytest.raises(ValueError, match="deadline differs"):
+        FdasRetainedCapacityTransitionQueryBuilder.build(
+            changed, label, snapshot, revision)
+
+
+def test_retained_capacity_transition_query_store_roundtrip_and_quarantine(
+        tmp_path):
+    proposal, label, snapshot, revision = _transition_query_fixture()
+    query = FdasRetainedCapacityTransitionQueryBuilder.build(
+        proposal, label, snapshot, revision)
+    store = FdasRetainedCapacityTransitionQueryStore("capacity-query-store")
+
+    assert store.record(query) == query
+    assert store.record(query) == query
+    path = tmp_path / "capacity-transition-queries.json"
+    store.save(str(path))
+    loaded = FdasRetainedCapacityTransitionQueryStore.load(
+        str(path), "capacity-query-store")
+    assert loaded.quarantined is False
+    assert loaded.queries() == (query,)
+    value = json.loads(path.read_text(encoding="utf-8"))
+    value["store_digest"] = "tampered"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    quarantined = FdasRetainedCapacityTransitionQueryStore.load(
+        str(path), "capacity-query-store")
+    assert quarantined.quarantined is True

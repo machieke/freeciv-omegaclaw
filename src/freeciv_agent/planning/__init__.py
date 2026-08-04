@@ -310,6 +310,14 @@ from .fdas_capacity_episode_bridge import (
     RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY,
     FdasRetainedCapacityEpisodeBridge,
 )
+from .fdas_capacity_transition_queries import (
+    RETAINED_CAPACITY_TRANSITION_FEATURE_SCHEMA,
+    RETAINED_CAPACITY_TRANSITION_QUERY_IDENTITY,
+    RETAINED_CAPACITY_TRANSITION_QUERY_STORE_IDENTITY,
+    FdasRetainedCapacityTransitionQuery,
+    FdasRetainedCapacityTransitionQueryBuilder,
+    FdasRetainedCapacityTransitionQueryStore,
+)
 from .fdas_replacement_execution import (
     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
     REPLACEMENT_EXECUTION_SCHEMA_VERSION,
@@ -554,6 +562,12 @@ __all__ = [
     "FdasRetainedCapacityOutcomeStore",
     "RETAINED_CAPACITY_EPISODE_BRIDGE_IDENTITY",
     "FdasRetainedCapacityEpisodeBridge",
+    "RETAINED_CAPACITY_TRANSITION_FEATURE_SCHEMA",
+    "RETAINED_CAPACITY_TRANSITION_QUERY_IDENTITY",
+    "RETAINED_CAPACITY_TRANSITION_QUERY_STORE_IDENTITY",
+    "FdasRetainedCapacityTransitionQuery",
+    "FdasRetainedCapacityTransitionQueryBuilder",
+    "FdasRetainedCapacityTransitionQueryStore",
     "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
     "FdasCoordinatedReplacementPair",
     "FdasCoordinatedReplacementReadout",
