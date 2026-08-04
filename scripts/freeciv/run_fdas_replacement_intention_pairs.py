@@ -7,9 +7,12 @@ import datetime
 import fcntl
 import json
 import os
+import socket
 import subprocess
 import sys
 import traceback
+import urllib.parse
+import urllib.request
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,6 +28,8 @@ from freeciv.harness.fdas_replacement_intention_live import (  # noqa: E402
     _expected_diagnostic,
     expected_arm_order,
 )
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 
 
 DEFAULT_CONTROL_PROFILE = os.path.join(
@@ -104,9 +109,95 @@ def _source_identity(repo):
     return {"commit": commit, "dirty": dirty}
 
 
+def _probe_runtime_dependencies(container, ws_url, ollama_url, model):
+    try:
+        running = subprocess.check_output(
+            ["docker", "inspect", "-f", "{{.State.Running}}", container],
+            stderr=subprocess.DEVNULL, text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        raise ValueError(
+            "FreeCiv server container is unavailable: {}".format(container))
+    if running != "true":
+        raise ValueError(
+            "FreeCiv server container is not running: {}".format(container))
+
+    endpoint = urllib.parse.urlparse(ws_url)
+    if endpoint.scheme not in ("ws", "wss") or not endpoint.hostname:
+        raise ValueError("FREECIV_PROXY_WS is invalid")
+    proxy_port = endpoint.port or (443 if endpoint.scheme == "wss" else 80)
+    try:
+        with socket.create_connection(
+                (endpoint.hostname, proxy_port), timeout=3.0):
+            pass
+    except OSError:
+        raise ValueError(
+            "FreeCiv proxy endpoint is unavailable: {}:{}".format(
+                endpoint.hostname, proxy_port))
+
+    native_ollama = ollama_url.rstrip("/")
+    if native_ollama.endswith("/v1"):
+        native_ollama = native_ollama[:-3]
+    try:
+        with urllib.request.urlopen(
+                native_ollama + "/api/tags", timeout=5.0) as response:
+            body = json.load(response)
+    except Exception:
+        raise ValueError("Ollama endpoint is unavailable: {}".format(
+            native_ollama))
+    available = tuple(sorted(
+        row.get("name") for row in body.get("models", ())
+        if isinstance(row, dict) and isinstance(row.get("name"), str)))
+    if model not in available:
+        raise ValueError("configured Ollama model is unavailable: {}".format(
+            model))
+    return {
+        "freeciv_server_container": container,
+        "ollama_endpoint": native_ollama,
+        "ollama_model": model,
+        "proxy_endpoint": "{}:{}".format(endpoint.hostname, proxy_port),
+    }
+
+
+def validate_engine_environment(
+        configs, environ=None, ruleset_compiler=compile_ruleset,
+        dependency_probe=_probe_runtime_dependencies):
+    """Validate mandatory static and local runtime inputs before artifacts."""
+    environ = os.environ if environ is None else environ
+    live = configs["control"].get("live", {})
+    if configs["treatment"].get("live") != live:
+        raise ValueError("paired arm live environment declarations differ")
+    ruleset_env = live.get("ruleset_root_env")
+    if ruleset_env != "FREECIV_RULESET_ROOT":
+        raise ValueError("paired profiles must bind FREECIV_RULESET_ROOT")
+    ruleset_root = environ.get(ruleset_env)
+    if (not isinstance(ruleset_root, str) or not ruleset_root.strip()
+            or not os.path.isfile(os.path.join(
+                ruleset_root, "civ2civ3", "techs.ruleset"))):
+        raise ValueError(
+            "FREECIV_RULESET_ROOT must contain civ2civ3/techs.ruleset")
+    ruleset_root = os.path.abspath(ruleset_root)
+    compiled = ruleset_compiler(ruleset_root, "civ2civ3")
+    model = configs["control"].get("model", {}).get("name")
+    if configs["treatment"].get("model", {}).get("name") != model:
+        raise ValueError("paired arm models differ")
+    dependencies = dependency_probe(
+        environ.get("FREECIV_SERVER_CONTAINER", "fciv-net"),
+        environ.get(
+            "FREECIV_PROXY_WS", "ws://127.0.0.1:8002/llmsocket/8002"),
+        environ.get("OLLAMA_OPENAI_BASE_URL", "http://127.0.0.1:11434/v1"),
+        model)
+    return dict(dependencies, **{
+        "ruleset": "civ2civ3",
+        "ruleset_compiler_version": compiled.compiler_version,
+        "ruleset_ir_sha256": structural_hash(compiled.to_dict()),
+        "ruleset_root": ruleset_root,
+    })
+
+
 def validate_launch_preflight(
         out, control_profile, treatment_profile, workers, server_ports,
-        require_clean_source=True, repo=REPO):
+        require_clean_source=True, repo=REPO,
+        environment_validator=validate_engine_environment):
     """Fail before creating artifacts or starting an engine on any mismatch."""
     out = os.path.abspath(out)
     profiles = {
@@ -135,12 +226,14 @@ def validate_launch_preflight(
     source = _source_identity(repo)
     if require_clean_source and source["dirty"]:
         raise ValueError("PR86 launch requires a clean source tree")
+    runtime_environment = environment_validator(configs)
     return {
         "arm_profiles": profiles,
         "experiment_id": ISOLATED_EXPERIMENT_ID,
         "fixed_seeds": list(ISOLATED_FIXED_SEEDS),
         "output_root": out,
         "pair_buckets": build_pair_buckets(ISOLATED_FIXED_SEEDS, workers),
+        "runtime_environment": runtime_environment,
         "server_ports": list(ports),
         "source": source,
         "worker_count": int(workers),
@@ -167,11 +260,17 @@ def _run_worker(spec):
                 summary = runner.run(
                     resume=False, include_induction=False,
                     include_grading=False)
+                status_path = os.path.join(
+                    arm_root, "games", "main", "e_full_loop",
+                    "{}-00".format(pair["seed"]), "status.json")
+                with open(status_path, encoding="utf-8") as stream:
+                    arm_status = json.load(stream)
                 result = {
                     "arm": arm,
                     "ended_at": _utc_now(),
                     "output_root": arm_root,
                     "port": spec["port"],
+                    "infrastructure_error": arm_status.get("error"),
                     "runner_summary": summary,
                     "seed": pair["seed"],
                     "seed_offset": pair["seed_offset"],
@@ -216,6 +315,7 @@ def run_cohort(preflight):
         "launch_preflight_policy": (
             "unique-port-empty-output-root-clean-source-v1"),
         "schema_version": "1.0",
+        "runtime_environment": preflight["runtime_environment"],
         "server_ports": preflight["server_ports"],
         "source": preflight["source"],
         "started_at": _utc_now(),
@@ -247,6 +347,7 @@ def run_cohort(preflight):
         "launcher_failures": sum(
             row["status"] == "launcher_failure" for row in results),
         "results": results,
+        "runtime_environment": preflight["runtime_environment"],
         "schema_version": "1.0",
         "server_ports": preflight["server_ports"],
         "source": preflight["source"],

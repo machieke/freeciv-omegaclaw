@@ -1233,3 +1233,12 @@ profile drift, or shared/unsupported ports. Four process workers explicitly
 receive ports 6001–6004, each seed pair stays serial on one worker, and all 16
 seeds are fresh relative to PR84 and every registered PR85 seed. See
 `fdas-pr86-isolated-launch-paired-replacement-preregistration.md`.
+
+The first PR86 launch preserved correct port isolation but failed before
+gameplay because `FREECIV_RULESET_ROOT` was absent and had not been included in
+launcher preflight. All 32 arms have the identical startup error and none has
+an event ledger. The failed root is immutable. PR86b retains the V3 seeds and
+design without outcome conditioning, adds ruleset compilation plus container,
+proxy, and exact-model dependency checks before output creation, and writes a
+new root. See `fdas-pr86-isolated-launch-ruleset-preflight-failure.md` and
+`fdas-pr86b-ruleset-preflight-correction.md`.

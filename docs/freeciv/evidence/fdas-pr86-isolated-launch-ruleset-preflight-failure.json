@@ -1,0 +1,34 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "reason": "FREECIV_RULESET_ROOT was absent from the launcher environment"
+  },
+  "artifact_root": "artifacts/freeciv/fdas-pr86-isolated-launch-paired-v3",
+  "artifact_tree_sha256": "f4f8cae73e0d6100bf697627904f6415938ba632378ba4fbe42c161600cefc8b",
+  "artifact_tree_sha256_method": "sha256sum over sorted relative-path sha256sum rows",
+  "attempted_arm_count": 32,
+  "completed_arm_count": 0,
+  "ended_at": "2026-08-04T05:20:26.452076Z",
+  "event_ledger_count": 0,
+  "experiment_id": "fdas-replacement-intention-isolated-launch-paired-pilot-v3",
+  "fixed_seed_count": 16,
+  "infrastructure_error": "RuntimeError: engine-live requires FREECIV_RULESET_ROOT",
+  "infrastructure_failure_count": 32,
+  "launcher_failure_count": 0,
+  "manifest_count": 32,
+  "per_port_arm_counts": {
+    "6001": 8,
+    "6002": 8,
+    "6003": 8,
+    "6004": 8
+  },
+  "schema_version": "1.0",
+  "server_ports": [6001, 6002, 6003, 6004],
+  "source": {
+    "commit": "4416151a1b39173d1cd1a2411d3452ee6f849efa",
+    "dirty": false
+  },
+  "started_at": "2026-08-04T05:20:13.884445Z",
+  "status_file_count": 32,
+  "worker_count": 4
+}
