@@ -2643,6 +2643,8 @@ async def _play(run_dir, manifest, context):
         "projection"]
     fdas_inference_config = manifest["dependent_atomspace"]["config"][
         "inference"]
+    fdas_learning_config = manifest["dependent_atomspace"]["config"][
+        "learning"]
     fdas_belief_shadow = bool(fdas_projection_config["beliefs"])
     fdas_observation_pressure_shadow = bool(
         fdas_inference_config["uncertain_assessment_enabled"])
@@ -3279,8 +3281,6 @@ async def _play(run_dir, manifest, context):
         fdas_transport_adapter = FdasFounderTransportProjectionAdapter(
             fdas_transport_lifecycle,
             fdas_ruleset_digest)
-    fdas_learning_config = manifest["dependent_atomspace"]["config"][
-        "learning"]
     fdas_episode_path = os.path.join(
         run_dir, "fdas-decision-episodes.json")
     fdas_episode_store = None
