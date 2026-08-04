@@ -1,4 +1,5 @@
 import copy
+from dataclasses import replace
 import json
 import os
 from types import SimpleNamespace
@@ -15,6 +16,8 @@ from freeciv_agent.planning import (
     FdasRetainedCapacityTransitionQuery,
     FdasRetainedCapacityTransitionQueryBuilder,
     FdasRetainedCapacityTransitionQueryStore,
+    FdasRetainedCapacityQueryEpisodeRow,
+    join_retained_capacity_transition_queries,
 )
 from freeciv_agent.planning.fdas_capacity_transition_queries import (
     _count_band,
@@ -485,3 +488,107 @@ def test_retained_capacity_transition_query_store_roundtrip_and_quarantine(
     quarantined = FdasRetainedCapacityTransitionQueryStore.load(
         str(path), "capacity-query-store")
     assert quarantined.quarantined is True
+
+
+def _query_episode_fixture(terminal=True):
+    proposal, label, snapshot, revision = _transition_query_fixture()
+    query = FdasRetainedCapacityTransitionQueryBuilder.build(
+        proposal, label, snapshot, revision)
+    query_store = FdasRetainedCapacityTransitionQueryStore("query-join-proof")
+    query_store.record(query)
+    episode_store = DecisionEpisodeStore("query-episode-join-proof")
+    episode = None
+    if terminal:
+        outcome_store = FdasRetainedCapacityOutcomeStore("query-outcome-proof")
+        outcome_store.record(label)
+        observed = FdasRetainedCapacityOutcomeLabeler(
+            outcome_store).observe_lifecycle_event(
+                _terminal(
+                    snapshot, "operation_abandoned",
+                    "production-target-diverged-before-product-observation"),
+                snapshot, "revision-query-terminal")
+        episode = FdasRetainedCapacityEpisodeBridge(
+            episode_store).encode(observed, proposal)
+    return query_store, episode_store, query, episode
+
+
+def test_retained_capacity_query_episode_join_is_exact_and_roundtrips():
+    query_store, episode_store, query, episode = _query_episode_fixture()
+
+    rows = join_retained_capacity_transition_queries(
+        query_store, episode_store)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.query == query
+    assert row.episode == episode
+    assert row.observation_status == "terminal-observed"
+    assert row.censoring_reason is None
+    assert row.outcome_status == "no-effect-observed"
+    assert row.observed_turn == query.proposed_turn
+    assert FdasRetainedCapacityQueryEpisodeRow.from_dict(
+        row.to_dict()) == row
+    assert all(row.to_dict()[name] is False for name in (
+        "action_selection_changed", "learning_authority",
+        "policy_authority", "readout_authority",
+        "transition_value_estimated", "truth_mutated"))
+
+
+def test_retained_capacity_query_episode_join_preserves_censoring():
+    query_store, episode_store, query, _episode = _query_episode_fixture(
+        terminal=False)
+
+    row, = join_retained_capacity_transition_queries(
+        query_store, episode_store)
+
+    assert row.query == query
+    assert row.episode is None
+    assert row.observation_status == "right-censored"
+    assert row.censoring_reason == "terminal-episode-not-yet-observed"
+    assert row.outcome_status is None
+    assert row.observed_turn is None
+    assert row.to_dict()["after_revision_id"] is None
+
+
+@pytest.mark.parametrize("mutation,message", (
+    (lambda episode, query: replace(
+        episode, operation_id="wrong-operation"), "orphan episode"),
+    (lambda episode, query: replace(
+        episode, after_revision_id=query.revision_id), "revision differs"),
+    (lambda episode, query: replace(
+        episode, prediction_ids=("forbidden-prediction",)),
+     "semantics differ"),
+))
+def test_retained_capacity_query_episode_join_rejects_mismatch(
+        mutation, message):
+    query_store, _episode_store, query, episode = _query_episode_fixture()
+    changed_store = DecisionEpisodeStore(
+        "changed-query-episode", (mutation(episode, query),))
+
+    with pytest.raises(ValueError, match=message):
+        join_retained_capacity_transition_queries(query_store, changed_store)
+
+
+def test_retained_capacity_query_episode_join_rejects_orphan_and_duplicate():
+    query_store, _episode_store, _query, episode = _query_episode_fixture()
+    empty_queries = FdasRetainedCapacityTransitionQueryStore("empty-query")
+    with pytest.raises(ValueError, match="orphan episode"):
+        join_retained_capacity_transition_queries(
+            empty_queries, DecisionEpisodeStore("orphan", (episode,)))
+
+    duplicate = replace(episode, episode_id="episode-duplicate-proof")
+    with pytest.raises(ValueError, match="duplicate episode"):
+        join_retained_capacity_transition_queries(
+            query_store,
+            DecisionEpisodeStore("duplicate", (episode, duplicate)))
+
+
+def test_retained_capacity_query_episode_row_rejects_authority():
+    query_store, episode_store, _query, _episode = _query_episode_fixture()
+    row, = join_retained_capacity_transition_queries(
+        query_store, episode_store)
+    value = row.to_dict()
+    value["learning_authority"] = True
+
+    with pytest.raises(ValueError, match="grants authority"):
+        FdasRetainedCapacityQueryEpisodeRow.from_dict(value)

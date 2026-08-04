@@ -318,6 +318,11 @@ from .fdas_capacity_transition_queries import (
     FdasRetainedCapacityTransitionQueryBuilder,
     FdasRetainedCapacityTransitionQueryStore,
 )
+from .fdas_capacity_query_episode_dataset import (
+    RETAINED_CAPACITY_QUERY_EPISODE_ROW_IDENTITY,
+    FdasRetainedCapacityQueryEpisodeRow,
+    join_retained_capacity_transition_queries,
+)
 from .fdas_replacement_execution import (
     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
     REPLACEMENT_EXECUTION_SCHEMA_VERSION,
@@ -568,6 +573,9 @@ __all__ = [
     "FdasRetainedCapacityTransitionQuery",
     "FdasRetainedCapacityTransitionQueryBuilder",
     "FdasRetainedCapacityTransitionQueryStore",
+    "RETAINED_CAPACITY_QUERY_EPISODE_ROW_IDENTITY",
+    "FdasRetainedCapacityQueryEpisodeRow",
+    "join_retained_capacity_transition_queries",
     "COORDINATED_REPLACEMENT_READOUT_IDENTITY",
     "FdasCoordinatedReplacementPair",
     "FdasCoordinatedReplacementReadout",
