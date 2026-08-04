@@ -1511,6 +1511,27 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         raise FdasRuntimeConfigurationError(
             "ruleset projection requires compiled ruleset IR")
     digest = ruleset_digest(ruleset_ir) if ruleset_ir is not None else None
+    manifest = declaration["manifest"]
+    replacement_capacity_capability = manifest["capabilities"].get(
+        "replacement_capacity_demand")
+    replacement_capacity_diagnostic = manifest.get(
+        "replacement_capacity_demand_diagnostic")
+    replacement_capacity_enabled = bool(
+        replacement_capacity_capability is not None
+        or replacement_capacity_diagnostic is not None)
+    if replacement_capacity_enabled:
+        expected_replacement_capacity = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "policy_authority": False,
+            "precondition": "cross-city-critical-reinforcement-without-spare",
+            "truth_mutated": False,
+        }
+        if (replacement_capacity_capability != "shadow-live"
+                or replacement_capacity_diagnostic
+                != expected_replacement_capacity):
+            raise FdasRuntimeConfigurationError(
+                "replacement capacity demand declaration differs")
     projectors = []
     if projection["city"] or projection["economy"] or projection["research"]:
         projectors.append(CityEconomyProjector(ruleset_ir, digest))
@@ -1518,7 +1539,9 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         if ruleset_ir is None:
             raise FdasRuntimeConfigurationError(
                 "unit projection requires compiled ruleset IR")
-        projectors.append(UnitDefenseProjector(ruleset_ir, digest))
+        projectors.append(UnitDefenseProjector(
+            ruleset_ir, digest,
+            replacement_capacity_enabled=replacement_capacity_enabled))
     if projection["region"]:
         projectors.append(CityRegionProjector())
     if projection["route_corridors"]:

@@ -99,6 +99,10 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("city-replacement-defender-available", (
             ("city",), ("unit",)), derived, ("city-facts",)),
+        _spec("city-replacement-capacity-deficit", (
+            ("city",), ("city",)), derived, ("city-facts",)),
+        _spec("city-replacement-capacity-ready", (
+            ("city",), ("city",)), derived, ("city-facts",)),
         _spec("unit-coordinated-replacement-for", (
             ("unit",), ("unit",), ("city",)),
             derived, ("city-facts",)),
@@ -154,16 +158,21 @@ class UnitDefenseProjector(object):
     projector_id = "fdas-unit-defense-shadow"
     version = "1.0"
     incremental_dependency_roots = frozenset((
-        "cities", "legal_actions", "map_height", "map_width", "map_wrap_x",
-        "map_wrap_y", "movement_routes", "player_id", "source_seq", "turn",
-        "units", "visible_enemy_units",
+        "cities", "legal_actions", "legal_actions_digest", "map_height",
+        "map_width", "map_wrap_x", "map_wrap_y", "movement_routes",
+        "player_id", "source_seq", "turn", "units",
+        "visible_enemy_units",
     ))
     incremental_dependency_kinds = frozenset(("policy", "ruleset-digest"))
 
-    def __init__(self, ruleset_ir, ruleset_digest, policy=None):
+    def __init__(self, ruleset_ir, ruleset_digest, policy=None,
+                 replacement_capacity_enabled=False):
+        if not isinstance(replacement_capacity_enabled, bool):
+            raise TypeError("replacement capacity gate must be boolean")
         self.ruleset_ir = ruleset_ir
         self.ruleset_digest = str(ruleset_digest)
         self.policy = policy or CityDefensePolicy()
+        self.replacement_capacity_enabled = replacement_capacity_enabled
         self.groundings = TypedGroundingRegistry(
             ruleset_ir, ruleset_digest=self.ruleset_digest)
         self.predicate_registry = unit_defense_predicate_registry()
@@ -193,10 +202,10 @@ class UnitDefenseProjector(object):
             shards.append(ProjectionShardSpec(
                 "city-defense",
                 (
-                    "cities", "legal_actions", "map_height", "map_width",
-                    "map_wrap_x", "map_wrap_y", "movement_routes",
-                    "player_id", "source_seq", "turn", "units",
-                    "visible_enemy_units",
+                    "cities", "legal_actions", "legal_actions_digest",
+                    "map_height", "map_width", "map_wrap_x", "map_wrap_y",
+                    "movement_routes", "player_id", "source_seq", "turn",
+                    "units", "visible_enemy_units",
                 ),
                 kinds,
                 tuple(scope.scope_id for _, scope in sorted(
@@ -453,6 +462,10 @@ class UnitDefenseProjector(object):
                                 structural_hash(action_json)),
                             fingerprints))
 
+        critical_by_unit = {}
+        reinforcement_by_pair = {}
+        replacements_by_source = {}
+        replacement_attempt_dependencies = {}
         for city in sorted(snapshot.cities, key=lambda value: value.city_id):
             city_id = str(city.city_id)
             scope = city_scopes[city_id]
@@ -489,6 +502,8 @@ class UnitDefenseProjector(object):
                     if not route.available or not eta.available:
                         continue
                     reinforcement_etas.append((unit_id, eta))
+                    reinforcement_by_pair[(int(unit_id), city.city_id)] = (
+                        route, eta)
                     records.append(self._record(
                         scope, AtomNamespace.DERIVED,
                         "unit-reinforcement-route",
@@ -533,6 +548,7 @@ class UnitDefenseProjector(object):
                     if (removal.available
                             and removal.value["creates_deficit"] is True):
                         critical.append((unit, removal))
+                        critical_by_unit[unit.unit_id] = (city, removal)
                         records.append(self._record(
                             scope, AtomNamespace.DERIVED,
                             "unit-critical-garrison", (unit_ref, city_ref),
@@ -580,6 +596,10 @@ class UnitDefenseProjector(object):
                     eta = self.groundings.evaluate(
                         "movement.arrival-eta", snapshot,
                         replacement.unit_id, city.tile)
+                    replacement_attempt_dependencies.setdefault(
+                        city.city_id, []).extend(
+                            removal.dependencies + route.dependencies
+                            + eta.dependencies)
                     if (not removal.available
                             or removal.value["creates_deficit"] is True
                             or not route.available or not eta.available):
@@ -611,6 +631,9 @@ class UnitDefenseProjector(object):
                         (city_ref, EntityRef("unit", replacement_id)),
                         AuthorityClass.DETERMINISTIC_DERIVED,
                         dependencies, witness))
+                    replacements_by_source.setdefault(
+                        city.city_id, []).append(
+                            (replacement.unit_id, dependencies))
                     for protected, protected_removal in critical:
                         coordinated_witness = dict(witness)
                         coordinated_witness["protected_defender_id"] = (
@@ -670,6 +693,60 @@ class UnitDefenseProjector(object):
                             records.append(self._deadline_record(
                                 scope, city_ref, enemy, defender_id,
                                 eta, defense_eta))
+
+        if self.replacement_capacity_enabled:
+            demand = {}
+            for (protected_id, target_city_id), route_rows in sorted(
+                    reinforcement_by_pair.items()):
+                source = critical_by_unit.get(protected_id)
+                if source is None:
+                    continue
+                source_city, removal = source
+                if source_city.city_id == target_city_id:
+                    continue
+                demand.setdefault(
+                    (source_city.city_id, target_city_id), []).append(
+                        (protected_id, removal, route_rows[0], route_rows[1]))
+            broad_dependencies = tuple(
+                snapshot_dependency_ref(snapshot, path, fingerprints)
+                for path in (
+                    "cities.__members__", "legal_actions_digest",
+                    "movement_routes.__members__", "units.__members__"))
+            for (source_city_id, target_city_id), rows in sorted(
+                    demand.items()):
+                replacements = tuple(sorted(
+                    replacements_by_source.get(source_city_id, ()),
+                    key=lambda value: value[0]))
+                predicate = (
+                    "city-replacement-capacity-ready" if replacements else
+                    "city-replacement-capacity-deficit")
+                dependencies = list(broad_dependencies)
+                dependencies.extend(policy_refs)
+                dependencies.extend(
+                    replacement_attempt_dependencies.get(source_city_id, ()))
+                for _protected_id, removal, route, eta in rows:
+                    dependencies.extend(
+                        removal.dependencies + route.dependencies
+                        + eta.dependencies)
+                for _replacement_id, replacement_dependencies in replacements:
+                    dependencies.extend(replacement_dependencies)
+                records.append(self._record(
+                    city_scopes[str(source_city_id)], AtomNamespace.DERIVED,
+                    predicate,
+                    (EntityRef("city", str(source_city_id)),
+                     EntityRef("city", str(target_city_id))),
+                    AuthorityClass.DETERMINISTIC_DERIVED,
+                    tuple(sorted(set(dependencies))),
+                    {
+                        "protected_defender_ids": sorted(set(
+                            value[0] for value in rows)),
+                        "replacement_defender_ids": [
+                            value[0] for value in replacements],
+                        "source_city_id": source_city_id,
+                        "source_safe_replacement_available": bool(
+                            replacements),
+                        "target_city_id": target_city_id,
+                    }))
         return tuple(sorted(records, key=lambda value: value.atom_id))
 
     def project_shard(self, shard_id, snapshot, scopes, fingerprints):

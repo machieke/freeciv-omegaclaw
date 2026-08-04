@@ -2792,6 +2792,27 @@ async def _play(run_dir, manifest, context):
                 "FDAS coordinated replacement opportunity funnel differs")
         fdas_replacement_opportunity_evaluator = (
             FdasReplacementOpportunityFunnelEvaluator())
+    replacement_capacity_capability = fdas_manifest["capabilities"].get(
+        "replacement_capacity_demand")
+    replacement_capacity_diagnostic = fdas_manifest.get(
+        "replacement_capacity_demand_diagnostic")
+    replacement_capacity_enabled = bool(
+        replacement_capacity_capability is not None
+        or replacement_capacity_diagnostic is not None)
+    if replacement_capacity_enabled:
+        expected_replacement_capacity = {
+            "action_selection_changed": False,
+            "candidate_authority": False,
+            "policy_authority": False,
+            "precondition": (
+                "cross-city-critical-reinforcement-without-spare"),
+            "truth_mutated": False,
+        }
+        if (replacement_capacity_capability != "shadow-live"
+                or replacement_capacity_diagnostic
+                != expected_replacement_capacity):
+            raise RuntimeError(
+                "FDAS replacement capacity demand declaration differs")
     fdas_replacement_outcome_capability = fdas_manifest["capabilities"].get(
         "coordinated_replacement_chain_outcome")
     fdas_replacement_outcome_diagnostic = fdas_manifest.get(
@@ -4509,6 +4530,9 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_opportunity_funnel_evaluations": 0,
         "fdas_replacement_opportunity_grounded": 0,
         "fdas_replacement_opportunity_no_safe_replacement": 0,
+        "fdas_replacement_capacity_evaluations": 0,
+        "fdas_replacement_capacity_deficit_goals": 0,
+        "fdas_replacement_capacity_production_candidates": 0,
         "fdas_replacement_chain_outcomes_opened": (
             len(fdas_replacement_outcome_store.labels())
             if fdas_replacement_outcome_store is not None else 0),
@@ -6415,6 +6439,23 @@ async def _play(run_dir, manifest, context):
                             snapshot,
                             impact_planner.last_candidate_catalog)
                         if evaluate_fdas_shadow else None)
+                    if (fdas_shadow is not None
+                            and replacement_capacity_enabled):
+                        decision_stats[
+                            "fdas_replacement_capacity_evaluations"] += 1
+                        decision_stats[
+                            "fdas_replacement_capacity_deficit_goals"] += sum(
+                                value.deficit_predicate
+                                == "city-replacement-capacity-deficit"
+                                for value in fdas_shadow.goals)
+                        decision_stats[
+                            "fdas_replacement_capacity_production_candidates"
+                        ] += sum(
+                            value.operation.operation_type
+                            == (
+                                "fdas-shadow:city-replacement-capacity-deficit:"
+                                "city_production")
+                            for value in fdas_shadow.candidates)
                     if (fdas_shadow is not None
                             and reconcile_fdas_replacement is not None):
                         replacement_updates, replacement_changed = (
@@ -9255,6 +9296,13 @@ async def _play(run_dir, manifest, context):
         ("fdas_replacement_opportunity_no_safe_replacement",
          decision_stats[
              "fdas_replacement_opportunity_no_safe_replacement"]),
+        ("fdas_replacement_capacity_evaluations",
+         decision_stats["fdas_replacement_capacity_evaluations"]),
+        ("fdas_replacement_capacity_deficit_goals",
+         decision_stats["fdas_replacement_capacity_deficit_goals"]),
+        ("fdas_replacement_capacity_production_candidates",
+         decision_stats[
+             "fdas_replacement_capacity_production_candidates"]),
         ("fdas_replacement_chain_outcomes_opened",
          decision_stats["fdas_replacement_chain_outcomes_opened"]),
         ("fdas_replacement_chain_outcomes_observed",
@@ -10010,6 +10058,13 @@ async def _play(run_dir, manifest, context):
             "fdas_replacement_opportunity_no_safe_replacement": (
                 decision_stats[
                     "fdas_replacement_opportunity_no_safe_replacement"]),
+            "fdas_replacement_capacity_evaluations": (
+                decision_stats["fdas_replacement_capacity_evaluations"]),
+            "fdas_replacement_capacity_deficit_goals": (
+                decision_stats["fdas_replacement_capacity_deficit_goals"]),
+            "fdas_replacement_capacity_production_candidates": (
+                decision_stats[
+                    "fdas_replacement_capacity_production_candidates"]),
             "fdas_replacement_chain_outcomes_opened": (
                 decision_stats["fdas_replacement_chain_outcomes_opened"]),
             "fdas_replacement_chain_outcomes_observed": (
@@ -10624,6 +10679,13 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_opportunity_no_safe_replacement": (
             decision_stats[
                 "fdas_replacement_opportunity_no_safe_replacement"]),
+        "fdas_replacement_capacity_evaluations": (
+            decision_stats["fdas_replacement_capacity_evaluations"]),
+        "fdas_replacement_capacity_deficit_goals": (
+            decision_stats["fdas_replacement_capacity_deficit_goals"]),
+        "fdas_replacement_capacity_production_candidates": (
+            decision_stats[
+                "fdas_replacement_capacity_production_candidates"]),
         "fdas_replacement_chain_outcomes_opened": (
             decision_stats["fdas_replacement_chain_outcomes_opened"]),
         "fdas_replacement_chain_outcomes_observed": (

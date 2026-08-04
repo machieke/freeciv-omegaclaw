@@ -66,11 +66,13 @@ def _snapshot(payload=None, seq=460):
         "fdas-unit-defense", seq, payload or _payload()).to_snapshot()
 
 
-def _store(ir):
+def _store(ir, replacement_capacity_enabled=False):
     digest = ruleset_digest(ir)
     return DependentAtomSpaceStore(domain_projector=CompositeDomainProjector((
         CityEconomyProjector(ir, digest),
-        UnitDefenseProjector(ir, digest),
+        UnitDefenseProjector(
+            ir, digest,
+            replacement_capacity_enabled=replacement_capacity_enabled),
     )))
 
 
@@ -717,3 +719,91 @@ def test_coordinated_replacement_relation_assembles_two_step_shadow_schema(ir):
         value.startswith("atom:") for value in candidate.provenance)
     assert any(
         value.startswith("support:") for value in candidate.provenance)
+
+
+def test_replacement_capacity_demand_routes_source_defender_production(ir):
+    payload = _payload()
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({"id": 4, "name": "Antium", "tile": 84, "x": 4, "y": 2})
+    payload["cities"]["4"] = target
+    payload["units"]["7"]["transported"] = False
+    payload["legal_actions"].append({
+        "action_type": "city_production",
+        "city_id": 3,
+        "is_valid": True,
+        "production_kind": 6,
+        "production_value": 10,
+        "target": {"production_type": "Riflemen"},
+    })
+    payload["authoritative"]["movement_routes"] = [
+        _native_route(7, 84, 472)]
+    snapshot = _snapshot(payload, 472)
+
+    disabled = _store(ir).build(snapshot)
+    assert "city-replacement-capacity-deficit" not in _predicates(disabled)
+
+    store = _store(ir, replacement_capacity_enabled=True)
+    revision = store.build(snapshot)
+    deficit = next(
+        value for value in revision.records
+        if value.key.predicate == "city-replacement-capacity-deficit")
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+    capacity_goal = next(
+        value for value in goals
+        if value.deficit_predicate == "city-replacement-capacity-deficit")
+    candidates = tuple(
+        value for value in CandidateOperationFactory(
+            ir, ruleset_digest(ir)).instantiate(snapshot, goals, revision)
+        if value.operation.operation_type == (
+            "fdas-shadow:city-replacement-capacity-deficit:city_production"))
+
+    assert [value.entity_id for value in deficit.key.arguments] == ["3", "4"]
+    assert deficit.authority == AuthorityClass.DETERMINISTIC_DERIVED
+    assert capacity_goal.global_goal_kind == "survival"
+    assert capacity_goal.target_key.predicate == (
+        "city-replacement-capacity-ready")
+    assert len(candidates) == 1
+    assert candidates[0].action["target"]["production_type"] == "Riflemen"
+    assert candidates[0].operation.target_ref == "city:3"
+    assert candidates[0].resource_keys == ("city-production-slot:3",)
+    assert candidates[0].authority_eligible is False
+
+    replacement = copy.deepcopy(payload["units"]["7"])
+    replacement.update({
+        "id": 8, "tile": 81, "transported": False, "x": 1, "y": 2})
+    payload["units"]["8"] = replacement
+    payload["legal_actions"].append({
+        "action_type": "unit_move", "actor_id": 8, "is_valid": True,
+        "target": {"direction": "e", "x": 2, "y": 2},
+    })
+    replacement_route = {
+        "authority": "freeciv-server-pathfinder",
+        "destination_tile": 82,
+        "estimated_turns": 1,
+        "first_step_movement_cost": 1,
+        "first_step_tile": 82,
+        "initially_transported": False,
+        "movement_points_remaining": 2,
+        "moves_left_at_request": 3,
+        "origin_tile": 81,
+        "path_directions": [0],
+        "path_length": 1,
+        "reachable": True,
+        "schema_version": "1.0",
+        "source_seq": 473,
+        "total_movement_cost": 1,
+        "transported_at_request": False,
+        "turn": 12,
+        "unit_id": 8,
+    }
+    payload["authoritative"]["source_seq"] = 473
+    payload["authoritative"]["movement_routes"][0]["source_seq"] = 473
+    payload["authoritative"]["movement_routes"].append(replacement_route)
+    ready = _store(ir, replacement_capacity_enabled=True).build(
+        _snapshot(payload, 473))
+
+    assert "city-replacement-capacity-deficit" not in _predicates(ready)
+    assert "city-replacement-capacity-ready" in _predicates(ready)

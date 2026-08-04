@@ -17,6 +17,12 @@ from freeciv.harness.fdas_replacement_opportunity_cohort import (
 from freeciv.harness.fdas_replacement_opportunity_live import (
     audit_fdas_replacement_opportunity_live,
 )
+from freeciv.harness.fdas_replacement_capacity_cohort import (
+    audit_fdas_replacement_capacity_cohort,
+)
+from freeciv.harness.fdas_replacement_capacity_live import (
+    audit_fdas_replacement_capacity_live,
+)
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
 )
@@ -328,6 +334,95 @@ def _add_opportunity_funnel(tmp_path):
     events_path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n"
                 for row in (*events[:-1], funnel_event, events[-1])),
+        encoding="utf-8")
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update(counters)
+    _write_json(status_path, status)
+
+
+def _add_replacement_capacity_evidence(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    activation = manifest["dependent_atomspace"]["manifest"]
+    activation["capabilities"]["replacement_capacity_demand"] = (
+        "shadow-live")
+    activation["replacement_capacity_demand_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": False,
+        "policy_authority": False,
+        "precondition": (
+            "cross-city-critical-reinforcement-without-spare"),
+        "truth_mutated": False,
+    }
+    _write_json(manifest_path, manifest)
+
+    def payload(details):
+        value = {
+            "component_id": "fdas-goal-pressure-shadow",
+            "component_version": "1.0",
+            "details": details,
+            "revision_id": "revision-1",
+            "ruleset_digest": "ruleset-proof",
+            "snapshot_id": "snapshot-4",
+        }
+        value["structural_hash"] = structural_hash(value)
+        return value
+
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    terminal = events[-1]
+    parent_id = events[-2]["event_id"]
+
+    def event(event_type, seq, event_id, details, caused_by):
+        return {
+            **terminal,
+            "caused_by": list(caused_by),
+            "event_id": event_id,
+            "payload": payload(details),
+            "seq": seq,
+            "type": event_type,
+        }
+
+    seq = terminal["seq"]
+    goal = event("goal_instantiated", seq, "event-capacity-goal", {
+        "deficit_atom_id": "atom-capacity-deficit",
+        "deficit_predicate": "city-replacement-capacity-deficit",
+        "explanation_hash": "capacity-explanation",
+        "goal_id": "goal-capacity",
+        "scope_id": "city-facts:3",
+    }, (parent_id,))
+    candidate = event(
+        "operation_candidate_rejected", seq + 1,
+        "event-capacity-candidate", {
+            "action_key": "city-production:3:Riflemen",
+            "authority_eligible": False,
+            "blockers": ["shadow-only"],
+            "candidate_hash": "capacity-candidate-hash",
+            "legal_bound": True,
+            "operation_id": "capacity-production-operation",
+            "operation_type": (
+                "fdas-shadow:city-replacement-capacity-deficit:"
+                "city_production"),
+        }, (parent_id,))
+    pressure = event(
+        "pressure_graph_built", seq + 2, "event-capacity-pressure",
+        {"policy_authority": False}, (parent_id,))
+    shadow = event(
+        "atomspace_shadow_decision", seq + 3, "event-capacity-shadow",
+        {"authority_eligible": False}, (pressure["event_id"],))
+    terminal["caused_by"] = [shadow["event_id"]]
+    terminal["seq"] = seq + 4
+    counters = {
+        "fdas_replacement_capacity_evaluations": 1,
+        "fdas_replacement_capacity_deficit_goals": 1,
+        "fdas_replacement_capacity_production_candidates": 1,
+    }
+    terminal["payload"]["summary"].update(counters)
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in (
+            *events[:-1], goal, candidate, pressure, shadow, terminal)),
         encoding="utf-8")
     status_path = tmp_path / "status.json"
     status = json.loads(status_path.read_text(encoding="utf-8"))
@@ -707,3 +802,29 @@ def test_replacement_opportunity_cohort_partitions_all_evaluations(tmp_path):
     assert report["summary"]["evaluation_count"] == 2
     assert report["summary"]["stage_counts"] == {
         "grounded-pair-available": 2}
+
+
+def test_replacement_capacity_cohort_audits_shadow_recall(tmp_path):
+    run_dir = tmp_path / "cohort"
+    games = run_dir / "games" / "main" / "e_full_loop"
+    for seed in (101, 103):
+        game_dir = games / (str(seed) + "-00")
+        game_dir.mkdir(parents=True)
+        _fixture(game_dir)
+        _add_candidate_readout(game_dir)
+        _add_opportunity_funnel(game_dir)
+        _add_replacement_capacity_evidence(game_dir)
+        live = audit_fdas_replacement_capacity_live(str(game_dir))
+        assert live["acceptance"]["accepted"] is True
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 2, "infrastructure_failures": 0,
+        "jobs": 2, "resumed": 0,
+    })
+
+    report = audit_fdas_replacement_capacity_cohort(
+        str(run_dir), (101, 103), expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["evaluation_count"] == 2
+    assert report["summary"]["capacity_deficit_goal_count"] == 2
+    assert report["summary"]["capacity_production_candidate_count"] == 2

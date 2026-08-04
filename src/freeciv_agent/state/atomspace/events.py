@@ -309,6 +309,7 @@ class AtomSpaceEventEmitter(object):
                     "candidate_hash": candidate.candidate_hash,
                     "legal_bound": candidate.legal_bound,
                     "operation_id": candidate.operation.operation_id,
+                    "operation_type": candidate.operation.operation_type,
                 })
             detail_count += 1
         pressure = evaluation.pressure

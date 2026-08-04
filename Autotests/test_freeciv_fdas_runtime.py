@@ -115,6 +115,29 @@ def test_checked_default_declaration_is_disabled_and_manifest_safe():
     assert runtime.activation_payload()["policy_authority"] is False
 
 
+def test_replacement_capacity_declaration_fails_closed_on_authority_drift():
+    declaration = _enabled_city_declaration()
+    declaration["manifest"]["capabilities"][
+        "replacement_capacity_demand"] = "shadow-live"
+    declaration["manifest"]["replacement_capacity_demand_diagnostic"] = {
+        "action_selection_changed": False,
+        "candidate_authority": True,
+        "policy_authority": False,
+        "precondition": (
+            "cross-city-critical-reinforcement-without-spare"),
+        "truth_mutated": False,
+    }
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+
+    with pytest.raises(
+            FdasRuntimeConfigurationError,
+            match="replacement capacity demand declaration differs"):
+        build_runtime(declaration)
+
+
 def test_calibrated_candidate_union_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

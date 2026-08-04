@@ -310,6 +310,8 @@ class GoalFactory(object):
             "city-production-active", "production_continuity", 1.2, False),
         "city-garrison-deficit": (
             "city-garrison-covered", "survival", 2.0, True),
+        "city-replacement-capacity-deficit": (
+            "city-replacement-capacity-ready", "survival", 1.9, True),
         "unit-fortification-opportunity": (
             "unit-fortified-ready", "survival", 1.8, True),
         "treasury-below-reserve": (
@@ -382,6 +384,8 @@ class CandidateOperationFactory(object):
         "city-order-deficit": frozenset(("city_governor",)),
         "city-production-stalled": frozenset(("city_production",)),
         "city-garrison-deficit": frozenset(("unit_move",)),
+        "city-replacement-capacity-deficit": frozenset((
+            "city_production",)),
         "unit-fortification-opportunity": frozenset(("unit_fortify",)),
         "treasury-below-reserve": frozenset(("player_rates",)),
         "research-throughput-stalled": frozenset(("tech_research",)),
@@ -408,10 +412,12 @@ class CandidateOperationFactory(object):
         self._groundings = TypedGroundingRegistry(
             ruleset_ir, ruleset_digest=self.ruleset_digest)
         self._defender_types = set(
-            str(rule.rule_name).strip().lower().replace("_", " ")
+            str(label).strip().lower().replace("_", " ")
             for rule in ruleset_ir.rules
-            if (rule.target_kind == "unit"
-                and persistent_defender_type(ruleset_ir, rule.rule_name)))
+            if rule.target_kind == "unit"
+            for label in (
+                rule.rule_name, getattr(rule, "display_name", None))
+            if (label and persistent_defender_type(ruleset_ir, label)))
 
     @staticmethod
     def _city_id(goal):
@@ -431,6 +437,25 @@ class CandidateOperationFactory(object):
                 and action.get("action_type") == "unit_fortify"
                 and str(action.get("actor_id")) == unit_ids[0])
         if city_id is not None:
+            if goal.deficit_predicate == (
+                    "city-replacement-capacity-deficit"):
+                if (action.get("action_type") != "city_production"
+                        or snapshot is None
+                        or str(action.get("city_id")) != city_id):
+                    return False
+                production_type = str(
+                    (action.get("target") or {}).get(
+                        "production_type", "")).strip().lower().replace(
+                            "_", " ")
+                if production_type not in self._defender_types:
+                    return False
+                city = snapshot.city(city_id)
+                return bool(
+                    city is not None
+                    and not (
+                        action.get("production_kind") == city.production_kind
+                        and action.get("production_value")
+                        == city.production_value))
             if goal.deficit_predicate == "city-garrison-deficit":
                 if action.get("action_type") != "unit_move" or snapshot is None:
                     return False

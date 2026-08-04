@@ -1277,3 +1277,15 @@ relation stage, while 10/16 also ground a pair. The full audit is byte-stable.
 The next bounded target is therefore exact source-safe replacement relation
 yield; downstream lifecycle/route freshness is secondary. See
 `fdas-pr87-replacement-opportunity-funnel.md` and its JSON report.
+
+The exact PR87 replay RCA further partitions the 819 dominant-blocker
+revisions across 3,850 protected/replacement pairings: 1,599 protected-self,
+2,214 source-removal-unsafe, and 37 route-absent. Among genuine alternative
+actors, 98.4% are unsafe to release from their current source city. PR88 is
+therefore preregistered as a separately gated, shadow-only replacement-
+capacity demand slice. It preserves the removal-deficit invariant, derives a
+typed source-to-target capacity deficit, and binds that deficit only to current
+legal persistent-defender production actions at the source city. The first 16
+of 30 unused seeds are frozen; candidate frequency is descriptive and no
+policy, action, value, outcome, score, or win-rate authority is added. See
+`fdas-pr88-replacement-capacity-preregistration.md`.
