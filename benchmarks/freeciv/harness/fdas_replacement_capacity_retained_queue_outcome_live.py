@@ -120,6 +120,39 @@ def _terminal_refresh_cause(row, operation_id, event_by_id):
                 and cause.get("payload", {}).get("operation_id")
                     == operation_id):
             return True
+        if (cause.get("type") == "operation_step_revalidated"
+                and cause.get("payload", {}).get("mechanism") == _MECHANISM
+                and cause.get("payload", {}).get("operation_id")
+                    != operation_id):
+            # Multiple retained queues can be refreshed in one action phase.
+            # The next revision is then parented by the last revalidation,
+            # whose exact two parents are the target terminal and that other
+            # operation's prior revalidation. Accept only this narrow,
+            # same-turn interleaving; do not perform a broad ancestry search.
+            interleaved_parents = tuple(cause.get("caused_by", ()))
+            parent_events = tuple(
+                event_by_id.get(value) for value in interleaved_parents)
+            terminal = tuple(value for value in parent_events if value and (
+                value.get("type") in (
+                    "operation_abandoned", "operation_expired",
+                    "operation_failed")
+                and value.get("payload", {}).get("mechanism") == _MECHANISM
+                and value.get("payload", {}).get("operation_id")
+                    == operation_id))
+            history = tuple(value for value in parent_events if value and (
+                value.get("type") == "operation_step_revalidated"
+                and value.get("payload", {}).get("mechanism") == _MECHANISM
+                and value.get("payload", {}).get("operation_id")
+                    == cause.get("payload", {}).get("operation_id")))
+            return bool(
+                len(interleaved_parents) == 2
+                and len(set(interleaved_parents)) == 2
+                and len(terminal) == 1 and len(history) == 1
+                and isinstance(row.get("turn"), int)
+                and cause.get("turn") == row.get("turn")
+                and terminal[0].get("turn") == row.get("turn")
+                and isinstance(history[0].get("turn"), int)
+                and history[0].get("turn") <= row.get("turn"))
         if cause.get("type") not in _TERMINAL_REFRESH_BRIDGE_TYPES:
             return False
         parent_ids = tuple(cause.get("caused_by", ()))

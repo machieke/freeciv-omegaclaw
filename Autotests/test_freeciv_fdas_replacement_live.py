@@ -1801,6 +1801,74 @@ def test_retained_capacity_terminal_outcome_accepts_only_exact_refresh_chain():
     assert _terminal_refresh_cause(outcome, operation_id, cycle) is False
 
 
+def test_retained_capacity_terminal_outcome_accepts_exact_interleaved_queue():
+    mechanism = "fdas-replacement-capacity-retained-queue-lifecycle"
+    operation_id = "terminal-operation"
+    other_operation_id = "interleaved-operation"
+    rows = ({
+        "event_id": "terminal", "turn": 26,
+        "type": "operation_abandoned", "caused_by": (),
+        "payload": {"mechanism": mechanism, "operation_id": operation_id},
+    }, {
+        "event_id": "history", "turn": 25,
+        "type": "operation_step_revalidated", "caused_by": (),
+        "payload": {
+            "mechanism": mechanism, "operation_id": other_operation_id},
+    }, {
+        "event_id": "interleaved", "turn": 26,
+        "type": "operation_step_revalidated",
+        "caused_by": ("terminal", "history"),
+        "payload": {
+            "mechanism": mechanism, "operation_id": other_operation_id},
+    }, {
+        "event_id": "started", "turn": 26,
+        "type": "atomspace_revision_started",
+        "caused_by": ("interleaved",), "payload": {},
+    }, {
+        "event_id": "delta", "turn": 26,
+        "type": "snapshot_delta_computed",
+        "caused_by": ("started",), "payload": {},
+    }, {
+        "event_id": "batch", "turn": 26,
+        "type": "projection_batch_applied",
+        "caused_by": ("delta",), "payload": {},
+    }, {
+        "event_id": "committed", "turn": 26,
+        "type": "atomspace_revision_committed",
+        "caused_by": ("batch",), "payload": {},
+    })
+    event_by_id = dict((row["event_id"], row) for row in rows)
+    outcome = {"caused_by": ("committed",), "turn": 26}
+
+    assert _terminal_refresh_cause(
+        outcome, operation_id, event_by_id) is True
+
+    wrong_history = dict(event_by_id)
+    wrong_history["history"] = dict(
+        rows[1], payload={
+            "mechanism": mechanism, "operation_id": "unrelated-operation"})
+    assert _terminal_refresh_cause(
+        outcome, operation_id, wrong_history) is False
+
+    wrong_turn = dict(event_by_id)
+    wrong_turn["interleaved"] = dict(rows[2], turn=27)
+    assert _terminal_refresh_cause(
+        outcome, operation_id, wrong_turn) is False
+
+    extra_parent = dict(event_by_id)
+    extra_parent["interleaved"] = dict(
+        rows[2], caused_by=("terminal", "history", "unknown"))
+    assert _terminal_refresh_cause(
+        outcome, operation_id, extra_parent) is False
+
+    same_operation = dict(event_by_id)
+    same_operation["interleaved"] = dict(
+        rows[2], payload={
+            "mechanism": mechanism, "operation_id": operation_id})
+    assert _terminal_refresh_cause(
+        outcome, operation_id, same_operation) is False
+
+
 def test_retained_capacity_outcome_live_rejects_authority_escape(tmp_path):
     _fixture(tmp_path)
     _add_candidate_readout(tmp_path)
