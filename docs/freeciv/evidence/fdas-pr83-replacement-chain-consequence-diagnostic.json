@@ -1,0 +1,116 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "absent_actors_have_exact_first_removal_evidence": true,
+      "assignment_and_observed_label_match_exactly": true,
+      "component_counts_reconcile": true,
+      "diagnostic_does_not_relabel_or_score": true,
+      "frozen_parent_report_is_reproduced": true
+    }
+  },
+  "claim_scope": "retrospective decomposition of one known-seed negative label; no relabel, scalar utility, causal effect, policy, score, or win-rate claim",
+  "consequence": {
+    "actors": [
+      {
+        "actor_id": 122,
+        "nontransported": false,
+        "placement_satisfied": false,
+        "present": false,
+        "removal": {
+          "cause": "combat_defender_lost",
+          "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+          "event_id": "c77cbc85f43449c89140f5cada171b15",
+          "evidence_event_ids": [
+            "582f1df66ebf496297a339b862f26851",
+            "ebc61df636204ee3b919bc1553468218"
+          ],
+          "evidence_quality": "exact",
+          "last_position": {
+            "x": 9,
+            "y": 12
+          },
+          "lifecycle_id": "m7-main-e_full_loop-109459-00:74:17810:188e939f03efc00e:disappeared:122",
+          "turn": 74,
+          "unit_type": "Musketeers"
+        },
+        "role": "replacement"
+      },
+      {
+        "actor_id": 108,
+        "nontransported": false,
+        "placement_satisfied": false,
+        "present": false,
+        "removal": {
+          "cause": "combat_defender_lost",
+          "detail": "PACKET_UNIT_COMBAT_INFO reported defender HP 0 before PACKET_UNIT_REMOVE.",
+          "event_id": "08a4172f889c4a8c973ccd4fa581fafe",
+          "evidence_event_ids": [
+            "e15f8c968f094edaa06e985f1451c496",
+            "548777d4caf04146a56c688a35c72825"
+          ],
+          "evidence_quality": "exact",
+          "last_position": {
+            "x": 4,
+            "y": 13
+          },
+          "lifecycle_id": "m7-main-e_full_loop-109459-00:53:13817:3cc4c43e07d73053:disappeared:108",
+          "turn": 53,
+          "unit_type": "Warriors"
+        },
+        "role": "reinforcement"
+      }
+    ],
+    "cities": {
+      "source_city_retained": true,
+      "target_city_retained": true
+    },
+    "completion_turn": 37,
+    "durability_outcome": false,
+    "durability_reason": "completed-replacement-chain-not-durable:replacement-at-source,reinforcement-at-target,replacement-nontransported,reinforcement-nontransported",
+    "label_id": "replacement-outcome-label-a17343e98cf71617e0eb9fd2",
+    "observed_turn": 74,
+    "operation_id": "operation-7461d5cd84eada84f89f688c5b06ef65",
+    "result_hash": "0636b9c7c6c866aa4aff47da76706c35623a24043e628ab9a1c959e410a7f697",
+    "summary": {
+      "assigned_actor_survival_count": 0,
+      "city_retention_count": 2,
+      "exact_combat_attributed_loss_count": 2
+    }
+  },
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/events.jsonl",
+      "sha256": "98530f22481bdeb621e87de4ef89fd0479aa9ecfba30bbf4b9aca1ddbe8316be"
+    },
+    "fdas-coordinated-replacement-execution.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-execution.json",
+      "sha256": "57e04845025c4873bfc6ee725daa7f7f96d7b325276bda816dd1ccdc5f61d37b"
+    },
+    "fdas-coordinated-replacement-outcome-labels.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/fdas-coordinated-replacement-outcome-labels.json",
+      "sha256": "efdc3fe6ca279680ebe60f4c7230b4be7aede2c10ae42fc2f942945fcd4fee34"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/manifest.json",
+      "sha256": "923daf902aa699ed3f883dd02b1e01a30735c54a52843f92bd45936a819423d1"
+    },
+    "parent_report": {
+      "path": "docs/freeciv/evidence/fdas-pr82-bounded-replacement-execution-pilot.json",
+      "sha256": "671835cd69b789021880a7392914d40ab59b7c2b1b93f2224a8c4228d7d48aed"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-pr82-bounded-replacement-execution-pilot-v1/games/main/e_full_loop/109459-00/status.json",
+      "sha256": "f364d32b8c7e54f19320d70dacc331c777187ba2c57d4db189f721f519383ef5"
+    }
+  },
+  "parent_report_hash": "d5e51d12f87d5ab6ee656977dc80e7ea2df96bccb16781b075beb15b3264d3ea",
+  "schema_version": "1.0",
+  "source": {
+    "commit": "fc431b839fe4e5b43a09231cab935008c7b04efd",
+    "dirty": false,
+    "implementation_sha256": "b5d9deedaf283c424313f060f1195a31d66b34ef58907520bbbbaa5641cc2cab",
+    "source_files": 301
+  },
+  "structural_hash": "75708a58bb7569af0545f1de6aae47e8737dd47c85e24666984cdb0836951155"
+}

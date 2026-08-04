@@ -1185,3 +1185,14 @@ claim. A fresh game-cluster randomized design and actor-removal attribution
 are the next boundaries. See
 `fdas-pr82-bounded-replacement-execution-pilot.md`, its JSON report, and the
 separately recorded audit-composition correction.
+
+PR83 decomposes PR82's negative label without changing it. A deterministic
+retrospective audit joins the assigned actors to the existing exact
+unit-lifecycle ledger: reinforcement `108` was killed defending on turn 53 and
+replacement `122` was killed defending on turn 74, while both source and target
+cities remained owned. The result cleanly separates two-of-two city retention,
+zero-of-two assigned-actor survival, and two exact combat losses. It also shows
+why the next cross-arm endpoint must be indexed from the shared first grounded
+opportunity rather than treatment-only completion. This is consequence
+decomposition for one known run, not causal value or policy evidence. See
+`fdas-pr83-replacement-chain-consequence-diagnostic.md` and its JSON report.
