@@ -41,12 +41,14 @@ def _load_harness_yaml(path):
         return value
     required_overlay_keys = {
         "schema_version", "seed_overlay_base", "seeds"}
-    allowed_overlay_keys = required_overlay_keys | {"dependent_atomspace"}
+    allowed_overlay_keys = required_overlay_keys | {
+        "dependent_atomspace", "diagnostic_seed_cohort"}
     if (not required_overlay_keys.issubset(value)
             or not set(value).issubset(allowed_overlay_keys)):
         raise ValueError(
             "seed overlay may declare only schema_version, "
-            "seed_overlay_base, seeds, and dependent_atomspace")
+            "seed_overlay_base, seeds, dependent_atomspace, and the exact "
+            "diagnostic_seed_cohort contract")
     if (not isinstance(base_source, str) or not base_source.strip()
             or os.path.isabs(base_source)):
         raise ValueError(
@@ -68,6 +70,9 @@ def _load_harness_yaml(path):
     if "dependent_atomspace" in value:
         merged["dependent_atomspace"] = copy.deepcopy(
             value["dependent_atomspace"])
+    if "diagnostic_seed_cohort" in value:
+        merged["diagnostic_seed_cohort"] = copy.deepcopy(
+            value["diagnostic_seed_cohort"])
     merged["seed_overlay_base"] = base_source
     merged["seed_overlay_identity"] = SEED_OVERLAY_IDENTITY
     return merged
@@ -1384,8 +1389,28 @@ def load(path=None):
     if tuple(value.get("conditions", ())) != CONDITION_ORDER:
         raise ValueError("harness condition order must match capability matrix")
     seeds = value.get("seeds")
-    if not isinstance(seeds, list) or len(seeds) < 30 or len(seeds) != len(set(seeds)):
-        raise ValueError("harness needs at least 30 unique seeds")
+    diagnostic_seed_cohort = value.get("diagnostic_seed_cohort")
+    minimum_seeds = 30
+    if diagnostic_seed_cohort is not None:
+        expected_diagnostic_seed_cohort = {
+            "claim_eligible": False,
+            "cohort_id": "fdas-replacement-intention-paired-pilot-v1",
+            "paired_arms": ["control", "treatment"],
+            "purpose": "descriptive-intention-indexed-paired-pilot",
+            "required_unique_seeds": 16,
+        }
+        if diagnostic_seed_cohort != expected_diagnostic_seed_cohort:
+            raise ValueError("diagnostic seed cohort declaration differs")
+        minimum_seeds = diagnostic_seed_cohort["required_unique_seeds"]
+    if (not isinstance(seeds, list)
+            or len(seeds) < minimum_seeds
+            or len(seeds) != len(set(seeds))):
+        raise ValueError(
+            "harness needs at least {} unique seeds".format(minimum_seeds))
+    if diagnostic_seed_cohort is not None and len(seeds) != minimum_seeds:
+        raise ValueError(
+            "diagnostic seed cohort must contain exactly {} seeds".format(
+                minimum_seeds))
     if value.get("induction", {}).get("games", 0) < 20:
         raise ValueError("induction track needs at least 20 games")
     if value.get("model", {}).get("name") != "qwen3-coder-next:latest":

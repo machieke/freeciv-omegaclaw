@@ -493,12 +493,28 @@ class FdasReplacementIntentionTracker(object):
                 or assignment.player_id != self.player_id
                 or assignment.experiment_id != self.experiment_id):
             raise ValueError("replacement intention assignment context differs")
+        return self.observe_due(snapshot) + (created,)
+
+    def observe_due(self, snapshot):
+        """Observe an assigned endpoint without requiring another opportunity."""
+        if (snapshot.identity.game_id != self.game_id
+                or snapshot.player_id != self.player_id):
+            raise ValueError("replacement intention snapshot identity differs")
+        assignment = self.store.assignment
+        if assignment is None:
+            return "unassigned", None
+        if (assignment.assigned_arm != self.assigned_arm
+                or assignment.game_id != self.game_id
+                or assignment.player_id != self.player_id
+                or assignment.experiment_id != self.experiment_id):
+            raise ValueError("replacement intention assignment context differs")
         if (assignment.outcome is None
                 and int(snapshot.turn) >= assignment.due_turn):
             assignment = self._observe(assignment, snapshot)
         return (
-            "observed" if assignment.outcome is not None else "pending",
-            assignment, created)
+            assignment.outcome.status
+            if assignment.outcome is not None else "pending",
+            assignment)
 
     def censor(self, reason="assignment-due-turn-outside-horizon"):
         assignment = self.store.assignment

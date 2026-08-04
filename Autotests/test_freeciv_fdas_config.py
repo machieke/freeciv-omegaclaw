@@ -141,6 +141,39 @@ def test_replacement_execution_pilot_manifest_is_explicitly_bounded():
     assert diagnostic["truth_mutated"] is False
 
 
+@pytest.mark.parametrize("arm", ("control", "treatment"))
+def test_replacement_intention_paired_manifests_are_arm_locked(arm):
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_choice_surface_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_replacement_intention_{}.json".format(
+                arm)), encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest[
+        "coordinated_replacement_intention_outcome_diagnostic"]
+
+    assert config.authority_enabled is True
+    assert manifest["capabilities"][
+        "coordinated_replacement_intention_outcome"] == "shadow-live"
+    assert diagnostic["assigned_arm"] == arm
+    assert diagnostic["maximum_assignments"] == 1
+    assert diagnostic["observation_window_turns"] == 32
+    assert diagnostic["treatment_executor_required"] is (arm == "treatment")
+    assert diagnostic["claim_eligible"] is False
+    assert diagnostic["policy_authority"] is False
+    assert diagnostic["readout_authority"] is False
+    assert diagnostic["truth_mutated"] is False
+    assert (
+        "coordinated_replacement_execution" in manifest["capabilities"]
+    ) is (arm == "treatment")
+
+
 def test_causal_induction_profile_is_explicit_and_readout_disabled():
     with open(os.path.join(
             REPO, "profile",

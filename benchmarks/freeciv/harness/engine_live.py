@@ -12,7 +12,6 @@ import json
 import math
 import os
 import re
-import shutil
 import subprocess
 import threading
 import time
@@ -51,7 +50,7 @@ from freeciv_agent.pressure import (
     load_promoted_rule_shadow_artifacts,
     pressure_dependency_view,
 )
-from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
+from freeciv_agent.planning import (BranchScore, Plan, PlanAssumption,
                                     CAUSAL_INDUCTION_FEATURE_SCHEMA,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
@@ -83,8 +82,13 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasReplacementChainOutcomeLabeler,
                                     FdasReplacementChainOutcomeStore,
                                     FdasReplacementExecutionStore,
+                                    FdasReplacementIntentionStore,
+                                    FdasReplacementIntentionTracker,
                                     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
                                     REPLACEMENT_EXECUTION_TREATMENT_ID,
+                                    REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
+                                    REPLACEMENT_INTENTION_OUTCOME_TARGET,
+                                    REPLACEMENT_INTENTION_TREATMENT_ID,
                                     REPLACEMENT_CHAIN_OUTCOME_TARGET,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
@@ -2859,6 +2863,61 @@ async def _play(run_dir, manifest, context):
                     fdas_replacement_execution_store.quarantine_reason))
         fdas_replacement_execution_store.save(
             fdas_replacement_execution_path)
+    fdas_replacement_intention_capability = fdas_manifest["capabilities"].get(
+        "coordinated_replacement_intention_outcome")
+    fdas_replacement_intention_diagnostic = fdas_manifest.get(
+        "coordinated_replacement_intention_outcome_diagnostic")
+    fdas_replacement_intention = bool(
+        fdas_replacement_intention_capability is not None
+        or fdas_replacement_intention_diagnostic is not None)
+    fdas_replacement_intention_path = os.path.join(
+        run_dir, "fdas-coordinated-replacement-intention.json")
+    fdas_replacement_intention_store = None
+    fdas_replacement_intention_tracker = None
+    if fdas_replacement_intention:
+        assigned_arm = fdas_replacement_intention_diagnostic.get(
+            "assigned_arm") if isinstance(
+                fdas_replacement_intention_diagnostic, dict) else None
+        expected_replacement_intention = {
+            "assigned_arm": assigned_arm,
+            "assignment_unit": REPLACEMENT_INTENTION_ASSIGNMENT_UNIT,
+            "claim_eligible": False,
+            "experiment_id": "fdas-replacement-intention-paired-pilot-v1",
+            "maximum_assignments": 1,
+            "observation_window_turns": 32,
+            "outcome_target": REPLACEMENT_INTENTION_OUTCOME_TARGET,
+            "policy_authority": False,
+            "readout_authority": False,
+            "treatment_executor_required": assigned_arm == "treatment",
+            "truth_mutated": False,
+        }
+        if (fdas_replacement_intention_capability != "shadow-live"
+                or assigned_arm not in ("control", "treatment")
+                or fdas_replacement_intention_diagnostic
+                != expected_replacement_intention
+                or fdas_replacement_adapter is None
+                or fdas_replacement_readout_evaluator is None
+                or (assigned_arm == "treatment")
+                != (fdas_replacement_execution_store is not None)):
+            raise RuntimeError(
+                "FDAS coordinated replacement intention contract differs")
+        fdas_replacement_intention_identity = structural_hash([
+            fdas_replacement_identity,
+            REPLACEMENT_INTENTION_TREATMENT_ID,
+            fdas_replacement_intention_diagnostic["experiment_id"],
+            assigned_arm,
+        ])
+        fdas_replacement_intention_store = (
+            FdasReplacementIntentionStore.load(
+                fdas_replacement_intention_path,
+                fdas_replacement_intention_identity))
+        if fdas_replacement_intention_store.quarantined:
+            raise RuntimeError(
+                "FDAS coordinated replacement intention store is "
+                "quarantined: {}".format(
+                    fdas_replacement_intention_store.quarantine_reason))
+        fdas_replacement_intention_store.save(
+            fdas_replacement_intention_path)
     fdas_transport_path = os.path.join(
         run_dir, "fdas-transport-lifecycle.json")
     fdas_transport_lifecycle = None
@@ -4303,6 +4362,26 @@ async def _play(run_dir, manifest, context):
             if (fdas_replacement_execution_store is not None
                 and fdas_replacement_execution_store.assignment is not None)
             else 0),
+        "fdas_replacement_intention_evaluations": 0,
+        "fdas_replacement_intention_assignments": int(
+            fdas_replacement_intention_store is not None
+            and fdas_replacement_intention_store.assignment is not None),
+        "fdas_replacement_intention_pending": int(
+            fdas_replacement_intention_store is not None
+            and fdas_replacement_intention_store.assignment is not None
+            and fdas_replacement_intention_store.assignment.outcome is None),
+        "fdas_replacement_intention_observed": int(
+            fdas_replacement_intention_store is not None
+            and fdas_replacement_intention_store.assignment is not None
+            and fdas_replacement_intention_store.assignment.outcome is not None
+            and fdas_replacement_intention_store.assignment.outcome.status
+            == "observed"),
+        "fdas_replacement_intention_censored": int(
+            fdas_replacement_intention_store is not None
+            and fdas_replacement_intention_store.assignment is not None
+            and fdas_replacement_intention_store.assignment.outcome is not None
+            and fdas_replacement_intention_store.assignment.outcome.status
+            == "censored"),
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -4666,6 +4745,15 @@ async def _play(run_dir, manifest, context):
                     fdas_replacement_execution_store,
                     fdas_replacement_execution_diagnostic["experiment_id"],
                     manifest["game_id"], player_id))
+        if fdas_replacement_intention_store is not None:
+            fdas_replacement_intention_tracker = (
+                FdasReplacementIntentionTracker(
+                    fdas_replacement_adapter,
+                    fdas_replacement_intention_store,
+                    fdas_replacement_intention_diagnostic["assigned_arm"],
+                    fdas_replacement_intention_diagnostic["experiment_id"],
+                    manifest["game_id"], player_id,
+                    ruleset_ir=observability_ir))
 
         async def submit(action):
             await ws.send(json.dumps({"type": "action", "action": action}))
@@ -6213,6 +6301,11 @@ async def _play(run_dir, manifest, context):
                         is not None
                         and fdas_replacement_execution_store.assignment
                         .terminal_state is None)
+                    replacement_intention_pending = bool(
+                        fdas_replacement_intention_store is not None
+                        and (fdas_replacement_intention_store.assignment is None
+                             or fdas_replacement_intention_store.assignment
+                             .outcome is None))
                     evaluate_fdas_shadow = bool(
                         (not fdas_turn_sampled
                          or snapshot.turn not in fdas_shadow_evaluated_turns)
@@ -6221,7 +6314,8 @@ async def _play(run_dir, manifest, context):
                                  None if decision is None
                                  else decision.candidate)
                              or defense_choice_surface_relevant
-                             or replacement_execution_pending))
+                             or replacement_execution_pending
+                             or replacement_intention_pending))
                     if (evaluate_fdas_shadow
                             and (fdas_turn_sampled
                                  or fdas_authority_scoped)):
@@ -6308,7 +6402,8 @@ async def _play(run_dir, manifest, context):
                             if value.operation.operation_type
                             == "fdas-defense:coordinated-replacement"))
                     if ((replacement_candidates
-                         or fdas_replacement_execution_pilot is not None)
+                         or fdas_replacement_execution_pilot is not None
+                         or fdas_replacement_intention_tracker is not None)
                             and fdas_replacement_readout_evaluator is not None
                             and fdas_shadow is not None):
                         replacement_revision = (
@@ -6343,6 +6438,58 @@ async def _play(run_dir, manifest, context):
                                 caused_by=(parent,)))
                         if replacement_readout_event is not None:
                             parent = replacement_readout_event["event_id"]
+                        if fdas_replacement_intention_tracker is not None:
+                            prior_intention = (
+                                fdas_replacement_intention_store.assignment)
+                            prior_outcome_status = (
+                                None
+                                if (prior_intention is None
+                                    or prior_intention.outcome is None)
+                                else prior_intention.outcome.status)
+                            before_intention_digest = (
+                                fdas_replacement_intention_store.store_digest)
+                            (replacement_intention_status,
+                             replacement_intention_assignment,
+                             replacement_intention_created) = (
+                                fdas_replacement_intention_tracker.evaluate(
+                                    snapshot, replacement_readout))
+                            if (before_intention_digest
+                                    != fdas_replacement_intention_store
+                                    .store_digest):
+                                fdas_replacement_intention_store.save(
+                                    fdas_replacement_intention_path)
+                            intention_transition = None
+                            if replacement_intention_created:
+                                intention_transition = "assigned"
+                                decision_stats[
+                                    "fdas_replacement_intention_assignments"
+                                ] += 1
+                                decision_stats[
+                                    "fdas_replacement_intention_pending"] += 1
+                            elif (prior_outcome_status is None
+                                  and replacement_intention_status
+                                  in ("observed", "censored")):
+                                intention_transition = (
+                                    replacement_intention_status)
+                                decision_stats[
+                                    "fdas_replacement_intention_pending"] -= 1
+                                decision_stats[
+                                    "fdas_replacement_intention_{}".format(
+                                        replacement_intention_status)] += 1
+                            if intention_transition is not None:
+                                intention_event = (
+                                    fdas_runtime
+                                    .emit_coordinated_replacement_intention(
+                                        writer, snapshot,
+                                        replacement_intention_assignment,
+                                        intention_transition,
+                                        fdas_replacement_intention_store
+                                        .store_digest,
+                                        caused_by=(parent,)))
+                                if intention_event is not None:
+                                    parent = intention_event["event_id"]
+                            decision_stats[
+                                "fdas_replacement_intention_evaluations"] += 1
                         if fdas_replacement_execution_pilot is not None:
                             before_execution_digest = (
                                 fdas_replacement_execution_store.store_digest)
@@ -6417,6 +6564,41 @@ async def _play(run_dir, manifest, context):
                                 "fdas_replacement_execution_terminal"] += int(
                                     replacement_execution_decision.status
                                     == "terminal")
+                            intention_assignment = (
+                                fdas_replacement_intention_store.assignment
+                                if fdas_replacement_intention_store is not None
+                                else None)
+                            execution_assignment = (
+                                fdas_replacement_execution_store.assignment)
+                            if (intention_assignment is not None
+                                    and execution_assignment is not None
+                                    and (
+                                        intention_assignment.operation_id,
+                                        intention_assignment
+                                        .operation_spec_digest,
+                                        intention_assignment.logical_pair,
+                                        intention_assignment.assignment_turn,
+                                        intention_assignment
+                                        .assignment_snapshot_id,
+                                    ) != (
+                                        execution_assignment.operation_id,
+                                        execution_assignment
+                                        .operation_spec_digest,
+                                        (
+                                            execution_assignment
+                                            .replacement_actor_id,
+                                            execution_assignment
+                                            .reinforcement_actor_id,
+                                            execution_assignment.source_city_id,
+                                            execution_assignment.target_city_id,
+                                        ),
+                                        execution_assignment.assignment_turn,
+                                        execution_assignment
+                                        .assignment_snapshot_id,
+                                    )):
+                                raise RuntimeError(
+                                    "replacement intention and execution "
+                                    "assignments differ")
                             if replacement_execution_decision.authority is not None:
                                 if decision is None:
                                     raise RuntimeError(
@@ -8197,6 +8379,31 @@ async def _play(run_dir, manifest, context):
         final_global_settle_latency = (
             time.perf_counter() - final_global_started) * 1000.0
 
+    if (fdas_replacement_intention_tracker is not None
+            and fdas_replacement_intention_store.assignment is not None
+            and fdas_replacement_intention_store.assignment.outcome is None):
+        intention_assignment = fdas_replacement_intention_store.assignment
+        if int(snapshot.turn) >= intention_assignment.due_turn:
+            intention_status, intention_assignment = (
+                fdas_replacement_intention_tracker.observe_due(snapshot))
+        else:
+            intention_assignment = fdas_replacement_intention_tracker.censor(
+                "game-terminal-before-due-turn"
+                if terminal_game_over or terminal_player_elimination
+                else "fixed-horizon-before-due-turn")
+            intention_status = "censored"
+        fdas_replacement_intention_store.save(
+            fdas_replacement_intention_path)
+        intention_event = fdas_runtime.emit_coordinated_replacement_intention(
+            writer, snapshot, intention_assignment, intention_status,
+            fdas_replacement_intention_store.store_digest,
+            caused_by=(parent,))
+        if intention_event is not None:
+            parent = intention_event["event_id"]
+        decision_stats["fdas_replacement_intention_pending"] -= 1
+        decision_stats[
+            "fdas_replacement_intention_{}".format(intention_status)] += 1
+
     loop_latency = (time.perf_counter() - turn_started) * 1000.0 / max(1, turns_executed)
     model_latency = (sum(model_latencies) / len(model_latencies)
                      if model_latencies else 0.0)
@@ -8878,6 +9085,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_replacement_execution_accepted"]),
         ("fdas_replacement_execution_rejected",
          decision_stats["fdas_replacement_execution_rejected"]),
+        ("fdas_replacement_intention_evaluations",
+         decision_stats["fdas_replacement_intention_evaluations"]),
+        ("fdas_replacement_intention_assignments",
+         decision_stats["fdas_replacement_intention_assignments"]),
+        ("fdas_replacement_intention_pending",
+         decision_stats["fdas_replacement_intention_pending"]),
+        ("fdas_replacement_intention_observed",
+         decision_stats["fdas_replacement_intention_observed"]),
+        ("fdas_replacement_intention_censored",
+         decision_stats["fdas_replacement_intention_censored"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -9614,6 +9831,16 @@ async def _play(run_dir, manifest, context):
                 "fdas_replacement_execution_accepted"],
             "fdas_replacement_execution_rejected": decision_stats[
                 "fdas_replacement_execution_rejected"],
+            "fdas_replacement_intention_evaluations": decision_stats[
+                "fdas_replacement_intention_evaluations"],
+            "fdas_replacement_intention_assignments": decision_stats[
+                "fdas_replacement_intention_assignments"],
+            "fdas_replacement_intention_pending": decision_stats[
+                "fdas_replacement_intention_pending"],
+            "fdas_replacement_intention_observed": decision_stats[
+                "fdas_replacement_intention_observed"],
+            "fdas_replacement_intention_censored": decision_stats[
+                "fdas_replacement_intention_censored"],
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -10211,6 +10438,16 @@ async def _play(run_dir, manifest, context):
             "fdas_replacement_execution_accepted"],
         "fdas_replacement_execution_rejected": decision_stats[
             "fdas_replacement_execution_rejected"],
+        "fdas_replacement_intention_evaluations": decision_stats[
+            "fdas_replacement_intention_evaluations"],
+        "fdas_replacement_intention_assignments": decision_stats[
+            "fdas_replacement_intention_assignments"],
+        "fdas_replacement_intention_pending": decision_stats[
+            "fdas_replacement_intention_pending"],
+        "fdas_replacement_intention_observed": decision_stats[
+            "fdas_replacement_intention_observed"],
+        "fdas_replacement_intention_censored": decision_stats[
+            "fdas_replacement_intention_censored"],
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (

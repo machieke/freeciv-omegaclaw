@@ -204,6 +204,26 @@ def test_config_seed_overlay_can_bind_exact_fdas_profiles():
         "randomized_pilot.json")
 
 
+@pytest.mark.parametrize("arm", ("control", "treatment"))
+def test_config_accepts_exact_pr84_diagnostic_seed_cohort(arm):
+    config = load(os.path.join(
+        REPO, "profile",
+        "freeciv_harness_fdas_pr84_replacement_intention_{}_160_turn.yaml"
+        .format(arm)))
+
+    assert config["seeds"] == [
+        109701, 109703, 109709, 109721, 109723, 109727, 109741, 109751,
+        109789, 109793, 109807, 109819, 109829, 109831, 109841, 109843,
+    ]
+    assert config["diagnostic_seed_cohort"] == {
+        "claim_eligible": False,
+        "cohort_id": "fdas-replacement-intention-paired-pilot-v1",
+        "paired_arms": ["control", "treatment"],
+        "purpose": "descriptive-intention-indexed-paired-pilot",
+        "required_unique_seeds": 16,
+    }
+
+
 def test_config_accepts_pr60_transition_calibration_partition():
     config = load(os.path.join(
         REPO, "profile",

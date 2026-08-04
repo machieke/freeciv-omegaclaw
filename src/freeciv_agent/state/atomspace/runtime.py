@@ -1169,6 +1169,54 @@ class FdasRuntime(object):
             component_id="fdas-coordinated-replacement-execution-pilot",
             component_version="1.0")
 
+    def emit_coordinated_replacement_intention(
+            self, writer, snapshot, assignment, transition, store_digest,
+            caused_by=()):
+        """Emit arm-locked intention outcomes without policy authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS replacement intention evidence is not revision-current")
+        if transition not in ("assigned", "observed", "censored"):
+            raise ValueError("FDAS replacement intention transition differs")
+        if not isinstance(store_digest, str) or not store_digest:
+            raise ValueError("FDAS replacement intention store digest is required")
+        details = assignment.to_dict()
+        if (details.get("claim_eligible") is not False
+                or details.get("truth_mutated") is not False):
+            raise RuntimeError(
+                "FDAS replacement intention escaped diagnostic boundary")
+        outcome = details.get("outcome")
+        if transition == "assigned" and outcome is not None:
+            raise RuntimeError(
+                "FDAS replacement intention assignment already has an outcome")
+        if (transition in ("observed", "censored")
+                and (not isinstance(outcome, dict)
+                     or outcome.get("status") != transition)):
+            raise RuntimeError(
+                "FDAS replacement intention outcome transition differs")
+        details.update({
+            "identity": (
+                "fdas-coordinated-replacement-intention-outcome/1.0"),
+            "policy_authority": False,
+            "readout_authority": False,
+            "store_digest": store_digest,
+            "transition": transition,
+        })
+        event_type = (
+            "atomspace_shadow_decision"
+            if transition == "assigned"
+            else "operation_outcome_label_observed")
+        return self.event_emitter.emit_component(
+            writer, event_type, snapshot.turn, revision, details,
+            caused_by=tuple(caused_by), ruleset_digest=self.ruleset_digest,
+            component_id="fdas-coordinated-replacement-intention-outcome",
+            component_version="1.0")
+
     def emit_decision_safe_candidate_filter(
             self, writer, snapshot, candidate_filter, caused_by=()):
         """Emit exact pre-union safety exclusions without action authority."""

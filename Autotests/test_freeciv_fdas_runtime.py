@@ -410,6 +410,46 @@ def test_coordinated_replacement_execution_event_is_pilot_bounded(tmp_path):
             writer, snapshot, invalid, "authorized", "store-digest")
 
 
+def test_coordinated_replacement_intention_events_are_diagnostic_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    runtime.replace(snapshot)
+    assigned_details = {
+        "assignment_id": "replacement-intention-assignment-proof",
+        "claim_eligible": False,
+        "outcome": None,
+        "truth_mutated": False,
+    }
+    assigned = SimpleNamespace(to_dict=lambda: dict(assigned_details))
+    path = os.path.join(str(tmp_path), "replacement-intention-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    assignment_event = runtime.emit_coordinated_replacement_intention(
+        writer, snapshot, assigned, "assigned", "assigned-store-digest")
+    observed = SimpleNamespace(to_dict=lambda: {
+        **assigned_details,
+        "outcome": {"status": "observed"},
+    })
+    outcome_event = runtime.emit_coordinated_replacement_intention(
+        writer, snapshot, observed, "observed", "observed-store-digest",
+        caused_by=(assignment_event["event_id"],))
+
+    assert assignment_event["type"] == "atomspace_shadow_decision"
+    assert outcome_event["type"] == "operation_outcome_label_observed"
+    assert assignment_event["payload"]["component_id"] == (
+        "fdas-coordinated-replacement-intention-outcome")
+    assert assignment_event["payload"]["details"]["policy_authority"] is False
+    assert assignment_event["payload"]["details"]["readout_authority"] is False
+    assert validate_file(path).valid
+
+    invalid = SimpleNamespace(to_dict=lambda: {
+        **assigned_details, "claim_eligible": True})
+    with pytest.raises(RuntimeError, match="diagnostic boundary"):
+        runtime.emit_coordinated_replacement_intention(
+            writer, snapshot, invalid, "assigned", "store-digest")
+
+
 def test_decision_safe_filter_event_is_revision_bound_and_shadow_only(
         tmp_path):
     runtime = build_runtime(_enabled_city_declaration())

@@ -1,0 +1,28 @@
+schema_version: "1.0"
+seed_overlay_base: profile/freeciv_harness_fdas_pr49_160_turn.yaml
+dependent_atomspace:
+  config_path: profile/dependent_atomspace_defense_choice_surface_shadow.yaml
+  manifest_path: profile/fdas_manifest_defense_replacement_intention_control.json
+diagnostic_seed_cohort:
+  claim_eligible: false
+  cohort_id: fdas-replacement-intention-paired-pilot-v1
+  paired_arms: [control, treatment]
+  purpose: descriptive-intention-indexed-paired-pilot
+  required_unique_seeds: 16
+seeds:
+  - 109701
+  - 109703
+  - 109709
+  - 109721
+  - 109723
+  - 109727
+  - 109741
+  - 109751
+  - 109789
+  - 109793
+  - 109807
+  - 109819
+  - 109829
+  - 109831
+  - 109841
+  - 109843

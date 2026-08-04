@@ -678,10 +678,38 @@ def test_paired_replacement_intention_tracks_control_outcome_and_restart(
 
 def test_paired_replacement_intention_censor_is_terminal_and_arm_bound(
         tmp_path):
-    store = FdasReplacementIntentionStore("intention-empty")
-    path = tmp_path / "intention-empty.json"
-    store.save(str(path))
+    payload = _payload(12)
+    payload["legal_actions"] = [_move(8, 2), _move(7, 3)]
+    payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 531),
+        _route(7, 82, 84, 83, 12, 531),
+    ]
+    snapshot = _snapshot(payload, 531)
+    operation_store = OperationStore("fdas-replacement:intention-censor")
+    adapter = FdasCoordinatedReplacementAdapter(
+        operation_store, "ruleset-proof")
+    replacement = _candidate(snapshot, "replacement-intention-censor")
+    direct = _direct_candidate(snapshot)
+    adapter.reconcile(snapshot, (replacement,))
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(snapshot)
+    readout = FdasCoordinatedReplacementReadoutEvaluator(
+        adapter).evaluate(snapshot, revision, (replacement, direct))
+    store = FdasReplacementIntentionStore("intention-control")
+    tracker = FdasReplacementIntentionTracker(
+        adapter, store, "control", "replacement-paired-test",
+        snapshot.identity.game_id, snapshot.player_id)
+    tracker.evaluate(snapshot, readout)
 
+    assignment = tracker.censor()
+
+    assert assignment.outcome.status == "censored"
+    assert assignment.outcome.city_retention_count is None
+    assert tracker.evaluate(snapshot, readout)[0] == "censored"
+    path = tmp_path / "intention-control.json"
+    store.save(str(path))
     mismatched = FdasReplacementIntentionStore.load(
         str(path), "intention-other")
 
