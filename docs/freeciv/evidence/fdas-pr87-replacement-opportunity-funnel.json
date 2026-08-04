@@ -1,0 +1,245 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_expected_games_complete_without_infrastructure_failure": true,
+      "all_game_level_opportunity_funnel_audits_pass": true,
+      "all_sources_are_clean_and_commit_bound": true,
+      "every_game_contributes_revision_level_diagnostics": true,
+      "stage_partition_covers_every_evaluation": true
+    }
+  },
+  "claim_scope": "fixed fresh-game distribution of revision-level replacement opportunity blockers only; no transition value, preference, action, outcome, score, or win-rate improvement claim",
+  "evidence": {
+    "run-summary.json": {
+      "path": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/run-summary.json",
+      "sha256": "d0a380897c04522ed13982f49cb41e426f6f3221c1c7a89d9cdb2a4b8cae7531"
+    }
+  },
+  "games": [
+    {
+      "accepted": true,
+      "evaluations": 61,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110419-00",
+      "report_hash": "fcab41f18e2492ed408557960cab5e316176e292a65bc63a134896a500b47a20",
+      "seed": 110419,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 14,
+        "no-safe-replacement-relation": 47
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 75,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110431-00",
+      "report_hash": "f7d0d83f65ae34b0d2729d7a2dd6ace92643222f3d33c7a6477f61406b498071",
+      "seed": 110431,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 2,
+        "grounded-pair-available": 3,
+        "no-deficit-target-city": 8,
+        "no-safe-replacement-relation": 62
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 36,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110437-00",
+      "report_hash": "242b800e0996ec910147142f4c86a60749ee6a0722e8b4508e7212ff116643ec",
+      "seed": 110437,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 14,
+        "no-safe-replacement-relation": 22
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 48,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110441-00",
+      "report_hash": "2054a5d3e2852d09b8cf1fc88daab055b5ed8cd1266025317445b1e0de013730",
+      "seed": 110441,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 8,
+        "grounded-pair-available": 3,
+        "no-deficit-target-city": 8,
+        "no-safe-replacement-relation": 29
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 76,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110459-00",
+      "report_hash": "583085440c26dd834d37ab5ba3abbbec88be92a9cb1eb1111e5ce7cfadcbdf29",
+      "seed": 110459,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "grounded-pair-available": 2,
+        "no-deficit-target-city": 21,
+        "no-safe-replacement-relation": 53
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 115,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110477-00",
+      "report_hash": "fc8130b289d0b28b2fad8b049eb7d6118210afc27cf4eaac661fbf3469142d5f",
+      "seed": 110477,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 25,
+        "no-safe-replacement-relation": 90
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 64,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110479-00",
+      "report_hash": "73cef7e10191bc2107057e75c9807f48db9b90f3e9c025ed6a4e23a149961047",
+      "seed": 110479,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 22,
+        "no-safe-replacement-relation": 42
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 123,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110491-00",
+      "report_hash": "adff093cfde5e10d46707d074abfb0bb51233e3e387e273422e0aac9d0235e28",
+      "seed": 110491,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 7,
+        "grounded-pair-available": 11,
+        "no-deficit-target-city": 50,
+        "no-safe-replacement-relation": 55
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 63,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110501-00",
+      "report_hash": "0ba97b1db76d5fc259c1624c7895c62a1b7a9226fdbfa1a0359c9a2ced9f00f6",
+      "seed": 110501,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 3,
+        "grounded-pair-available": 3,
+        "no-deficit-target-city": 12,
+        "no-safe-replacement-relation": 45
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 126,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110503-00",
+      "report_hash": "973e938d479c7b7100a8878366771e5b8cfaec06ddb603480bbba0239ff592fa",
+      "seed": 110503,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 2,
+        "grounded-pair-available": 8,
+        "no-deficit-target-city": 75,
+        "no-safe-replacement-relation": 41
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 78,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110527-00",
+      "report_hash": "153ba29423fa4e93466854d5ede7b1057d05a5c3ff776eb224c2d03d28a1c13f",
+      "seed": 110527,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 33,
+        "no-safe-replacement-relation": 45
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 123,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110533-00",
+      "report_hash": "d79681e3cb123eed92db171bc6db7ba7acc38f8972c2c1dbfede3e8b340d3ddc",
+      "seed": 110533,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "no-deficit-target-city": 16,
+        "no-safe-replacement-relation": 107
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 57,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110543-00",
+      "report_hash": "2aecc1f53c2425d036fac42bf3f811c1a80ab2909eaf0e30e6b719515dc52924",
+      "seed": 110543,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "grounded-pair-available": 1,
+        "no-deficit-target-city": 12,
+        "no-safe-replacement-relation": 44
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 171,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110557-00",
+      "report_hash": "e0266d598722ffd6c415c8b0ff3ad5aa5ee3998aeedb664d012e6d5939dda041",
+      "seed": 110557,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 28,
+        "grounded-pair-available": 12,
+        "no-deficit-target-city": 96,
+        "no-safe-replacement-relation": 35
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 90,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110563-00",
+      "report_hash": "558b3e658731e3d0cf29ee2c1648bcd432083e856495b203c0ccea8bfbe41a9c",
+      "seed": 110563,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 22,
+        "grounded-pair-available": 11,
+        "no-deficit-target-city": 14,
+        "no-safe-replacement-relation": 43
+      }
+    },
+    {
+      "accepted": true,
+      "evaluations": 131,
+      "game_dir": "artifacts/freeciv/fdas-pr87-replacement-opportunity-funnel-v1/games/main/e_full_loop/110567-00",
+      "report_hash": "c04e74573ec72414fd1abc4e253e3f4e5de6fbd980ed18f796f0b6a7b9dd27fb",
+      "seed": 110567,
+      "source_commit": "fb4781798591fca850ba4dad14c4ba08f87022da",
+      "stage_counts": {
+        "current-candidate-not-grounded": 7,
+        "grounded-pair-available": 13,
+        "no-deficit-target-city": 52,
+        "no-safe-replacement-relation": 59
+      }
+    }
+  ],
+  "schema_version": "1.0",
+  "structural_hash": "9f66e977e9e0bd370de718cc8b4b18e6527313a4787030cd3937f414242e66eb",
+  "summary": {
+    "evaluation_count": 1437,
+    "game_count": 16,
+    "games_with_grounded_pair": 10,
+    "games_with_no_safe_replacement": 16,
+    "stage_counts": {
+      "current-candidate-not-grounded": 79,
+      "grounded-pair-available": 67,
+      "no-deficit-target-city": 472,
+      "no-safe-replacement-relation": 819
+    }
+  }
+}

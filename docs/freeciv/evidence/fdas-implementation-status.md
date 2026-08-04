@@ -1265,3 +1265,15 @@ the readout, and grants no truth, value, readout, policy, or action authority.
 The first 16 of 30 previously unused seeds are fixed for a fresh engine cohort;
 no stage frequency is an acceptance condition. See
 `fdas-pr87-replacement-opportunity-funnel-preregistration.md`.
+
+PR87 passes all preregistered gates from clean commit `fb47817`. All 16 fixed
+games completed without infrastructure failure, resume, or rejected engine
+action, and the 1,437 typed funnel evaluations partition exactly. The dominant
+stage is `no-safe-replacement-relation` at 819 revisions (57.0%), followed by
+`no-deficit-target-city` at 472 (32.8%),
+`current-candidate-not-grounded` at 79 (5.5%), and
+`grounded-pair-available` at 67 (4.7%). Every game encounters the missing-safe
+relation stage, while 10/16 also ground a pair. The full audit is byte-stable.
+The next bounded target is therefore exact source-safe replacement relation
+yield; downstream lifecycle/route freshness is secondary. See
+`fdas-pr87-replacement-opportunity-funnel.md` and its JSON report.
