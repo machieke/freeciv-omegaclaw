@@ -27,17 +27,26 @@ _OPERATION_TYPE = "fdas-defense:coordinated-replacement"
 class FdasCoordinatedReplacementAdapter(object):
     """Reconcile a two-step replacement operation without granting authority."""
 
-    ADAPTER_IDENTITY = "fdas-coordinated-replacement-adapter/1.0"
+    ADAPTER_IDENTITY = "fdas-coordinated-replacement-adapter/1.1"
+    REPROPOSAL_COOLDOWN_TURNS = 32
 
-    def __init__(self, operation_store, ruleset_digest):
+    def __init__(self, operation_store, ruleset_digest,
+                 reproposal_cooldown_turns=REPROPOSAL_COOLDOWN_TURNS):
         if not isinstance(operation_store, OperationStore):
             raise TypeError("replacement adapter requires OperationStore")
         if not isinstance(ruleset_digest, str) or not ruleset_digest:
             raise ValueError("replacement adapter requires ruleset digest")
+        if (isinstance(reproposal_cooldown_turns, bool)
+                or not isinstance(reproposal_cooldown_turns, int)
+                or reproposal_cooldown_turns < 1):
+            raise ValueError(
+                "replacement reproposal cooldown must be a positive integer")
         self.store = operation_store
         self.ruleset_digest = ruleset_digest
+        self.reproposal_cooldown_turns = reproposal_cooldown_turns
         self._bindings = {}
         self._contexts = {}
+        self._reproposal_suppressions = ()
 
     def binding(self, operation_id):
         return self._bindings.get(str(operation_id))
@@ -50,6 +59,10 @@ class FdasCoordinatedReplacementAdapter(object):
 
     def requirement_contexts(self):
         return tuple(self._contexts[key] for key in sorted(self._contexts))
+
+    def reproposal_suppressions(self):
+        """Return candidate ID, prior operation ID, and release turn."""
+        return self._reproposal_suppressions
 
     def active_record_for(self, spec):
         """Resolve one logical current lifecycle for a snapshot-bound spec."""
@@ -382,15 +395,45 @@ class FdasCoordinatedReplacementAdapter(object):
             self.lifecycle_key(value.spec)
             for value in self.store.nonterminal_records()
             if value.spec.operation_type == _OPERATION_TYPE}
+        terminal_by_key = {}
+        for record in self.store.records():
+            if (record.spec.operation_type != _OPERATION_TYPE
+                    or record.progress.state
+                    not in TERMINAL_OPERATION_STATES):
+                continue
+            key = self.lifecycle_key(record.spec)
+            previous = terminal_by_key.get(key)
+            if (previous is None
+                    or record.progress.last_updated_turn
+                    > previous.progress.last_updated_turn
+                    or (record.progress.last_updated_turn
+                        == previous.progress.last_updated_turn
+                        and record.spec.operation_id
+                        > previous.spec.operation_id)):
+                terminal_by_key[key] = record
+        suppressions = []
         for candidate in sorted(
                 candidates,
                 key=lambda value: value.operation.operation_id):
             key = self.lifecycle_key(candidate.operation)
             if key in active_keys:
                 continue
+            prior = terminal_by_key.get(key)
+            release_turn = (
+                None if prior is None else
+                int(prior.progress.last_updated_turn)
+                + self.reproposal_cooldown_turns)
+            if release_turn is not None and int(snapshot.turn) < release_turn:
+                suppressions.append((
+                    candidate.operation.operation_id,
+                    prior.spec.operation_id,
+                    release_turn,
+                ))
+                continue
             self.store.propose(
                 candidate.operation, snapshot.snapshot_id, int(snapshot.turn))
             active_keys.add(key)
+        self._reproposal_suppressions = tuple(suppressions)
         updates = []
         for record in self.store.nonterminal_records():
             if record.spec.operation_type != _OPERATION_TYPE:

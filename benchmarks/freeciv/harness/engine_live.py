@@ -3876,6 +3876,9 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_replacement_expirations"] += sum(
                     value.disposition == "expired" for value in updates)
             decision_stats["fdas_replacement_candidates"] += len(candidates)
+            decision_stats[
+                "fdas_replacement_reproposal_suppressions"] += len(
+                    fdas_replacement_adapter.reproposal_suppressions())
             return updates, changed
     reconcile_fdas_expansion = None
     if fdas_expansion_adapter is not None:
@@ -4160,6 +4163,10 @@ async def _play(run_dir, manifest, context):
         "fdas_replacement_step_advances": 0,
         "fdas_replacement_completions": 0,
         "fdas_replacement_expirations": 0,
+        "fdas_replacement_reproposal_cooldown_turns": (
+            0 if fdas_replacement_adapter is None else
+            fdas_replacement_adapter.reproposal_cooldown_turns),
+        "fdas_replacement_reproposal_suppressions": 0,
         "fdas_replacement_readout_evaluations": 0,
         "fdas_replacement_readout_candidates": 0,
         "fdas_replacement_readout_direct_controls": 0,
@@ -8507,6 +8514,12 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_replacement_completions"]),
         ("fdas_replacement_expirations",
          decision_stats["fdas_replacement_expirations"]),
+        ("fdas_replacement_reproposal_cooldown_turns",
+         decision_stats[
+             "fdas_replacement_reproposal_cooldown_turns"]),
+        ("fdas_replacement_reproposal_suppressions",
+         decision_stats[
+             "fdas_replacement_reproposal_suppressions"]),
         ("fdas_replacement_readout_evaluations",
          decision_stats["fdas_replacement_readout_evaluations"]),
         ("fdas_replacement_readout_candidates",
@@ -9210,6 +9223,12 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_replacement_completions"]),
             "fdas_replacement_expirations": (
                 decision_stats["fdas_replacement_expirations"]),
+            "fdas_replacement_reproposal_cooldown_turns": (
+                decision_stats[
+                    "fdas_replacement_reproposal_cooldown_turns"]),
+            "fdas_replacement_reproposal_suppressions": (
+                decision_stats[
+                    "fdas_replacement_reproposal_suppressions"]),
             "fdas_replacement_readout_evaluations": (
                 decision_stats["fdas_replacement_readout_evaluations"]),
             "fdas_replacement_readout_candidates": (
@@ -9772,6 +9791,12 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_replacement_completions"]),
         "fdas_replacement_expirations": (
             decision_stats["fdas_replacement_expirations"]),
+        "fdas_replacement_reproposal_cooldown_turns": (
+            decision_stats[
+                "fdas_replacement_reproposal_cooldown_turns"]),
+        "fdas_replacement_reproposal_suppressions": (
+            decision_stats[
+                "fdas_replacement_reproposal_suppressions"]),
         "fdas_replacement_readout_evaluations": (
             decision_stats["fdas_replacement_readout_evaluations"]),
         "fdas_replacement_readout_candidates": (

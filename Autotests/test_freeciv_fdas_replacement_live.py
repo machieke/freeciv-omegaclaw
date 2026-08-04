@@ -7,6 +7,9 @@ from freeciv.harness.fdas_replacement_readout_live import (
 from freeciv.harness.fdas_replacement_readout_cohort import (
     audit_fdas_replacement_readout_cohort,
 )
+from freeciv.harness.fdas_replacement_reproposal import (
+    audit_fdas_replacement_reproposal,
+)
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
 
@@ -239,6 +242,25 @@ def _add_candidate_readout(tmp_path):
     _write_json(status_path, status)
 
 
+def _add_reproposal_hardening_evidence(tmp_path):
+    events_path = tmp_path / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    status_path = tmp_path / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    values = {
+        "fdas_replacement_reproposal_cooldown_turns": 32,
+        "fdas_replacement_reproposal_suppressions": 7,
+    }
+    status.update(values)
+    status["event_count"] = len(events)
+    events[-1]["payload"]["summary"].update(values)
+    events_path.write_text(
+        "".join(json.dumps(value, sort_keys=True) + "\n" for value in events),
+        encoding="utf-8")
+    _write_json(status_path, status)
+
+
 def _activate_zero_opportunity_readout(tmp_path):
     manifest_path = tmp_path / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -325,6 +347,25 @@ def test_replacement_readout_live_accepts_grounded_safe_chain(tmp_path):
     assert report["acceptance"]["accepted"] is True
     assert report["summary"]["grounded_pairs"] == 1
     assert report["summary"]["replacement_candidates"] == 1
+
+
+def test_replacement_reproposal_audit_accepts_bounded_hardening(tmp_path):
+    _fixture(tmp_path)
+    _add_candidate_readout(tmp_path)
+    _add_reproposal_hardening_evidence(tmp_path)
+
+    report = audit_fdas_replacement_reproposal(
+        str(tmp_path), expected_source_commit="a" * 40)
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"] == {
+        "event_count": 3,
+        "grounded_pairs": 1,
+        "logical_key_count": 1,
+        "operations": 1,
+        "reproposal_cooldown_turns": 32,
+        "reproposal_suppressions": 7,
+    }
 
 
 def test_replacement_readout_allows_zero_opportunity_in_cohort_scope(tmp_path):

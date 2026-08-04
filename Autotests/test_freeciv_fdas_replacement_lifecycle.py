@@ -90,7 +90,8 @@ def _snapshot(payload, seq):
         "fdas-replacement-lifecycle", seq, payload).to_snapshot()
 
 
-def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof"):
+def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof",
+               target_city_id=4):
     participants = (
         OperationParticipant("replacement", "8", "unit", True),
         OperationParticipant("reinforcement", "7", "unit", True),
@@ -100,14 +101,16 @@ def _candidate(snapshot, operation_id="fdas-coordinated-replacement-proof"):
             "step-replacement", "unit_move", "replacement", "city:3",
             "requirements-replacement", "replacement-at-source", 3),
         OperationStep(
-            "step-reinforcement", "unit_move", "reinforcement", "city:4",
+            "step-reinforcement", "unit_move", "reinforcement",
+            "city:{}".format(target_city_id),
             "requirements-reinforcement", "reinforcement-at-target", 3),
     )
     spec = OperationSpec(
         OPERATION_SCHEMA_VERSION, operation_id,
         "fdas-defense:coordinated-replacement",
-        ("pf-impact:survival",), participants, "city:4", steps,
-        12, 15, 0.0,
+        ("pf-impact:survival",), participants,
+        "city:{}".format(target_city_id), steps,
+        snapshot.turn, snapshot.turn + 3, 0.0,
         ("fdas-coordinated-replacement-shadow/1.0",), "ruleset-proof")
     action_key = next(
         value for value in snapshot.legal_action_json
@@ -171,6 +174,96 @@ def test_replacement_deduplicates_snapshot_specific_operation_ids():
     assert updates[-1].operation_id == "replacement-a"
     assert adapter.lifecycle_key(store.records()[0].spec) == (
         8, 7, "city:3", "city:4")
+
+
+def test_replacement_terminal_reproposal_cooldown_survives_restart(tmp_path):
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 510)]
+    first = _snapshot(first_payload, 510)
+    identity = "fdas-replacement:terminal-cooldown-proof"
+    store = OperationStore(identity)
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+    adapter.reconcile(first, (_candidate(first, "replacement-first"),))
+
+    expired_payload = _payload(16)
+    expired = _snapshot(expired_payload, 511)
+    update = adapter.reconcile(expired)[-1]
+    assert update.disposition == "expired"
+    assert store.get("replacement-first").progress.last_updated_turn == 16
+
+    within_payload = _payload(17)
+    within_payload["legal_actions"] = [_move(8, 2)]
+    within_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 17, 512)]
+    within = _snapshot(within_payload, 512)
+    adapter.reconcile(within, (_candidate(within, "replacement-within"),))
+
+    assert len(store.records()) == 1
+    assert adapter.reproposal_suppressions() == ((
+        "replacement-within", "replacement-first", 48),)
+
+    path = tmp_path / "replacement-operations.json"
+    store.save(str(path))
+    restarted = OperationStore.load(str(path), identity)
+    restarted_adapter = FdasCoordinatedReplacementAdapter(
+        restarted, "ruleset-proof")
+    restarted_adapter.reconcile(
+        within, (_candidate(within, "replacement-after-restart"),))
+
+    assert len(restarted.records()) == 1
+    assert restarted_adapter.reproposal_suppressions() == ((
+        "replacement-after-restart", "replacement-first", 48),)
+
+
+def test_replacement_terminal_reproposal_releases_at_exact_boundary():
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 513)]
+    first = _snapshot(first_payload, 513)
+    store = OperationStore("fdas-replacement:cooldown-boundary-proof")
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+    adapter.reconcile(first, (_candidate(first, "replacement-first"),))
+    adapter.reconcile(_snapshot(_payload(16), 514))
+
+    boundary_payload = _payload(48)
+    boundary_payload["legal_actions"] = [_move(8, 2)]
+    boundary_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 48, 515)]
+    boundary = _snapshot(boundary_payload, 515)
+    adapter.reconcile(
+        boundary, (_candidate(boundary, "replacement-boundary"),))
+
+    assert len(store.records()) == 2
+    assert store.get("replacement-boundary") is not None
+    assert adapter.reproposal_suppressions() == ()
+
+
+def test_replacement_terminal_cooldown_does_not_suppress_independent_key():
+    first_payload = _payload(12)
+    first_payload["legal_actions"] = [_move(8, 2)]
+    first_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 12, 516)]
+    first = _snapshot(first_payload, 516)
+    store = OperationStore("fdas-replacement:cooldown-key-proof")
+    adapter = FdasCoordinatedReplacementAdapter(store, "ruleset-proof")
+    adapter.reconcile(first, (_candidate(first, "replacement-first"),))
+    adapter.reconcile(_snapshot(_payload(16), 517))
+
+    independent_payload = _payload(17)
+    independent_payload["legal_actions"] = [_move(8, 2)]
+    independent_payload["authoritative"]["movement_routes"] = [
+        _route(8, 81, 82, 82, 17, 518)]
+    independent = _snapshot(independent_payload, 518)
+    adapter.reconcile(independent, (
+        _candidate(
+            independent, "replacement-independent", target_city_id=3),))
+
+    assert len(store.records()) == 2
+    assert store.get("replacement-independent") is not None
+    assert adapter.reproposal_suppressions() == ()
 
 
 def test_replacement_readout_recalls_grounded_chain_without_value_claim():
