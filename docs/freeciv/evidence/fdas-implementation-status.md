@@ -1201,6 +1201,18 @@ PR84 is preregistered as a 16-pair intention-indexed control/treatment pilot.
 Its first component checkpoint adds an atomic one-assignment tracker with arm,
 logical chain, assignment turn, +32 due turn, city retention, ruleset-grounded
 garrison counts, actor presence/placement/transport, operation state, restart,
-and censoring semantics. The tracker has no action authority. Engine manifests,
-events, paired execution, and all fresh outcomes remain open; see
-`fdas-pr84-intention-outcome-component.md`.
+and censoring semantics. The tracker has no action authority. The completed
+32-arm cohort is mechanically rejected: all 16 controls and 10 treatments
+completed, six treatments preserved infrastructure failures, and the paired
+audit found 4 no-opportunity, 10 opportunity-mismatch, 1 outcome-mismatch, and
+only 1 matched-observed pair. All 57 submitted treatment steps were accepted,
+so the failure is in pairing and controller integration rather than the engine.
+The sole matched pair is insufficient for value inference. See
+`fdas-pr84-intention-indexed-paired-replacement.md` and its JSON report.
+
+PR85 freezes the corrections before any corrected engine seed: logical tuple
+ordering precedes arm-local operation ID, movement attempt limits derive from
+native path length, exact operation authority may materialize without a legacy
+baseline, and current exact operation actions survive legacy suppression and
+category drift. Its 16 fresh paired seeds remain separate from PR84; see
+`fdas-pr85-logical-order-paired-replacement-preregistration.md`.

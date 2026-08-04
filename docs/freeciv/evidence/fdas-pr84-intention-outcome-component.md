@@ -30,15 +30,22 @@ count summaries, atomic restart, digest verification, and persistence-identity
 quarantine. Sixteen replacement lifecycle tests pass, and static analysis and
 compilation are clean.
 
-## Open work
+## Live paired outcome
 
-The engine harness still needs separate control/treatment manifests, durable
-event/counter integration, horizon censoring, exact treatment-assignment
-cross-checking, a pair runner with deterministic arm order, and the frozen
-paired audit/analysis. No fresh PR84 seed has been executed.
+The formerly open engine work is complete. Separate arm-locked manifests,
+durable events and counters, horizon censoring, exact treatment-assignment
+cross-checking, deterministic within-pair order, consequence attribution, and
+the frozen paired audit are live. The 32-arm PR84 cohort is mechanically
+rejected: 4 no-opportunity pairs, 10 opportunity mismatches, 1 outcome
+mismatch, and only 1 matched-observed pair. Six treatment arms preserve
+controller infrastructure failures; no arm was retried.
+
+See `fdas-pr84-intention-indexed-paired-replacement.md` and the canonical JSON
+report for the complete result. The corrected PR85 cohort is separately
+preregistered and cannot be pooled with PR84.
 
 ## Claim boundary
 
-This checkpoint establishes component mechanics only. It supplies no live
-outcome, treatment comparison, transition value, policy, score, or win-rate
-evidence.
+The component and its live outcome machinery are proven, but the paired cohort
+fails mechanical acceptance and minimum yield. It supplies no treatment-value,
+transition-value, policy, score, or win-rate evidence.
