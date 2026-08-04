@@ -1,0 +1,70 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "reason": "all concurrent workers were configured with shared server port 6001"
+  },
+  "artifact_root": "artifacts/freeciv/fdas-pr85-logical-order-paired-v2",
+  "artifact_tree_sha256": "27b3874ed1a705fb9fcba96622755cec41db085e0096aa251c263c7dea076b0b",
+  "attempted_arms": [
+    {
+      "arm": "control",
+      "events": 4571,
+      "maximum_event_turn": 18,
+      "seed": 109903,
+      "status": "interrupted-after-isolation-fault-detected"
+    },
+    {
+      "arm": "treatment",
+      "error": "ContractError: map dimensions must be positive",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109903,
+      "status": "infrastructure_failure"
+    },
+    {
+      "arm": "control",
+      "error": "TimeoutError: authoritative state did not reach turn 1",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109913,
+      "status": "infrastructure_failure"
+    },
+    {
+      "arm": "treatment",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109913,
+      "status": "interrupted-after-isolation-fault-detected"
+    },
+    {
+      "arm": "treatment",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109919,
+      "status": "interrupted-after-isolation-fault-detected"
+    },
+    {
+      "arm": "control",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109937,
+      "status": "interrupted-after-isolation-fault-detected"
+    },
+    {
+      "arm": "treatment",
+      "error": "TimeoutError: authoritative state did not reach turn 1",
+      "events": 29,
+      "maximum_event_turn": 0,
+      "seed": 109937,
+      "status": "infrastructure_failure"
+    }
+  ],
+  "configured_ports": [6001, 6001, 6001, 6001],
+  "experiment_id": "fdas-replacement-intention-logical-order-paired-pilot-v2",
+  "fixed_seed_count": 16,
+  "launched_arm_count": 7,
+  "launched_seed_count": 4,
+  "schema_version": "1.0",
+  "source_commit": "55e84f7ceb8c9f78f9062195db0ae049f923b1d5",
+  "unlaunched_seed_count": 12
+}

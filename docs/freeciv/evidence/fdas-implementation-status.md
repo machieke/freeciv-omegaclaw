@@ -1216,3 +1216,12 @@ native path length, exact operation authority may materialize without a legacy
 baseline, and current exact operation actions survive legacy suppression and
 category drift. Its 16 fresh paired seeds remain separate from PR84; see
 `fdas-pr85-logical-order-paired-replacement-preregistration.md`.
+
+The PR85 engine cohort is launch-invalid and permanently rejected. An inline
+process-isolated launcher failed to pass explicit `server_ports`, so the
+profile forced all four workers onto port 6001. Seven arms across four seeds
+started before detection; one reached turn 18, three failed before turn 1, and
+three other turn-0 arms were interrupted. No arm will be retried or resumed.
+See `fdas-pr85-logical-order-paired-replacement-launch-failure.md` and its JSON
+report. PR86 must add a checked-in unique-port/empty-root paired launcher and
+use a new experiment ID with entirely fresh seeds.
