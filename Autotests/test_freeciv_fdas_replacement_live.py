@@ -1,6 +1,8 @@
 import json
 from dataclasses import replace
 
+import pytest
+
 from freeciv.harness.fdas_replacement_chain_outcome_live import (
     audit_fdas_replacement_chain_outcome_live,
 )
@@ -50,6 +52,9 @@ from freeciv.harness.fdas_replacement_capacity_retained_queue_outcome_cohort imp
 )
 from freeciv.harness.fdas_replacement_capacity_retained_queue_episode_live import (
     audit_fdas_replacement_capacity_retained_queue_episode_live,
+)
+from freeciv.harness.fdas_retained_capacity_episode_dataset import (
+    export_fdas_retained_capacity_episode_dataset,
 )
 from freeciv.harness.fdas_replacement_reproposal import (
     audit_fdas_replacement_reproposal,
@@ -810,6 +815,7 @@ def _add_replacement_capacity_retained_queue_outcome_evidence(tmp_path):
         "action_type": "city_production",
         "target": {"production_type": "Alpine Troops"},
     }
+    proposal["payload"]["goal_ids"] = ["fdas-goal-capacity-proof"]
     operation_id = proposal["payload"]["operation_id"]
     operation_digest = proposal["payload"]["operation_digest"]
     material = {
@@ -1948,3 +1954,232 @@ def test_retained_capacity_outcome_cohort_is_clean_commit_bound(tmp_path):
     assert report["summary"]["game_count"] == 2
     assert report["summary"]["games_with_relief"] == 2
     assert report["summary"]["relief_positive"] == 2
+
+
+def _retained_capacity_dataset_fixture(tmp_path, seed=101):
+    run_dir = tmp_path / "dataset-cohort"
+    game_dir = (
+        run_dir / "games" / "main" / "e_full_loop" /
+        (str(seed) + "-00"))
+    game_dir.mkdir(parents=True)
+    _fixture(game_dir)
+    _add_candidate_readout(game_dir)
+    _add_opportunity_funnel(game_dir)
+    _add_replacement_capacity_evidence(game_dir)
+    _add_replacement_capacity_production_evidence(game_dir)
+    _add_replacement_capacity_production_lifecycle_evidence(game_dir)
+    _add_replacement_capacity_retained_queue_evidence(game_dir)
+    _add_replacement_capacity_retained_queue_outcome_evidence(game_dir)
+    _write_json(run_dir / "run-summary.json", {
+        "completed": 1,
+        "infrastructure_failures": 0,
+        "jobs": 1,
+        "resumed": 0,
+    })
+    return run_dir, game_dir
+
+
+def _retained_capacity_parent_hash(run_dir, seed=101, commit="a" * 40):
+    return audit_fdas_replacement_capacity_retained_queue_outcome_cohort(
+        str(run_dir), (seed,), expected_source_commit=commit,
+        minimum_games_with_label=0, minimum_games_with_product=0,
+        minimum_games_with_relief=0,
+        minimum_positive_relief=0)["structural_hash"]
+
+
+_ZERO_PARENT_RECURRENCE = {
+    "label": 0, "positive_relief": 0, "product": 0, "relief": 0}
+
+
+def _export_retained_capacity_dataset(
+        run_dir, seeds, commit, parent_hash):
+    return export_fdas_retained_capacity_episode_dataset(
+        str(run_dir), seeds, commit, parent_hash,
+        parent_recurrence_thresholds=_ZERO_PARENT_RECURRENCE)
+
+
+def test_retained_capacity_episode_dataset_is_exact_but_inadequate(tmp_path):
+    run_dir, _game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    first = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+    second = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert first == second
+    assert first["acceptance"]["accepted"] is True
+    assert first["adequacy"]["decision"] == "insufficient-evidence"
+    assert first["summary"] == {
+        "effect-without-goal-relief": 0,
+        "fixed_games": 1,
+        "games_with_episode": 1,
+        "goal-relief-observed": 1,
+        "no-effect-observed": 0,
+        "terminal_episodes": 1,
+    }
+    assert first["rates"]["durable_goal_relief_per_terminal_episode"][
+        "method"] == "wilson"
+
+
+def test_retained_capacity_episode_dataset_rejects_duplicate_seeds(tmp_path):
+    with pytest.raises(ValueError, match="seeds must be unique"):
+        _export_retained_capacity_dataset(
+            tmp_path, (101, 101), "a" * 40, "parent-hash")
+
+
+def test_retained_capacity_episode_dataset_rejects_source_mismatch(tmp_path):
+    run_dir, _game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    wrong_commit = "b" * 40
+    parent_hash = _retained_capacity_parent_hash(
+        run_dir, commit=wrong_commit)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), wrong_commit, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "all_sources_are_clean_and_exact_commit_bound"] is False
+    assert report["acceptance"]["checks"][
+        "all_parent_outcome_audits_pass"] is False
+
+
+def test_retained_capacity_episode_dataset_rejects_nonterminal_label(tmp_path):
+    run_dir, game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    manifest = json.loads((game_dir / "manifest.json").read_text(
+        encoding="utf-8"))
+    persistence = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"],
+        FdasRetainedCapacityOutcomeLabeler.LABELER_IDENTITY,
+        RETAINED_CAPACITY_OUTCOME_TARGET,
+    ])
+    events = [json.loads(line) for line in (game_dir / "events.jsonl")
+              .read_text(encoding="utf-8").splitlines()]
+    opened = next(
+        row for row in events
+        if row.get("type") == "operation_outcome_label_opened")
+    pending = FdasRetainedCapacityOutcomeLabel.from_dict(
+        opened["payload"]["details"])
+    pending_store = FdasRetainedCapacityOutcomeStore(persistence)
+    pending_store.record(pending)
+    pending_store.save(str(
+        game_dir / "fdas-retained-capacity-outcome-labels.json"))
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "episode_export_has_no_extraction_errors"] is False
+    assert "nonterminal" in report["extraction_errors"][0]["error"]
+
+
+def test_retained_capacity_episode_dataset_rejects_tampered_store(tmp_path):
+    run_dir, game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    path = game_dir / "fdas-retained-capacity-outcome-labels.json"
+    value = json.loads(path.read_text(encoding="utf-8"))
+    value["store_digest"] = "tampered"
+    _write_json(path, value)
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "episode_export_has_no_extraction_errors"] is False
+    assert "load-failed" in report["extraction_errors"][0]["error"]
+
+
+def test_retained_capacity_episode_dataset_rejects_missing_proposal(tmp_path):
+    run_dir, game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    events_path = game_dir / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    events = [
+        row for row in events
+        if not (row.get("type") == "operation_proposed"
+                and row.get("payload", {}).get("mechanism") == (
+                    "fdas-replacement-capacity-retained-queue-lifecycle"))]
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "episode_export_has_no_extraction_errors"] is False
+    assert "lacks proposal" in report["extraction_errors"][0]["error"]
+
+
+def test_retained_capacity_episode_dataset_rejects_duplicate_operation(
+        tmp_path):
+    run_dir, game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    manifest = json.loads((game_dir / "manifest.json").read_text(
+        encoding="utf-8"))
+    persistence = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["game_id"],
+        FdasRetainedCapacityOutcomeLabeler.LABELER_IDENTITY,
+        RETAINED_CAPACITY_OUTCOME_TARGET,
+    ])
+    path = game_dir / "fdas-retained-capacity-outcome-labels.json"
+    store = FdasRetainedCapacityOutcomeStore.load(str(path), persistence)
+    original = store.labels()[0]
+    duplicate_value = original.to_dict()
+    duplicate_value["deficit_atom_id"] = "atom-duplicate-deficit-proof"
+    duplicate_value["target_city_id"] = 5
+    identity_names = (
+        "deficit_atom_id", "game_id", "operation_digest", "operation_id",
+        "player_id", "production_target_name", "proposed_snapshot_id",
+        "proposed_turn", "schema_version", "source_city_id",
+        "target_city_id", "target_id",
+    )
+    identity = dict((name, duplicate_value[name]) for name in identity_names)
+    duplicate_value["label_id"] = (
+        "retained-capacity-outcome-label-" +
+        structural_hash(identity)[:24])
+    duplicate_value.pop("state_digest")
+    duplicate = FdasRetainedCapacityOutcomeLabel.from_dict(duplicate_value)
+    raw = store.to_dict(include_digest=False)
+    raw["labels"].append(duplicate.to_dict())
+    raw["store_digest"] = structural_hash(raw)
+    _write_json(path, raw)
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "episode_export_has_no_extraction_errors"] is False
+    assert "duplicate retained capacity outcome label" in (
+        report["extraction_errors"][0]["error"])
+
+
+def test_retained_capacity_episode_dataset_rejects_parent_audit_failure(
+        tmp_path):
+    run_dir, game_dir = _retained_capacity_dataset_fixture(tmp_path)
+    events_path = game_dir / "events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text(
+        encoding="utf-8").splitlines()]
+    observed = next(
+        row for row in events
+        if row.get("type") == "operation_outcome_label_observed")
+    observed["payload"]["details"]["policy_authority"] = True
+    events_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
+        encoding="utf-8")
+    parent_hash = _retained_capacity_parent_hash(run_dir)
+
+    report = _export_retained_capacity_dataset(
+        run_dir, (101,), "a" * 40, parent_hash)
+
+    assert report["acceptance"]["accepted"] is False
+    assert report["acceptance"]["checks"][
+        "all_parent_outcome_audits_pass"] is False
