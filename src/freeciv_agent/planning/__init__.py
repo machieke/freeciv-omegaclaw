@@ -323,6 +323,26 @@ from .fdas_capacity_query_episode_dataset import (
     FdasRetainedCapacityQueryEpisodeRow,
     join_retained_capacity_transition_queries,
 )
+from .fdas_capacity_transition_model import (
+    PR98_COHORT_HASH,
+    PR98_DATASET_HASH,
+    PR98_REPORT_SHA256,
+    RETAINED_CAPACITY_PRODUCT_TARGET,
+    RETAINED_CAPACITY_RELIEF_TARGET,
+    RETAINED_CAPACITY_TRANSITION_MODEL_HIERARCHY,
+    RETAINED_CAPACITY_TRANSITION_MODEL_ID,
+    RETAINED_CAPACITY_TRANSITION_MODEL_IDENTITY,
+    RETAINED_CAPACITY_TRANSITION_MODEL_LEVELS,
+    FdasRetainedCapacityTargetPrediction,
+    FdasRetainedCapacityTransitionExcludedRow,
+    FdasRetainedCapacityTransitionGameOutcome,
+    FdasRetainedCapacityTransitionModel,
+    FdasRetainedCapacityTransitionModelBin,
+    FdasRetainedCapacityTransitionPrediction,
+    FdasRetainedCapacityTransitionSourceGame,
+    FdasRetainedCapacityTransitionTrainingRow,
+    fit_retained_capacity_transition_model,
+)
 from .fdas_replacement_execution import (
     REPLACEMENT_EXECUTION_ASSIGNMENT_UNIT,
     REPLACEMENT_EXECUTION_SCHEMA_VERSION,
