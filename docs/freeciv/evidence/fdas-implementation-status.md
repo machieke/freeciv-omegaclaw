@@ -1499,3 +1499,25 @@ eligible for the frozen PR99 shadow-model fit. No model has yet been fitted,
 no candidate readout is authorized, and no causal, gameplay, score, or
 win-rate claim follows. See
 `fdas-pr98-retained-capacity-transition-discovery.md` and its JSON report.
+
+PR99 fits the preregistered hierarchical retained-capacity transition model on
+the accepted PR98 discovery rows. Two complete fits are byte-identical with
+model hash
+`909e8170d9dc797f69b71337243633ddd5fd5e007a7627c44e150d0a05439a6f`.
+The typed artifact lists all 301 source games, 162 terminal training rows, and
+one explicit right-censored exclusion exactly once, then independently
+reconstructs all per-game means, bins, bootstrap intervals, and hashes.
+
+Of 156 target bins, 12 meet both the frozen 20-game sample gate and `0.40`
+maximum interval width. Exact 14-field bins remain too sparse. Preregistered
+backoff supplies in-sample numerical estimates for all 163 queries: 124 select
+the product/phase/horizon level, 17 the product level, and 22 the
+category/lifecycle root. The root discovery estimates are 37.6% exact-product
+effect and 20.0% durable goal relief. These are discovery estimates and 100%
+in-sample numerical coverage, not calibration or out-of-sample performance.
+
+Truth mutation, learning write-through, calibration, candidate readout,
+policy, and action authority remain disabled. A disjoint preregistered
+confirmation cohort must evaluate the frozen model without refitting before
+readout can be considered. See
+`fdas-pr99-retained-capacity-transition-model.md` and its JSON report.
