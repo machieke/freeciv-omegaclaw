@@ -1480,3 +1480,22 @@ The exact prospective size for a 90% chance of at least 10 such games rises to
 sensitivity is 882. PR97 remains yield-only and contributes no fitting or
 confirmation rows. See `fdas-pr97-retained-capacity-query-yield.md`, its JSON
 report, and the audit-correction note.
+
+PR98 completes the fixed 301-game retained-capacity transition discovery
+cohort. Every game completed from clean source commit `8370d51` with zero
+resume or infrastructure failure. Two complete four-worker audits are
+byte-identical and pass every cohort, nested query/episode, parent-audit,
+source, identity, partition, provenance, and authority gate. The cohort
+structural hash is
+`3c6203c6a7bd1512b026f0b66ae9dbfdae54c11d604d3343c06b4e4bfe1f5c8d`.
+
+The 301 games contain 163 proposal-time queries: 162 exact terminal joins and
+one explicit right-censored row. Terminal outcomes are 97 no-effect, 32 exact
+effects without durable relief, and 33 durable goal-relief observations. They
+occur in 83, 30, and 31 independent games respectively; 120 games have a
+terminal observation and 180 zero-query games remain in every denominator.
+All eight preregistered diversity gates therefore pass, making the PR98 data
+eligible for the frozen PR99 shadow-model fit. No model has yet been fitted,
+no candidate readout is authorized, and no causal, gameplay, score, or
+win-rate claim follows. See
+`fdas-pr98-retained-capacity-transition-discovery.md` and its JSON report.
