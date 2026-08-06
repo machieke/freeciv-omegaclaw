@@ -1521,3 +1521,30 @@ policy, and action authority remain disabled. A disjoint preregistered
 confirmation cohort must evaluate the frozen model without refitting before
 readout can be considered. See
 `fdas-pr99-retained-capacity-transition-model.md` and its JSON report.
+
+PR100 confirms the exact frozen PR99 model on a disjoint fixed 301-game engine
+cohort. Every game completed from clean source commit `41fb72e` with zero
+resume or infrastructure failure. Two complete audits are byte-identical with
+confirmation hash
+`4f977bc166836202fe70273fbb7ded843f2500bfc39992e22ddd52654264d829`.
+The model hash remains
+`909e8170d9dc797f69b71337243633ddd5fd5e007a7627c44e150d0a05439a6f`;
+the confirmation evaluator did not call the fitter.
+
+The cohort contains 166 terminal rows across 115 independent games and one
+explicit censored row. Status episodes recur as 103 no-effect, 32
+effect-without-relief, and 31 goal-relief observations, occurring in 85, 28,
+and 30 games respectively. All mechanics and diversity gates pass. Both
+targets have 100% numerical coverage. Exact-product Brier is 0.2173 and
+improves on the frozen root by 0.01428 with its full 95% interval below zero.
+Durable-relief Brier is 0.1547 and improves by 0.00181 at the point estimate;
+its interval includes zero but passes the frozen +0.02 non-inferiority gate.
+Both calibration-difference intervals lie wholly inside ±0.10, and all four
+qualifying selected-bin means lie inside their frozen PR99 intervals.
+
+PR100 confirms model calibration and bounded predictive performance, not
+causal or gameplay impact. Truth mutation, learning write-through, calibrated
+authority, candidate readout, policy, and action authority remain disabled.
+The next gate is a separately preregistered decision-safe shadow readout
+comparison. See
+`fdas-pr100-retained-capacity-transition-confirmation.md` and its JSON report.
