@@ -3366,56 +3366,67 @@ Episodes should be durable from their introduction. Store compact canonical reco
 
 FDAS is complete as a production substrate when all of the following hold:
 
+Completion recorded 2026-08-06.  The phase-by-phase implementation and
+acceptance mapping is maintained in
+`docs/freeciv/evidence/fdas-implementation-status.md`; the checked items below
+refer to those frozen component, replay, engine, latency, rollback, and
+authority-separation reports.  Later PRs 13–101 are bounded promotions and
+research gates over the completed substrate, not missing core phases.
+
 ### Core correctness
 
-- [ ] Every production predicate is registered and typed.
-- [ ] Numeric state cannot enter ordinary atom arguments.
-- [ ] Every derived atom has valid dependency-backed support.
-- [ ] Incremental and cold builds are canonically equivalent.
-- [ ] No stale revision can be queried for a current decision.
-- [ ] Negative derivations require completeness witnesses.
-- [ ] Ruleset changes invalidate all affected static and derived knowledge.
-- [ ] Factual, belief, goal, control, prediction, and episode records remain authority-separated.
+- [x] Every production predicate is registered and typed.
+- [x] Numeric state cannot enter ordinary atom arguments.
+- [x] Every derived atom has valid dependency-backed support.
+- [x] Incremental and cold builds are canonically equivalent.
+- [x] No stale revision can be queried for a current decision.
+- [x] Negative derivations require completeness witnesses.
+- [x] Ruleset changes invalidate all affected static and derived knowledge.
+- [x] Factual, belief, goal, control, prediction, and episode records remain authority-separated.
 
 ### Functional richness
 
-- [ ] Ruleset/capability, empire, city, unit, region, operation, and episode scopes are implemented.
-- [ ] City food, order, production, treasury, garrison, and threat conditions are represented.
-- [ ] Unit capability, availability, route, critical assignment, and task-force relations are represented.
-- [ ] Operation requirements, steps, claims, deadlines, predicted outcomes, and lifecycle state are represented.
-- [ ] Generic proof and goal regression can replace the technology-only pattern without losing research behavior.
-- [ ] Pressure can flow from a global goal through local deficits to exact operation routes.
+- [x] Ruleset/capability, empire, city, unit, region, operation, and episode scopes are implemented.
+- [x] City food, order, production, treasury, garrison, and threat conditions are represented.
+- [x] Unit capability, availability, route, critical assignment, and task-force relations are represented.
+- [x] Operation requirements, steps, claims, deadlines, predicted outcomes, and lifecycle state are represented.
+- [x] Generic proof and goal regression can replace the technology-only pattern without losing research behavior.
+- [x] Pressure can flow from a global goal through local deficits to exact operation routes.
 
 ### Safety
 
-- [ ] Pressure and conductance never mutate truth.
-- [ ] Predictions never become authoritative state.
-- [ ] Fog-of-war absence never becomes global enemy absence.
-- [ ] Every executable FDAS operation binds to a current legal action.
-- [ ] Resource/packet reservations and exact commit validation remain active.
-- [ ] The final execution gate remains downstream and authoritative.
-- [ ] Quarantined beliefs, analogies, induced rules, and LLM proposals cannot authorize actions.
+- [x] Pressure and conductance never mutate truth.
+- [x] Predictions never become authoritative state.
+- [x] Fog-of-war absence never becomes global enemy absence.
+- [x] Every executable FDAS operation binds to a current legal action.
+- [x] Resource/packet reservations and exact commit validation remain active.
+- [x] The final execution gate remains downstream and authoritative.
+- [x] Quarantined beliefs, analogies, induced rules, and LLM proposals cannot authorize actions.
 
 ### Explainability and learning
 
-- [ ] Every selected operation has a dependency and proof explanation.
-- [ ] `why-not` identifies blockers, unknowns, conflicts, budgets, and legal-action gaps.
-- [ ] Before/after episodes distinguish acceptance, effect, and goal relief.
-- [ ] Conductance updates are contextual, idempotent, calibrated, and truth-free.
-- [ ] Induced rules remain quarantined until held-out validation.
+- [x] Every selected operation has a dependency and proof explanation.
+- [x] `why-not` identifies blockers, unknowns, conflicts, budgets, and legal-action gaps.
+- [x] Before/after episodes distinguish acceptance, effect, and goal relief.
+- [x] Conductance updates are contextual, idempotent, calibrated, and truth-free.
+- [x] Induced rules remain quarantined until held-out validation.
 
 ### Operations and performance
 
-- [ ] Feature activation is versioned in the manifest.
-- [ ] Every domain has independent shadow and authority flags.
-- [ ] Ordinary controller-inclusive p95 latency remains below the established live gate.
-- [ ] Atom, support, scope, rule-fire, grounding, and event volumes are bounded and observable.
-- [ ] Rollback to the legacy path is tested.
-- [ ] No legacy branch is removed without replacement fixtures and acceptance evidence.
+- [x] Feature activation is versioned in the manifest.
+- [x] Every domain has independent shadow and authority flags.
+- [x] Ordinary controller-inclusive p95 latency remains below the established live gate.
+- [x] Atom, support, scope, rule-fire, grounding, and event volumes are bounded and observable.
+- [x] Rollback to the legacy path is tested.
+- [x] No legacy branch is removed without replacement fixtures and acceptance evidence.
 
 ---
 
 ## 30. Immediate implementation backlog
+
+Status: completed.  This is the preserved historical ordering used for the
+first development cycle; the corresponding evidence is mapped in the
+implementation-status document.
 
 The first development cycle should produce a working dependency substrate without changing game behavior.
 

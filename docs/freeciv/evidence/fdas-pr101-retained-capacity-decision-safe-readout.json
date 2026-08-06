@@ -1,0 +1,458 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_ordered_pairs_are_retained": true,
+      "all_truth_policy_readout_and_action_authority_disabled": true,
+      "frozen_sources_are_valid": true
+    }
+  },
+  "action_authority": false,
+  "candidate_surface_changed": false,
+  "decision": "not-ready",
+  "feasibility": {
+    "checks": {
+      "at_least_one_decision_safe_interval_pair": false,
+      "at_least_one_strict_relief_interval_pair": false,
+      "at_least_two_usable_joint_target_bins": true,
+      "frozen_pr100_confirmation_is_exact_and_accepted": true,
+      "frozen_pr99_model_is_exact_and_typed": true,
+      "nonselected_candidate_outcomes_are_confirmed": false
+    },
+    "decision_safe_interval_pairs": [],
+    "joint_usable_target_bins": [
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "lifecycle_state": "retained-authoritative-queue"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+          "estimate": 0.2,
+          "independent_games": 120,
+          "interval_lower": 0.13611111111111113,
+          "interval_upper": 0.26666666666666666
+        },
+        "level": "category-lifecycle",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+          "estimate": 0.37638888888888894,
+          "independent_games": 120,
+          "interval_lower": 0.29583333333333334,
+          "interval_upper": 0.45694444444444443
+        }
+      },
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "lifecycle_state": "retained-authoritative-queue",
+          "production_target": "alpine troops"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+          "estimate": 0.14215686274509806,
+          "independent_games": 34,
+          "interval_lower": 0.04901960784313725,
+          "interval_upper": 0.25
+        },
+        "level": "category-lifecycle-product",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+          "estimate": 0.24019607843137258,
+          "independent_games": 34,
+          "interval_lower": 0.10784313725490195,
+          "interval_upper": 0.38235294117647056
+        }
+      },
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "lifecycle_state": "retained-authoritative-queue",
+          "production_target": "riflemen"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+          "estimate": 0.22357723577235775,
+          "independent_games": 82,
+          "interval_lower": 0.1402439024390244,
+          "interval_upper": 0.31504065040650403
+        },
+        "level": "category-lifecycle-product",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+          "estimate": 0.4329268292682927,
+          "independent_games": 82,
+          "interval_lower": 0.3313008130081301,
+          "interval_upper": 0.5365853658536585
+        }
+      },
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "completion_horizon_band": "33-64",
+          "lifecycle_state": "retained-authoritative-queue",
+          "production_target": "alpine troops",
+          "turn_phase_band": "0-39"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+          "estimate": 0.17307692307692307,
+          "independent_games": 26,
+          "interval_lower": 0.057692307692307696,
+          "interval_upper": 0.3076923076923077
+        },
+        "level": "category-lifecycle-product-phase-horizon",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+          "estimate": 0.2692307692307692,
+          "independent_games": 26,
+          "interval_lower": 0.11538461538461539,
+          "interval_upper": 0.46153846153846156
+        }
+      },
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "completion_horizon_band": "33-64",
+          "lifecycle_state": "retained-authoritative-queue",
+          "production_target": "riflemen",
+          "turn_phase_band": "0-39"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+          "estimate": 0.24269005847953218,
+          "independent_games": 57,
+          "interval_lower": 0.14035087719298245,
+          "interval_upper": 0.3538011695906432
+        },
+        "level": "category-lifecycle-product-phase-horizon",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+          "estimate": 0.46783625730994155,
+          "independent_games": 57,
+          "interval_lower": 0.34210526315789475,
+          "interval_upper": 0.5964912280701754
+        }
+      },
+      {
+        "feature_values": {
+          "action_category": "city_production",
+          "completion_horizon_band": "33-64",
+          "lifecycle_state": "retained-authoritative-queue",
+          "production_target": "riflemen",
+          "turn_phase_band": "40-79"
+        },
+        "goal_relief": {
+          "bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+          "estimate": 0.12962962962962962,
+          "independent_games": 27,
+          "interval_lower": 0.018518518518518517,
+          "interval_upper": 0.25925925925925924
+        },
+        "level": "category-lifecycle-product-phase-horizon",
+        "product_effect": {
+          "bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+          "estimate": 0.35185185185185186,
+          "independent_games": 27,
+          "interval_lower": 0.18518518518518517,
+          "interval_upper": 0.5370370370370371
+        }
+      }
+    ],
+    "ordered_pair_checks": [
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-b7f3ffa65b00df6c31f40925",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-2c4188e3b96fcf4fb99ef355",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-d70f47552f8061be13017c0a",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-99e13a5e1275833fba1224ac",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-c17cacef7420e9b1d047b153",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-4a8cdf67b8beb3aae56ddb10",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-ec7bee7b44f74e0bd34c0582",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bf34a9f7ec8315147a6962b",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": false,
+        "relief_intervals_strictly_separated": false
+      },
+      {
+        "alternative_goal_relief_bin_id": "retained-capacity-transition-bin-882dc85649cb54c4e476098b",
+        "alternative_product_effect_bin_id": "retained-capacity-transition-bin-6bc1e2a153197cfdd6a977ff",
+        "baseline_goal_relief_bin_id": "retained-capacity-transition-bin-091554b1f83499c9587cac1a",
+        "baseline_product_effect_bin_id": "retained-capacity-transition-bin-50ba2f5645a9dc7f1df2d896",
+        "decision_safe_interval_pair": false,
+        "product_lower_bound_noninferior": true,
+        "relief_intervals_strictly_separated": false
+      }
+    ],
+    "strict_relief_interval_pairs": []
+  },
+  "identity": "fdas-retained-capacity-decision-safe-readout-feasibility/1.0",
+  "model": {
+    "model_result_hash": "909e8170d9dc797f69b71337243633ddd5fd5e007a7627c44e150d0a05439a6f",
+    "refitted": false
+  },
+  "policy_authority": false,
+  "pressure_selection_changed": false,
+  "readout_authority": false,
+  "readout_identity": "fdas-retained-capacity-decision-safe-readout/1.0",
+  "source": {
+    "confirmation_report_sha256": "5587d5a9fd14c87b690a627d56886768b43decee9ca092da8546782c47b8b2a3",
+    "confirmation_structural_hash": "4f977bc166836202fe70273fbb7ded843f2500bfc39992e22ddd52654264d829"
+  },
+  "structural_hash": "e910e975ee07ea233965daa40d5cf01ffe2d7c93e9dfa3ea155160e2a104b6a5",
+  "summary": {
+    "decision_safe_interval_pairs": 0,
+    "joint_usable_target_bins": 6,
+    "nonselected_outcomes_confirmed": false,
+    "ordered_pair_checks": 30,
+    "strict_relief_interval_pairs": 0
+  },
+  "truth_mutated": false
+}

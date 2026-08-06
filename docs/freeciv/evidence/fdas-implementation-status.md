@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace implementation status
 
-Date: 2026-08-02
+Date: 2026-08-06
 Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 
 | Phase | Realized component boundary | Evidence |
@@ -30,6 +30,19 @@ to legacy-selected legal moves, revalidates them, and registers only fresh
 authoritative returns through a no-write censoring firewall.
 Each evidence report states its own authority and non-claim boundary; none of
 these mechanism results alone establishes gameplay improvement.
+
+The 2026-08-06 completion refresh reran both captured bounded-authority
+generators against the final substrate. Their non-latency semantics reproduced
+exactly: city stability retained 4 authorizations and 34 fallbacks, defense
+retained 13 authorizations and 25 fallbacks, every gate passed, and both kept
+zero winner changes. Phase 0 was regenerated against the final typed
+inventory. The complete FDAS regression suite then passed `595/595`; the
+current authority report hashes are
+`a8ee80955587450b312ec1d79345679f66908f3e9d72301b2f3a5a96b05fb048`
+and
+`bedae887bd161100633d6f35fb4272cfa991e8c786062b2cdf6ffcb216ee216a`,
+and the Phase-0 semantic hash is
+`3716847aeea1c12e7cf98c4688495e1b6aba1177eb4be00733d1cbc251ed0e4f`.
 
 The strict captured replay additionally proves 37/37 incremental/cold
 equivalence and validates canonical revision-bound explanations for all 38
@@ -1548,3 +1561,24 @@ authority, candidate readout, policy, and action authority remain disabled.
 The next gate is a separately preregistered decision-safe shadow readout
 comparison. See
 `fdas-pr100-retained-capacity-transition-confirmation.md` and its JSON report.
+
+PR101 completes that separately preregistered decision-safe readout
+feasibility gate without spending an engine cohort on a structurally
+impossible comparison. The exact PR99 model contains six jointly usable
+product/relief interval groups and 30 ordered pairs, but no durable-relief
+lower bound is strictly above another group's upper bound. There are therefore
+zero decision-safe interval pairs. The PR98/PR100 evidence also contains no
+prospectively labeled, independently confirmed nonselected-candidate outcome
+population, so applying the selected-action model to policy-divergent
+alternatives would violate the off-policy boundary.
+
+A typed protected readout now binds exact current retained queues to the frozen
+feature vocabulary, records scalar selection role, requires full numerical
+coverage, strict relief separation, product non-inferiority, and explicit
+nonselected-outcome confirmation, and otherwise abstains. It cannot change the
+candidate surface, pressure selection, action selection, truth, or policy. Two
+audits are byte-identical with structural hash
+`e910e975ee07ea233965daa40d5cf01ffe2d7c93e9dfa3ea155160e2a104b6a5`.
+The progression decision is `not-ready`; by the preregistered stop rule no live
+readout or gameplay cohort is authorized. See
+`fdas-pr101-retained-capacity-decision-safe-readout.md` and its JSON report.
