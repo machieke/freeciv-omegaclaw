@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Audit frozen retained-capacity decision-safe readout feasibility."""
+
+import argparse
+import json
+import os
+import sys
+
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+from freeciv.harness.fdas_retained_capacity_decision_safe_readout import (  # noqa: E402
+    load_and_audit_fdas_retained_capacity_decision_safe_readout,
+)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model", default=os.path.join(
+            REPO, "docs", "freeciv", "evidence",
+            "fdas-pr99-retained-capacity-transition-model.json"))
+    parser.add_argument(
+        "--confirmation", default=os.path.join(
+            REPO, "docs", "freeciv", "evidence",
+            "fdas-pr100-retained-capacity-transition-confirmation.json"))
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args(argv)
+    report = load_and_audit_fdas_retained_capacity_decision_safe_readout(
+        args.model, args.confirmation)
+    output = os.path.abspath(args.output)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    temporary = output + ".tmp.{}".format(os.getpid())
+    with open(temporary, "w", encoding="utf-8") as stream:
+        json.dump(report, stream, indent=2, sort_keys=True)
+        stream.write("\n")
+    os.replace(temporary, output)
+    print(json.dumps({
+        "accepted": report["acceptance"]["accepted"],
+        "decision": report["decision"],
+        "output": output,
+        "structural_hash": report["structural_hash"],
+        "summary": report["summary"],
+    }, sort_keys=True))
+    return 0 if report["acceptance"]["accepted"] else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

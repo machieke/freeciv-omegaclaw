@@ -102,6 +102,52 @@ def _optional_boolean(value):
     return "true" if value is True else "false"
 
 
+def retained_capacity_transition_features(
+        snapshot, source_city_id, target_city_id, production_target,
+        proposed_turn, deadline_turn):
+    """Build the frozen PR95 feature vocabulary from current exact state."""
+    if not isinstance(snapshot, AuthoritativeSnapshot):
+        raise TypeError("retained capacity features require a snapshot")
+    source = snapshot.city(source_city_id)
+    target = snapshot.city(target_city_id)
+    if (source is None or target is None
+            or source.owner != snapshot.player_id
+            or target.owner != snapshot.player_id
+            or source_city_id == target_city_id
+            or source.tile is None or target.tile is None
+            or len(tuple(source.surplus or ())) < 2):
+        raise ValueError("retained capacity feature city evidence differs")
+    if (isinstance(proposed_turn, bool)
+            or not isinstance(proposed_turn, int)
+            or proposed_turn != snapshot.turn
+            or isinstance(deadline_turn, bool)
+            or not isinstance(deadline_turn, int)
+            or deadline_turn <= proposed_turn):
+        raise ValueError("retained capacity feature horizon differs")
+    units = tuple(snapshot.units)
+    return tuple(sorted({
+        "action_category": "city_production",
+        "completion_horizon_band": _horizon_band(
+            deadline_turn - proposed_turn),
+        "cross_city_deficit": "true",
+        "exact_queue_match": "true",
+        "lifecycle_state": "retained-authoritative-queue",
+        "production_target": _normalized(production_target),
+        "source_city_disorder": _optional_boolean(source.disorder),
+        "source_city_food_surplus_band": _surplus_band(source.surplus[0]),
+        "source_city_own_unit_count_band": _count_band(sum(
+            unit.tile == source.tile and unit.transported is not True
+            for unit in units)),
+        "source_city_shield_surplus_band": _surplus_band(source.surplus[1]),
+        "source_city_size_band": _size_band(source.size),
+        "target_city_own_unit_count_band": _count_band(sum(
+            unit.tile == target.tile and unit.transported is not True
+            for unit in units)),
+        "target_city_size_band": _size_band(target.size),
+        "turn_phase_band": _turn_phase(proposed_turn),
+    }.items()))
+
+
 @dataclass(frozen=True)
 class FdasRetainedCapacityTransitionQuery:
     schema_version: int
@@ -284,29 +330,9 @@ class FdasRetainedCapacityTransitionQueryBuilder(object):
         if (isinstance(deadline, bool) or not isinstance(deadline, int)
                 or deadline <= label.proposed_turn):
             raise ValueError("retained capacity query deadline differs")
-        units = tuple(snapshot.units)
-        features = tuple(sorted({
-            "action_category": "city_production",
-            "completion_horizon_band": _horizon_band(
-                deadline - label.proposed_turn),
-            "cross_city_deficit": "true",
-            "exact_queue_match": "true",
-            "lifecycle_state": "retained-authoritative-queue",
-            "production_target": _normalized(label.production_target_name),
-            "source_city_disorder": _optional_boolean(source.disorder),
-            "source_city_food_surplus_band": _surplus_band(source.surplus[0]),
-            "source_city_own_unit_count_band": _count_band(sum(
-                unit.tile == source.tile and unit.transported is not True
-                for unit in units)),
-            "source_city_shield_surplus_band": _surplus_band(
-                source.surplus[1]),
-            "source_city_size_band": _size_band(source.size),
-            "target_city_own_unit_count_band": _count_band(sum(
-                unit.tile == target.tile and unit.transported is not True
-                for unit in units)),
-            "target_city_size_band": _size_band(target.size),
-            "turn_phase_band": _turn_phase(label.proposed_turn),
-        }.items()))
+        features = retained_capacity_transition_features(
+            snapshot, label.source_city_id, label.target_city_id,
+            label.production_target_name, label.proposed_turn, deadline)
         provenance = tuple(sorted((
             FdasRetainedCapacityTransitionQueryBuilder.BUILDER_IDENTITY,
             "deficit-atom:" + label.deficit_atom_id,

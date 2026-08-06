@@ -15,6 +15,10 @@ from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     CandidateOperationFactory,
+    FdasRetainedCapacityCandidateQueryBuilder,
+    FdasRetainedCapacityDecisionSafeReadoutEvaluator,
+    FdasRetainedCapacityScalarScore,
+    FdasRetainedCapacityTransitionModel,
     GoalFactory,
 )
 from freeciv_agent.pressure import DependentAtomPressureAdapter  # noqa: E402
@@ -911,6 +915,32 @@ def test_replacement_capacity_production_retains_queue_and_abstains_closed(ir):
         for value in capacity[0].production_assembly.resource_request.claims)
     assert capacity[0].blockers == (
         "delayed-production-completion-unobserved",)
+
+    query = FdasRetainedCapacityCandidateQueryBuilder.build(
+        capacity[0], snapshot, revision)
+    assert query.operation_id == capacity[0].operation.operation_id
+    assert query.snapshot_id == snapshot.snapshot_id
+    assert dict(query.features)["lifecycle_state"] == (
+        "retained-authoritative-queue")
+    assert dict(query.features)["production_target"] == "riflemen"
+    assert query.to_dict()["readout_authority"] is False
+
+    with open(os.path.join(
+            REPO, "docs", "freeciv", "evidence",
+            "fdas-pr99-retained-capacity-transition-model.json"),
+            encoding="utf-8") as stream:
+        model = FdasRetainedCapacityTransitionModel.from_dict(
+            json.load(stream)["model"])
+    evaluator = FdasRetainedCapacityDecisionSafeReadoutEvaluator(model)
+    readout = evaluator.evaluate(
+        snapshot, revision, capacity,
+        (FdasRetainedCapacityScalarScore(
+            capacity[0].operation.operation_id, True, 1.0),),
+        capacity[0].operation.operation_id)
+    assert readout.status == "abstained"
+    assert readout.reason == "fewer-than-two-current-retained-candidates"
+    assert readout.baseline_operation_id == capacity[0].operation.operation_id
+    assert readout.to_dict()["pressure_selection_changed"] is False
 
     broken_payload = copy.deepcopy(payload)
     broken_payload["cities"]["3"]["buildability"]["unit_ids"].remove(10)
