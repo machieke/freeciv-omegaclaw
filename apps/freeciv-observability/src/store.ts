@@ -1,7 +1,10 @@
 import type { Atom, Plan, PlnResult, TruthValue } from "../../../schemas/freeciv-events/v1/types.generated";
 import {
-  type AtomRevisionView, type AtomView, type Cursor, type ReplayState, type TraceEvent,
-  atOrBefore, eventOrder, isAtom, isPlan, isProofResult,
+  FDAS_EVENT_TYPES,
+  type AtomRevisionView, type AtomView, type Cursor, type FdasAtomRecord,
+  type FdasAtomView, type FdasScopeView, type FdasSupportView,
+  type ReplayState, type TraceEvent, atOrBefore, eventOrder, isAtom, isPlan,
+  isProofResult,
 } from "./events";
 import { isKnownType } from "./validation";
 
@@ -70,10 +73,50 @@ const recordAtom = (
   });
 };
 
+const objectValue = (value: unknown): Record<string, unknown> | undefined =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : undefined;
+
+const fdasDetails = (event: TraceEvent): Record<string, unknown> =>
+  objectValue(event.payload.details) ?? {};
+
+const fdasRecord = (value: unknown): FdasAtomRecord | undefined => {
+  const row = objectValue(value);
+  const key = objectValue(row?.key);
+  if (!row || !key || typeof row.atom_id !== "string"
+    || typeof key.predicate !== "string" || typeof key.namespace !== "string"
+    || typeof key.scope_id !== "string" || !Array.isArray(key.arguments)) return undefined;
+  return {
+    atom_id: row.atom_id,
+    authority: typeof row.authority === "string" ? row.authority : "unknown",
+    dependency_count: typeof row.dependency_count === "number" ? row.dependency_count : 0,
+    key: {
+      arguments: key.arguments as FdasAtomRecord["key"]["arguments"],
+      namespace: key.namespace,
+      predicate: key.predicate,
+      scope_id: key.scope_id,
+    },
+    lifecycle: typeof row.lifecycle === "string" ? row.lifecycle : "active",
+    materialization_key: typeof row.materialization_key === "string"
+      ? row.materialization_key : undefined,
+    provenance_ids: Array.isArray(row.provenance_ids)
+      ? row.provenance_ids.map(String) : [],
+    support_ids: Array.isArray(row.support_ids) ? row.support_ids.map(String) : [],
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    truth: row.truth,
+    validity: objectValue(row.validity) ?? {},
+  };
+};
+
 export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState => {
   const events = [...allEvents].filter((event) => atOrBefore(event, cursor)).sort(eventOrder);
   const eventsById = new Map<string, TraceEvent>();
   const atoms = new Map<string, AtomView>();
+  const fdasAtoms = new Map<string, FdasAtomView>();
+  const fdasScopes = new Map<string, FdasScopeView>();
+  const fdasSupports = new Map<string, FdasSupportView>();
+  const fdasEvents: TraceEvent[] = [];
+  const fdasRevisionEvents: TraceEvent[] = [];
   const plans = new Map<string, Plan>();
   const proofs: Array<{ event: TraceEvent; result: PlnResult }> = [];
   const pfPlnEvents: TraceEvent[] = [];
@@ -116,6 +159,106 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     eventsById.set(event.event_id, event);
     const payload = event.payload;
     if (!isKnownType(event.type)) unknown.push(event);
+    if (FDAS_EVENT_TYPES.has(event.type)) {
+      fdasEvents.push(event);
+      const details = fdasDetails(event);
+      if (event.type === "atomspace_revision_started") {
+        fdasRevisionEvents.push(event);
+        fdasScopes.clear();
+        if (details.cold_build === true) {
+          fdasAtoms.clear();
+          fdasSupports.clear();
+        }
+      } else if (event.type === "atomspace_revision_committed") {
+        fdasRevisionEvents.push(event);
+      } else if (event.type === "scope_materialized") {
+        const scope = objectValue(details.scope);
+        const scopeId = typeof details.scope_id === "string" ? details.scope_id
+          : typeof scope?.scope_id === "string" ? scope.scope_id : undefined;
+        const scopeKind = typeof details.scope_kind === "string" ? details.scope_kind
+          : typeof scope?.scope_kind === "string" ? scope.scope_kind : "unknown";
+        if (scopeId) fdasScopes.set(scopeId, {
+          scopeId, scopeKind,
+          atomCount: typeof details.atom_count === "number" ? details.atom_count : 0,
+          scope, event,
+        });
+      } else if (event.type === "atom_rederived") {
+        const record = fdasRecord(details.record);
+        const atomId = record?.atom_id ?? (typeof details.atom_id === "string"
+          ? details.atom_id : undefined);
+        if (atomId) {
+          const prior = fdasAtoms.get(atomId);
+          fdasAtoms.set(atomId, {
+            atomId,
+            predicate: record?.key.predicate ?? (typeof details.predicate === "string"
+              ? details.predicate : prior?.predicate ?? "unknown"),
+            namespace: record?.key.namespace ?? prior?.namespace ?? "unknown",
+            scopeId: record?.key.scope_id ?? prior?.scopeId ?? "unknown",
+            authority: record?.authority ?? prior?.authority ?? "unknown",
+            status: "active", record: record ?? prior?.record, event,
+            history: [...(prior?.history ?? []), event],
+            linkedGoalIds: prior?.linkedGoalIds ?? [],
+            linkedOperationIds: prior?.linkedOperationIds ?? [],
+          });
+        }
+      } else if (event.type === "atom_invalidated") {
+        const record = fdasRecord(details.record);
+        const atomId = record?.atom_id ?? (typeof details.atom_id === "string"
+          ? details.atom_id : undefined);
+        if (atomId) {
+          const prior = fdasAtoms.get(atomId);
+          fdasAtoms.set(atomId, {
+            atomId,
+            predicate: record?.key.predicate ?? prior?.predicate ?? "unknown",
+            namespace: record?.key.namespace ?? prior?.namespace ?? "unknown",
+            scopeId: record?.key.scope_id ?? prior?.scopeId ?? "unknown",
+            authority: record?.authority ?? prior?.authority ?? "unknown",
+            status: "invalidated", record: record ?? prior?.record, event,
+            history: [...(prior?.history ?? []), event],
+            linkedGoalIds: prior?.linkedGoalIds ?? [],
+            linkedOperationIds: prior?.linkedOperationIds ?? [],
+          });
+        }
+      } else if (event.type === "atom_support_added") {
+        const support = objectValue(details.support);
+        const supportId = typeof details.support_id === "string" ? details.support_id
+          : typeof support?.support_id === "string" ? support.support_id : undefined;
+        if (supportId) fdasSupports.set(supportId, {
+          supportId,
+          derivationId: typeof details.derivation_id === "string" ? details.derivation_id
+            : typeof support?.derivation_id === "string" ? support.derivation_id : "unknown",
+          outputAtomIds: Array.isArray(details.output_atom_ids)
+            ? details.output_atom_ids.map(String) : [],
+          support, event,
+        });
+      } else if (event.type === "atom_support_retracted"
+        && typeof details.support_id === "string") {
+        fdasSupports.delete(details.support_id);
+      } else if (event.type === "goal_instantiated"
+        && typeof details.deficit_atom_id === "string") {
+        const prior = fdasAtoms.get(details.deficit_atom_id);
+        if (prior) fdasAtoms.set(prior.atomId, {
+          ...prior,
+          predicate: typeof details.deficit_predicate === "string"
+            ? details.deficit_predicate : prior.predicate,
+          scopeId: typeof details.scope_id === "string" ? details.scope_id : prior.scopeId,
+          linkedGoalIds: typeof details.goal_id === "string"
+            ? [...new Set([...prior.linkedGoalIds, details.goal_id])]
+            : prior.linkedGoalIds,
+        });
+      } else if (event.type === "operation_projected"
+        && typeof details.operation_id === "string" && Array.isArray(details.atom_ids)) {
+        for (const atomId of details.atom_ids.map(String)) {
+          const prior = fdasAtoms.get(atomId);
+          if (prior) fdasAtoms.set(atomId, {
+            ...prior,
+            linkedOperationIds: [
+              ...new Set([...prior.linkedOperationIds, details.operation_id]),
+            ],
+          });
+        }
+      }
+    }
     if (event.type === "state_snapshot") {
       snapshots.push(event);
       const uncertain = payload.uncertain_atoms;
@@ -187,7 +330,8 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "unit_lifecycle") unitLifecycles.push(event);
   }
   return {
-    cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
+    cursor, events, eventsById, atoms, fdasAtoms, fdasScopes, fdasSupports,
+    fdasEvents, fdasRevisionEvents, plans, proofs, pfPlnEvents,
     pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
     teleologyEstimates, domainEstimates, domainAbstentions,
     transitionValueEstimates, transitionValueUpdates,

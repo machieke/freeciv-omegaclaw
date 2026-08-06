@@ -1900,9 +1900,15 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
     events = config.section("events")
     emitter = AtomSpaceEventEmitter(
         support_level=events["support_level"],
-        maximum_detail_events=min(
+        # A revision can emit an atom lifecycle record plus support and
+        # derivation records for the same materialized atom.  The former
+        # 2,000-event ceiling could therefore truncate an otherwise valid
+        # revision even while it remained comfortably inside the configured
+        # global atom budget.  Keep telemetry bounded by that semantic budget,
+        # with room for the atom, support, derivation, and scope joins.
+        maximum_detail_events=max(
             2000,
-            materialization["maximum_atoms_global"]),
+            materialization["maximum_atoms_global"] * 4),
     )
     runtime = FdasRuntime(
         declaration,

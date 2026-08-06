@@ -4,9 +4,9 @@ import addFormats from "ajv-formats";
 import envelopeSchema from "../../../schemas/freeciv-events/v1/envelope.schema.json";
 import payloadsSchema from "../../../schemas/freeciv-events/v1/payloads.schema.json";
 import type { KnownEventType } from "../../../schemas/freeciv-events/v1/types.generated";
-import type { TraceEvent } from "./events";
+import { FDAS_EVENT_TYPES, type TraceEvent } from "./events";
 
-const knownTypes: KnownEventType[] = [
+const knownTypes = [
   "run_started", "run_completed", "ruleset_compiled", "state_snapshot",
   "technology_catalog", "technology_progress", "production_state", "unit_lifecycle",
   "observation", "revision", "belief_conflict", "context_quarantine",
@@ -35,7 +35,8 @@ const knownTypes: KnownEventType[] = [
   "plan_created", "monitor_trigger",
   "plan_invalidated", "plan_step_executed", "action_sent", "action_result",
   "grounded_check", "metric_sample", "logging_gap",
-];
+  ...FDAS_EVENT_TYPES,
+] as KnownEventType[];
 
 const known = new Set<string>(knownTypes);
 const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });

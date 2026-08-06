@@ -1,5 +1,7 @@
 """Bounded causal event emission for immutable FDAS revisions."""
 
+from collections import Counter
+
 from ...events.schema import structural_hash
 from .scopes import ScopeActivationState
 from .store import DependentAtomSpaceRevision
@@ -111,6 +113,52 @@ class AtomSpaceEventEmitter(object):
         supports = dict(revision.dependency_index.support_by_id)
         return records, supports
 
+    @staticmethod
+    def _observable_record(record):
+        """Return the bounded atom payload needed for replay inspection.
+
+        Supports are emitted separately because a support can justify many
+        atoms.  Keeping only their identities here avoids multiplying the
+        dependency payload while preserving an exact join key in the trace.
+        """
+        dependency_keys = set()
+        for support in record.supports:
+            dependency_keys.update(
+                dependency.key for dependency in support.dependencies)
+        return {
+            "atom_id": record.atom_id,
+            "authority": record.authority.value,
+            "dependency_count": len(dependency_keys),
+            "key": record.key.to_dict(),
+            "lifecycle": record.lifecycle,
+            "materialization_key": record.materialization_key,
+            "provenance_ids": list(record.provenance_ids),
+            "support_ids": [
+                support.support_id for support in record.supports],
+            "tags": [list(value) for value in record.tags],
+            "truth": record.truth,
+            "validity": record.validity.to_dict(),
+        }
+
+    @staticmethod
+    def _projection_summary(revision):
+        records = tuple(revision.records)
+        supports = revision.dependency_index.support_by_id.values()
+        return {
+            "atom_counts_by_authority": dict(sorted(Counter(
+                record.authority.value for record in records).items())),
+            "atom_counts_by_lifecycle": dict(sorted(Counter(
+                record.lifecycle for record in records).items())),
+            "atom_counts_by_namespace": dict(sorted(Counter(
+                record.key.namespace.value for record in records).items())),
+            "atom_counts_by_predicate": dict(sorted(Counter(
+                record.key.predicate for record in records).items())),
+            "scope_counts_by_kind": dict(sorted(Counter(
+                scope.scope_kind for scope in revision.scopes).items())),
+            "support_counts_by_derivation": dict(sorted(Counter(
+                support.derivation_id for support in supports).items())),
+        }
+
     def emit_revision(self, writer, turn, revision, prior_revision=None,
                       activation=None, ruleset_digest=None, caused_by=()):
         if not isinstance(revision, DependentAtomSpaceRevision):
@@ -151,8 +199,10 @@ class AtomSpaceEventEmitter(object):
             for rejection in activation.rejected:
                 emit("scope_budget_exhausted", dict(rejection),
                      (started["event_id"],))
+        projection_summary = self._projection_summary(revision)
         projected = emit("projection_batch_applied", {
             "atom_count": len(revision.records),
+            "projection_summary": projection_summary,
             "scope_count": len(revision.scopes),
             "support_count": len(revision.dependency_index.support_by_id),
         }, (delta["event_id"],))
@@ -177,12 +227,14 @@ class AtomSpaceEventEmitter(object):
                 "atom_count": len(
                     revision.dependency_index.scope_atom_ids.get(
                         scope.scope_id, ())),
+                "scope": scope.to_dict(),
                 "scope_id": scope.scope_id,
                 "scope_kind": scope.scope_kind,
             })
         for atom_id in sorted(set(prior_records).difference(records)):
             detail("atom_invalidated", {
                 "atom_id": atom_id,
+                "record": self._observable_record(prior_records[atom_id]),
                 "reason": "absent-from-current-committed-revision",
             })
         def derivation_semantic(record):
@@ -200,6 +252,7 @@ class AtomSpaceEventEmitter(object):
                 detail("atom_rederived", {
                     "atom_id": atom_id,
                     "predicate": records[atom_id].key.predicate,
+                    "record": self._observable_record(records[atom_id]),
                     "reason": (
                         "newly-projected" if prior is None
                         else "support-or-lifecycle-changed"),
@@ -211,6 +264,10 @@ class AtomSpaceEventEmitter(object):
                 support = supports[support_id]
                 detail("atom_support_added", {
                     "derivation_id": support.derivation_id,
+                    "output_atom_ids": list(
+                        revision.dependency_index.support_output_atom_ids.get(
+                            support_id, ())),
+                    "support": support.to_dict(),
                     "support_id": support_id,
                 })
                 detail("derivation_fired", {
@@ -219,8 +276,13 @@ class AtomSpaceEventEmitter(object):
                     "support_id": support_id,
                 })
             for support_id in sorted(removed_supports):
+                support = prior_supports[support_id]
                 detail("atom_support_retracted", {
-                    "derivation_id": prior_supports[support_id].derivation_id,
+                    "derivation_id": support.derivation_id,
+                    "output_atom_ids": list(
+                        prior_revision.dependency_index.
+                        support_output_atom_ids.get(support_id, ())),
+                    "support": support.to_dict(),
                     "support_id": support_id,
                 })
         prior_operations = (
@@ -256,6 +318,7 @@ class AtomSpaceEventEmitter(object):
             "build_hash": revision.build_hash,
             "detail_event_count": detail_count,
             "omitted_detail_event_count": omitted_count,
+            "projection_summary": projection_summary,
             "scope_count": len(revision.scopes),
             "support_count": len(supports),
         }, (projected["event_id"],))

@@ -98,6 +98,19 @@ def test_revision_event_stream_is_schema_valid_causal_and_bounded(tmp_path):
     assert "scope_materialized" in kinds
     assert "scope_budget_exhausted" in kinds
     assert "atomspace_revision_committed" in kinds
+    scope_event = next(
+        value for value in rows if value["type"] == "scope_materialized")
+    assert scope_event["payload"]["details"]["scope"]["scope_kind"] == "empire"
+    projected = next(
+        value for value in rows if value["type"] == "projection_batch_applied")
+    assert projected["payload"]["details"]["projection_summary"] == {
+        "atom_counts_by_authority": {"engine_authoritative": 1},
+        "atom_counts_by_lifecycle": {"active": 1},
+        "atom_counts_by_namespace": {"authoritative": 1},
+        "atom_counts_by_predicate": {"unit-activity": 1},
+        "scope_counts_by_kind": {"empire": 1},
+        "support_counts_by_derivation": {"event-projector": 1},
+    }
     assert rows[-1] == learning
     assert learning["caused_by"] == [emitted[-1]["event_id"]]
     for row in rows:
@@ -106,6 +119,33 @@ def test_revision_event_stream_is_schema_valid_causal_and_bounded(tmp_path):
         assert payload_hash == structural_hash(payload)
         assert payload["revision_id"] == revision.revision_id
         assert payload["snapshot_id"] == revision.snapshot_id
+
+
+def test_revision_events_expose_bounded_atom_and_dependency_records(tmp_path):
+    revision = _revision()
+    path = os.path.join(str(tmp_path), "observable-events.jsonl")
+    writer = EventWriter(path, "fdas-observable", durable=False)
+
+    AtomSpaceEventEmitter(
+        support_level="selected", maximum_detail_events=20).emit_revision(
+            writer, 4, revision)
+
+    with open(path, encoding="utf-8") as stream:
+        rows = tuple(json.loads(line) for line in stream if line.strip())
+    derived = next(value for value in rows if value["type"] == "atom_rederived")
+    record = derived["payload"]["details"]["record"]
+    assert record["atom_id"] == revision.records[0].atom_id
+    assert record["key"] == revision.records[0].key.to_dict()
+    assert record["authority"] == "engine_authoritative"
+    assert record["support_ids"] == [revision.records[0].supports[0].support_id]
+    assert record["dependency_count"] == 1
+    assert "supports" not in record
+
+    added = next(value for value in rows if value["type"] == "atom_support_added")
+    details = added["payload"]["details"]
+    assert details["output_atom_ids"] == [revision.records[0].atom_id]
+    assert details["support"] == revision.records[0].supports[0].to_dict()
+    assert validate_file(path).valid
 
 
 def test_fdas_event_vocabulary_is_complete_and_unknown_type_fails():

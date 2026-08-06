@@ -1582,6 +1582,16 @@ def test_configured_global_atom_budget_is_enforced_before_publication():
         None, None)
 
 
+def test_runtime_detail_budget_covers_atom_support_and_derivation_joins():
+    declaration = _enabled_city_declaration()
+    maximum_atoms = declaration["config"]["materialization"][
+        "maximum_atoms_global"]
+    runtime = build_runtime(declaration)
+
+    assert runtime.event_emitter.maximum_detail_events == max(
+        2000, maximum_atoms * 4)
+
+
 def test_full_checked_projector_set_assembles_with_read_only_operations(
         tmp_path, monkeypatch):
     declaration = load_runtime_declaration()

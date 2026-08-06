@@ -6,7 +6,7 @@ import type {
 } from "../../../schemas/freeciv-events/v1/types.generated";
 import demoTrace from "../../../Autotests/fixtures/freeciv-events/v1/normal-crisp.jsonl?raw";
 import {
-  type AtomView, type Cursor, type ReplayState, type TraceEvent,
+  FDAS_EVENT_TYPES, type AtomView, type Cursor, type ReplayState, type TraceEvent,
   cursorOf, eventOrder, formatAtom, maxCursor,
 } from "./events";
 import {
@@ -24,7 +24,7 @@ import {
 } from "./validation";
 import { decodeUrlState, encodeUrlState, type ViewName } from "./url-state";
 import {
-  CHART_COLORS, Sparkline, TurnHeatmap, ValueBar, humanize,
+  CHART_COLORS, Sparkline, TurnHeatmap, ValueBar, humanize, numericExtent,
 } from "./visuals";
 import { UNIFIED_CONTROLLER_STATUS } from "./unified-status";
 
@@ -56,6 +56,7 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "state_snapshot", "technology_progress", "production_state", "unit_lifecycle",
     "observation", "revision",
   ]) },
+  { name: "FDAS", types: FDAS_EVENT_TYPES },
   { name: "Proposal", types: new Set(["llm_proposal", "quarantine"]) },
   { name: "Verification", types: new Set(["verification", "grounded_check"]) },
   { name: "PLN", types: new Set(["pln_query", "pln_result"]) },
@@ -89,8 +90,13 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
   { name: "Action", types: new Set(["action_sent", "action_result"]) },
 ];
 
-const seqAtTurn = (events: TraceEvent[], turn: number): number =>
-  Math.max(0, ...events.filter((event) => event.turn === turn).map((event) => event.seq));
+const seqAtTurn = (events: TraceEvent[], turn: number): number => {
+  let maximum = 0;
+  for (const event of events) {
+    if (event.turn === turn) maximum = Math.max(maximum, event.seq);
+  }
+  return maximum;
+};
 
 function Header({ events, state, mode, status, gameId, focus, inspectorOpen,
   onFocus, onInspector }: {
@@ -121,12 +127,11 @@ function Header({ events, state, mode, status, gameId, focus, inspectorOpen,
   </header>;
 }
 
-function Scrubber({ events, cursor, onChange }: {
+export function Scrubber({ events, cursor, onChange }: {
   events: TraceEvent[]; cursor: Cursor; onChange: (cursor: Cursor) => void;
 }) {
-  const turns = events.map((event) => event.turn);
-  const minimum = Math.min(...turns, 0);
-  const maximum = Math.max(...turns, 0);
+  const [minimum, maximum] = numericExtent(
+    events.map((event) => event.turn), 0);
   const density = densityByTurn(events);
   const markers = new Map<number, Set<string>>();
   const mark = (turn: number, value: string): void => {
@@ -163,7 +168,8 @@ function Scrubber({ events, cursor, onChange }: {
     }
     return { start, end, count, densest, markers: bucketMarkers };
   });
-  const maxBucketDensity = Math.max(1, ...buckets.map((bucket) => bucket.count));
+  let maxBucketDensity = 1;
+  for (const bucket of buckets) maxBucketDensity = Math.max(maxBucketDensity, bucket.count);
   return <section className="scrubber" aria-label="Global replay cursor">
     <div className="scrubber-label"><span>global cursor</span><strong>Turn {cursor.turn}</strong></div>
     <div className="scrubber-track">
@@ -513,7 +519,282 @@ export function ProofExplorer({ state, selection, onSelect }: {
   </div>;
 }
 
-function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
+const recordObject = (value: unknown): Record<string, unknown> | undefined =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : undefined;
+
+const atomspaceDetails = (event?: TraceEvent): Record<string, unknown> =>
+  recordObject(event?.payload.details) ?? {};
+
+const countEntries = (value: unknown): Array<[string, number]> =>
+  Object.entries(recordObject(value) ?? {})
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number")
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
+
+const fdasArgument = (value: unknown): string => {
+  const term = recordObject(value);
+  if (!term) return String(value);
+  if (typeof term.entity_id === "string") return `${String(term.kind ?? "entity")}:${term.entity_id}`;
+  if (typeof term.symbol === "string") return `${String(term.catalog ?? "symbol")}:${term.symbol}`;
+  return JSON.stringify(value);
+};
+
+const fdasTruth = (value: unknown): string => {
+  if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
+    return String(value);
+  }
+  const truth = recordObject(value);
+  if (!truth) return "—";
+  if (typeof truth.crisp === "boolean") return truth.crisp ? "crisp true" : "crisp false";
+  if (typeof truth.strength === "number" && typeof truth.confidence === "number") {
+    return `${truth.strength.toFixed(2)} / ${truth.confidence.toFixed(2)}`;
+  }
+  const rendered = JSON.stringify(value);
+  return rendered.length > 42 ? `${rendered.slice(0, 39)}…` : rendered;
+};
+
+function FdasAtomspace({ state, onSelect, search, onSearch }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+  search: string; onSearch: (value: string) => void;
+}) {
+  const [namespace, setNamespace] = useState("all");
+  const [status, setStatus] = useState("active");
+  const [atomWindow, setAtomWindow] = useState(0);
+  const revisionSource = [...state.fdasEvents].reverse().find((event) =>
+    event.type === "atomspace_revision_committed")
+    ?? [...state.fdasEvents].reverse().find((event) => event.type === "projection_batch_applied");
+  const revisionDetails = atomspaceDetails(revisionSource);
+  const summary = recordObject(revisionDetails.projection_summary) ?? {};
+  const namespaceCounts = countEntries(summary.atom_counts_by_namespace);
+  const authorityCounts = countEntries(summary.atom_counts_by_authority);
+  const summarizedScopeKinds = countEntries(summary.scope_counts_by_kind);
+  const fallbackScopeKinds = [...state.fdasScopes.values()].reduce((counts, scope) => {
+    counts.set(scope.scopeKind, (counts.get(scope.scopeKind) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const scopeKindCounts = summarizedScopeKinds.length ? summarizedScopeKinds
+    : [...fallbackScopeKinds].sort((left, right) => right[1] - left[1]
+      || left[0].localeCompare(right[0]));
+  const exactAtomCount = typeof revisionDetails.atom_count === "number"
+    ? revisionDetails.atom_count : state.fdasAtoms.size;
+  const exactScopeCount = typeof revisionDetails.scope_count === "number"
+    ? revisionDetails.scope_count : state.fdasScopes.size;
+  const exactSupportCount = typeof revisionDetails.support_count === "number"
+    ? revisionDetails.support_count : state.fdasSupports.size;
+  const omittedCount = typeof revisionDetails.omitted_detail_event_count === "number"
+    ? revisionDetails.omitted_detail_event_count : 0;
+  const revisionId = typeof revisionSource?.payload.revision_id === "string"
+    ? revisionSource.payload.revision_id : "revision unavailable";
+  const detailedActiveCount = [...state.fdasAtoms.values()]
+    .filter((row) => row.status === "active" && row.record).length;
+  const indexedActiveCount = [...state.fdasAtoms.values()]
+    .filter((row) => row.status === "active").length;
+  const identityOnly = indexedActiveCount > 0 && detailedActiveCount === 0;
+  const predicateCounts = [...state.fdasAtoms.values()]
+    .filter((row) => row.status === "active")
+    .reduce((counts, row) => {
+      counts.set(row.predicate, (counts.get(row.predicate) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>());
+  const distributionCounts = identityOnly
+    ? [...predicateCounts].sort((left, right) => right[1] - left[1]
+      || left[0].localeCompare(right[0])).slice(0, 16)
+    : namespaceCounts;
+  const rows = [...state.fdasAtoms.values()].filter((row) => {
+    const args = row.record?.key.arguments.map(fdasArgument).join(" ") ?? "";
+    const text = `${row.atomId} ${row.predicate} ${row.namespace} ${row.scopeId} ${row.authority} ${args} ${row.linkedGoalIds.join(" ")} ${row.linkedOperationIds.join(" ")}`
+      .toLowerCase();
+    return text.includes(search.toLowerCase())
+      && (namespace === "all" || row.namespace === namespace)
+      && (status === "all" || row.status === status);
+  }).sort((left, right) => left.namespace.localeCompare(right.namespace)
+    || left.predicate.localeCompare(right.predicate) || left.atomId.localeCompare(right.atomId));
+  const atomWindowCount = Math.max(1, Math.ceil(rows.length / 250));
+  const safeAtomWindow = Math.min(atomWindow, atomWindowCount - 1);
+  const firstAtomRow = safeAtomWindow * 250;
+  const maximumDistribution = Math.max(1, ...distributionCounts.map(([, count]) => count));
+  const revisionEvents = state.fdasRevisionEvents.filter((event) =>
+    event.type === "atomspace_revision_committed").slice(-8);
+  const committedRevisionCount = state.fdasRevisionEvents.filter((event) =>
+    event.type === "atomspace_revision_committed").length;
+  const linkedGoalAtomCount = [...state.fdasAtoms.values()]
+    .filter((row) => row.linkedGoalIds.length > 0).length;
+  const linkedOperationAtomCount = [...state.fdasAtoms.values()]
+    .filter((row) => row.linkedOperationIds.length > 0).length;
+  const activity = [
+    ["materialization", new Set(["scope_materialized", "atom_rederived", "atom_invalidated",
+      "atom_support_added", "atom_support_retracted"])],
+    ["grounding + proof", new Set(["grounding_evaluated", "grounding_cache_hit",
+      "derivation_fired", "derivation_unknown", "completeness_witness_used"])],
+    ["goals + control", new Set(["goal_instantiated", "goal_resolved", "operation_projected",
+      "operation_candidate_instantiated", "operation_candidate_rejected", "pressure_graph_built",
+      "atomspace_shadow_decision", "atomspace_authority_decision"])],
+    ["episodes + learning", new Set(["episode_opened", "episode_effect_observed",
+      "episode_relief_attributed", "conductance_sample_recorded", "induced_rule_quarantined",
+      "induced_rule_promoted", "induced_rule_demoted"])],
+  ] as const;
+
+  return <div className="view-content atom-view fdas-view">
+    <div className="view-heading">
+      <div><span className="eyebrow">functional dependent atomspace</span>
+        <h2>Extended AtomSpace</h2></div>
+      <p>{exactAtomCount.toLocaleString()} atoms · {exactScopeCount} scopes · {exactSupportCount.toLocaleString()} supports</p>
+    </div>
+    <section className="fdas-revision" aria-label="FDAS current revision">
+      <div><span>current revision</span><strong>{revisionId}</strong></div>
+      <div><span>snapshot</span><strong>{String(revisionSource?.payload.snapshot_id ?? "—")}</strong></div>
+      <div><span>detail coverage</span><strong>{detailedActiveCount.toLocaleString()} / {exactAtomCount.toLocaleString()}</strong></div>
+      <div><span>bounded omissions</span><strong className={omittedCount ? "warning" : "healthy"}>{omittedCount}</strong></div>
+    </section>
+    {identityOnly ? <div className="fdas-coverage historical" role="status">
+      <strong>Historical identity telemetry</strong>
+      <span>This run predates full AtomRecord events. It logged exact atom IDs, predicates,
+        revisions, lifecycle changes, scope materializations, and selected goal/operation links.
+        Namespace, typed arguments, truth, authority, supports, and dependencies were not emitted
+        and are not reconstructed.</span>
+    </div> : exactAtomCount > detailedActiveCount && <div className="fdas-coverage" role="status">
+      <strong>Aggregate projection is complete; row detail is bounded.</strong>
+      <span>{Math.max(0, exactAtomCount - detailedActiveCount).toLocaleString()} current atom records were not emitted as detail events.
+        Increase the FDAS detail-event budget to inspect every row.</span>
+    </div>}
+    <section className="fdas-distribution" aria-label="FDAS namespace and authority distribution">
+      <header><div><span className="eyebrow">{identityOnly ? "historical atom index" : "semantic separation"}</span>
+        <h3>{identityOnly ? "Current predicates" : "Namespaces"}</h3></div>
+        <small>{identityOnly ? "exactly folded from emitted atom lifecycle events"
+          : "logged committed totals—not inferred from the visible sample"}</small></header>
+      <div className="fdas-distribution-grid">
+        <div className="fdas-bars">
+          {distributionCounts.map(([name, count]) => <button key={name}
+            className={!identityOnly && namespace === name ? "active" : ""}
+            onClick={() => {
+              if (identityOnly) onSearch(name);
+              else setNamespace(name);
+              setAtomWindow(0);
+            }}>
+            <span><strong>{name}</strong><small>{count.toLocaleString()} atoms</small></span>
+            <ValueBar value={count} maximum={maximumDistribution}
+              label={`${name} ${identityOnly ? "predicate" : "namespace"} atom count`} />
+          </button>)}
+          {!distributionCounts.length && <span className="fdas-empty">No current atom identities were emitted at this cursor.</span>}
+        </div>
+        <div className="fdas-authorities">
+          <span>{identityOnly ? "available historical links" : "authority classes"}</span>
+          {identityOnly ? <>
+            <div><strong>active identities</strong><b>{indexedActiveCount.toLocaleString()}</b><small>as-of lifecycle fold</small></div>
+            <div><strong>committed revisions</strong><b>{committedRevisionCount.toLocaleString()}</b><small>snapshot-bound</small></div>
+            <div><strong>goal-linked atoms</strong><b>{linkedGoalAtomCount.toLocaleString()}</b><small>emitted deficit links</small></div>
+            <div><strong>operation-linked atoms</strong><b>{linkedOperationAtomCount.toLocaleString()}</b><small>emitted projections</small></div>
+          </> : authorityCounts.map(([name, count]) => <div key={name}>
+            <strong>{humanize(name)}</strong><b>{count.toLocaleString()}</b><small>{name}</small>
+          </div>)}
+        </div>
+      </div>
+    </section>
+    <div className="fdas-topology-grid">
+      <section className="fdas-scopes" aria-label="FDAS scope topology">
+        <header><div><span className="eyebrow">microspace topology</span><h3>Active scopes</h3></div>
+          <small>{scopeKindCounts.map(([kind, count]) => `${count} ${kind}`).join(" · ")}</small></header>
+        <div>
+          {[...state.fdasScopes.values()].sort((left, right) =>
+            left.scopeKind.localeCompare(right.scopeKind) || left.scopeId.localeCompare(right.scopeId))
+            .slice(0, 80).map((scope) => {
+              const parentIds = Array.isArray(scope.scope?.parent_scope_ids)
+                ? scope.scope.parent_scope_ids.map(String) : [];
+              const namespaces = Array.isArray(scope.scope?.namespaces)
+                ? scope.scope.namespaces.map(String) : [];
+              return <button key={scope.scopeId} onClick={() => onSelect({ kind: "event", value: scope.event })}>
+                <span>{scope.scopeKind}</span><strong>{scope.scopeId}</strong>
+                <small>{scope.atomCount} atoms{namespaces.length ? ` · ${namespaces.join(", ")}` : ""}</small>
+                <em>{parentIds.length ? `imports from ${parentIds.length} parent${parentIds.length === 1 ? "" : "s"}`
+                  : scope.scope ? "root scope" : `materialized at T${scope.event.turn}.${scope.event.seq}`}</em>
+              </button>;
+            })}
+          {!state.fdasScopes.size && <span className="fdas-empty">Scope detail was not emitted at this cursor.</span>}
+        </div>
+      </section>
+      <section className="fdas-activity" aria-label="FDAS materialization activity">
+        <header><div><span className="eyebrow">causal work</span><h3>Extended activity</h3></div></header>
+        <div>{activity.map(([label, types]) => {
+          const matching = state.fdasEvents.filter((event) => types.has(event.type)).length;
+          return <div key={label}><strong>{matching.toLocaleString()}</strong><span>{label}</span></div>;
+        })}</div>
+        <footer>{revisionEvents.map((event) => <button key={event.event_id}
+          aria-label={`Inspect FDAS revision at turn ${event.turn}`}
+          onClick={() => onSelect({ kind: "event", value: event })}
+          title={String(event.payload.revision_id)}><span>T{event.turn}</span>
+            <i style={{ height: `${Math.max(8, Math.min(100,
+              Number(atomspaceDetails(event).atom_count ?? 0) / Math.max(1, exactAtomCount) * 100))}%` }} /></button>)}</footer>
+      </section>
+    </div>
+    <div className={`table-tools fdas-tools ${identityOnly ? "identity-tools" : ""}`}>
+      <input aria-label="Search extended atoms"
+        placeholder={identityOnly ? "predicate, atom ID, emitted scope…" : "predicate, entity, scope, authority…"}
+        value={search} onChange={(event) => { setAtomWindow(0); onSearch(event.target.value); }} />
+      {!identityOnly && <select aria-label="FDAS namespace" value={namespace}
+        onChange={(event) => { setNamespace(event.target.value); setAtomWindow(0); }}>
+        <option value="all">all namespaces</option>
+        {namespaceCounts.map(([name]) => <option key={name} value={name}>{name}</option>)}
+      </select>}
+      <select aria-label="FDAS atom status" value={status}
+        onChange={(event) => { setStatus(event.target.value); setAtomWindow(0); }}>
+        <option value="active">active atoms</option><option value="invalidated">invalidated</option>
+        <option value="all">all lifecycle states</option>
+      </select>
+      <div className="atom-window-controls" aria-label="Extended atom row windows">
+        <button disabled={safeAtomWindow === 0}
+          onClick={() => setAtomWindow(Math.max(0, safeAtomWindow - 1))}>‹</button>
+        <span>{rows.length ? firstAtomRow + 1 : 0}–{Math.min(rows.length, firstAtomRow + 250)} / {rows.length}</span>
+        <button disabled={safeAtomWindow + 1 >= atomWindowCount}
+          onClick={() => setAtomWindow(safeAtomWindow + 1)}>›</button>
+      </div>
+    </div>
+    <div className={`fdas-atom-table ${identityOnly ? "identity-table" : ""}`} role="table"
+      aria-label={identityOnly ? "Historical FDAS atom lifecycle records" : "Extended AtomSpace records"}>
+      {identityOnly ? <>
+        <div className="fdas-atom-row fdas-history-row fdas-atom-head" role="row">
+          <span>predicate / atom</span><span>emitted scope link</span><span>control links</span>
+          <span>revision / snapshot</span><span>lifecycle history</span><span>state</span>
+        </div>
+        {rows.slice(firstAtomRow, firstAtomRow + 250).map((row) => {
+          const details = atomspaceDetails(row.event);
+          const revision = String(row.event.payload.revision_id ?? "—");
+          const snapshot = String(row.event.payload.snapshot_id ?? "—");
+          return <button className={`fdas-atom-row fdas-history-row status-${row.status}`}
+            role="row" key={row.atomId} onClick={() => onSelect({ kind: "event", value: row.event })}>
+            <span><strong>{row.predicate}</strong><small>{row.atomId}</small></span>
+            <span><strong>{row.scopeId === "unknown" ? "—" : row.scopeId}</strong>
+              <small>{row.linkedGoalIds.length ? "linked by goal_instantiated" : "no emitted goal-scope link"}</small></span>
+            <span><strong>{row.linkedGoalIds.length} goals · {row.linkedOperationIds.length} operations</strong>
+              <small>{row.linkedGoalIds.at(-1) ?? row.linkedOperationIds.at(-1) ?? "—"}</small></span>
+            <span><strong>{revision}</strong><small>{snapshot}</small></span>
+            <span><strong>{String(details.reason ?? row.event.type)}</strong>
+              <small>{row.history.length} emitted change{row.history.length === 1 ? "" : "s"}</small></span>
+            <span><b>{row.status}</b><small>T{row.event.turn}.{row.event.seq}</small></span>
+          </button>;
+        })}
+      </> : <>
+        <div className="fdas-atom-row fdas-atom-head" role="row">
+          <span>namespace / predicate</span><span>typed arguments</span><span>scope</span>
+          <span>truth / authority</span><span>supports / deps</span><span>state</span>
+        </div>
+        {rows.slice(firstAtomRow, firstAtomRow + 250).map((row) => <button
+          className={`fdas-atom-row status-${row.status}`} role="row" key={row.atomId}
+          onClick={() => onSelect({ kind: "event", value: row.event })}>
+          <span><b>{row.namespace}</b><strong>{row.predicate}</strong><small>{row.atomId}</small></span>
+          <span>{row.record?.key.arguments.map(fdasArgument).join(" · ")}</span>
+          <span>{row.scopeId}</span>
+          <span><strong>{fdasTruth(row.record?.truth)}</strong><small>{row.authority}</small></span>
+          <span><strong>{row.record?.support_ids.length ?? 0} / {row.record?.dependency_count ?? 0}</strong>
+            <small>support / dependency</small></span>
+          <span><b>{row.status}</b><small>T{row.event.turn}.{row.event.seq}</small></span>
+        </button>)}
+      </>}
+      {!rows.length && <div className="fdas-empty-table">No emitted atom records match these filters.</div>}
+    </div>
+  </div>;
+}
+
+function LegacyAtomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
   search: string; channel: "all" | "crisp" | "uncertain";
   onSearch: (value: string) => void;
@@ -597,6 +878,33 @@ function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
   </div>;
 }
 
+function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+  search: string; channel: "all" | "crisp" | "uncertain";
+  onSearch: (value: string) => void;
+  onChannel: (value: "all" | "crisp" | "uncertain") => void;
+}) {
+  const [surface, setSurface] = useState<"extended" | "legacy" | undefined>();
+  const hasExtended = state.fdasEvents.length > 0;
+  const selectedSurface = surface ?? (hasExtended ? "extended" : "legacy");
+  return <>
+    {hasExtended && <div className="atomspace-surface-switch" role="group" aria-label="AtomSpace surface">
+      <button className={selectedSurface === "extended" ? "active" : ""}
+        onClick={() => setSurface("extended")}>
+        <span>FDAS</span><strong>Extended graph</strong><small>{state.fdasEvents.length.toLocaleString()} events</small>
+      </button>
+      <button className={selectedSurface === "legacy" ? "active" : ""}
+        onClick={() => setSurface("legacy")}>
+        <span>compat</span><strong>Legacy projection</strong><small>{state.atoms.size.toLocaleString()} atoms</small>
+      </button>
+    </div>}
+    {selectedSurface === "extended"
+      ? <FdasAtomspace state={state} onSelect={onSelect} search={search} onSearch={onSearch} />
+      : <LegacyAtomspace state={state} onSelect={onSelect} search={search} channel={channel}
+        onSearch={onSearch} onChannel={onChannel} />}
+  </>;
+}
+
 function PlanBoard({ state, onSelect }: { state: ReplayState; onSelect: (selection: Selection) => void }) {
   const [ganttWindow, setGanttWindow] = useState<20 | 60 | 0>(20);
   const plans = [...state.plans.values()];
@@ -605,8 +913,8 @@ function PlanBoard({ state, onSelect }: { state: ReplayState; onSelect: (selecti
   const ganttPlans = ganttWindow ? plans.slice(-ganttWindow) : plans;
   const turns = ganttPlans.flatMap((plan) => plan.steps.flatMap((step) =>
     [step.predicted_turn, step.actual_turn].filter((value): value is number => typeof value === "number")));
-  const minimumTurn = Math.min(...turns);
-  const maximumTurn = Math.max(minimumTurn + 1, ...turns);
+  const [minimumTurn, observedMaximumTurn] = numericExtent(turns);
+  const maximumTurn = Math.max(minimumTurn + 1, observedMaximumTurn);
   const position = (turn: number): number =>
     (turn - minimumTurn) / Math.max(1, maximumTurn - minimumTurn) * 100;
   return <div className="view-content"><div className="view-heading">
@@ -3151,7 +3459,7 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
     },
     {
       question: "What did the agent know?",
-      answer: "See the atomspace exactly as it existed at the selected turn and sequence.",
+      answer: "Inspect the extended FDAS graph—namespaces, authority, scopes, supports, dependencies, and lifecycle—or switch to the legacy projection.",
       view: "atoms",
       label: "Atomspace",
     },
@@ -3255,6 +3563,31 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
           <p>Exact seed-matched arms reveal descriptive differences without claiming causality.</p>
           <code>treatment ↔ baseline</code>
         </li>
+      </ol>
+    </section>
+
+    <section className="about-section about-pipeline-section" aria-labelledby="fdas-about-title">
+      <header>
+        <div><span className="eyebrow">functional dependent atomspace</span>
+          <h3 id="fdas-about-title">How the extended graph stays inspectable</h3></div>
+        <p>FDAS remains a versioned view over authoritative state; the browser never turns a derived atom into game authority.</p>
+      </header>
+      <ol className="about-pipeline" aria-label="Extended AtomSpace pipeline">
+        <li><span>01</span><strong>Bind a revision</strong>
+          <p>Every materialization is pinned to an exact snapshot, ruleset digest, build, turn, and sequence.</p>
+          <code>atomspace_revision_started</code></li>
+        <li><span>02</span><strong>Separate semantics</strong>
+          <p>Ruleset, authoritative, observation, derived, belief, goal, operation, episode, and diagnostic namespaces stay distinct.</p>
+          <code>projection_batch_applied</code></li>
+        <li><span>03</span><strong>Expose support</strong>
+          <p>Typed scopes, atom records, derivations, support identities, dependencies, truth, and lifecycle are emitted as bounded detail.</p>
+          <code>atom_rederived + atom_support_added</code></li>
+        <li><span>04</span><strong>Commit or retract</strong>
+          <p>Incremental updates preserve unchanged records, invalidate stale ones, and publish exact aggregate totals even when row detail is capped.</p>
+          <code>atom_invalidated → committed</code></li>
+        <li><span>05</span><strong>Inspect as-of</strong>
+          <p>The AtomSpace screen folds only events at or before the global cursor and labels any bounded telemetry gap.</p>
+          <code>trace @ T.seq</code></li>
       </ol>
     </section>
 

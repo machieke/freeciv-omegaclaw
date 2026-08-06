@@ -9,6 +9,24 @@ import type {
 
 export type TraceEvent = EventEnvelope<string, Record<string, unknown>>;
 
+export const FDAS_EVENT_TYPES = new Set([
+  "atomspace_revision_started", "snapshot_delta_computed",
+  "projection_batch_applied", "atom_support_added", "atom_support_retracted",
+  "atom_invalidated", "atom_rederived", "atomspace_revision_committed",
+  "scope_activation_requested", "scope_materialized", "scope_budget_exhausted",
+  "grounding_evaluated", "grounding_cache_hit", "derivation_fired",
+  "derivation_unknown", "completeness_witness_used", "goal_instantiated",
+  "goal_resolved", "operation_projected", "operation_candidate_instantiated",
+  "operation_candidate_rejected", "pressure_graph_built",
+  "atomspace_shadow_decision", "atomspace_authority_decision", "episode_opened",
+  "episode_effect_observed", "episode_relief_attributed",
+  "episode_outcome_label_opened", "episode_outcome_label_observed",
+  "operation_outcome_label_opened", "operation_outcome_label_product_observed",
+  "operation_outcome_label_observed", "transition_prediction_abstained",
+  "conductance_sample_recorded", "induced_rule_quarantined",
+  "induced_rule_promoted", "induced_rule_demoted",
+]);
+
 export interface Cursor {
   turn: number;
   seq: number;
@@ -30,11 +48,73 @@ export interface AtomView {
   duplicateProvenance: boolean;
 }
 
+export interface FdasTerm {
+  term_type?: string;
+  kind?: string;
+  entity_id?: string;
+  catalog?: string;
+  symbol?: string;
+}
+
+export interface FdasAtomRecord {
+  atom_id: string;
+  authority: string;
+  dependency_count: number;
+  key: {
+    arguments: FdasTerm[];
+    namespace: string;
+    predicate: string;
+    scope_id: string;
+  };
+  lifecycle: string;
+  materialization_key?: string;
+  provenance_ids: string[];
+  support_ids: string[];
+  tags: unknown[];
+  truth: unknown;
+  validity: Record<string, unknown>;
+}
+
+export interface FdasAtomView {
+  atomId: string;
+  predicate: string;
+  namespace: string;
+  scopeId: string;
+  authority: string;
+  status: "active" | "invalidated";
+  record?: FdasAtomRecord;
+  event: TraceEvent;
+  history: TraceEvent[];
+  linkedGoalIds: string[];
+  linkedOperationIds: string[];
+}
+
+export interface FdasScopeView {
+  scopeId: string;
+  scopeKind: string;
+  atomCount: number;
+  scope?: Record<string, unknown>;
+  event: TraceEvent;
+}
+
+export interface FdasSupportView {
+  supportId: string;
+  derivationId: string;
+  outputAtomIds: string[];
+  support?: Record<string, unknown>;
+  event: TraceEvent;
+}
+
 export interface ReplayState {
   cursor: Cursor;
   events: TraceEvent[];
   eventsById: Map<string, TraceEvent>;
   atoms: Map<string, AtomView>;
+  fdasAtoms: Map<string, FdasAtomView>;
+  fdasScopes: Map<string, FdasScopeView>;
+  fdasSupports: Map<string, FdasSupportView>;
+  fdasEvents: TraceEvent[];
+  fdasRevisionEvents: TraceEvent[];
   plans: Map<string, Plan>;
   proofs: Array<{ event: TraceEvent; result: PlnResult }>;
   pfPlnEvents: TraceEvent[];

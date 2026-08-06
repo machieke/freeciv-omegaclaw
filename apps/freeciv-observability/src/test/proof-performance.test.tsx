@@ -25,7 +25,9 @@ it("renders a 200-node DOM-selectable proof in under 300 ms", () => {
   const proofEvent = event(1, "pln_result", result as unknown as Record<string, unknown>, 1, 0);
   const state: ReplayState = {
     cursor: { turn: 1, seq: 0 }, events: [proofEvent],
-    eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
+    eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(),
+    fdasAtoms: new Map(), fdasScopes: new Map(), fdasSupports: new Map(),
+    fdasEvents: [], fdasRevisionEvents: [], plans: new Map(),
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     teleologyEstimates: [], domainEstimates: [], domainAbstentions: [],
@@ -62,7 +64,9 @@ it("keeps proof nodes beyond the default depth-four collapse inspectable", async
   const proofEvent = event(1, "pln_result", result as unknown as Record<string, unknown>, 1, 0);
   const state: ReplayState = {
     cursor: { turn: 1, seq: 0 }, events: [proofEvent],
-    eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
+    eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(),
+    fdasAtoms: new Map(), fdasScopes: new Map(), fdasSupports: new Map(),
+    fdasEvents: [], fdasRevisionEvents: [], plans: new Map(),
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     teleologyEstimates: [], domainEstimates: [], domainAbstentions: [],

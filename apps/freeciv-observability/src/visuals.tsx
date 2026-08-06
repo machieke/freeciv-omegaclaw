@@ -11,6 +11,21 @@ export const humanize = (value: unknown): string =>
     .replaceAll("-", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+export const numericExtent = (
+  values: Iterable<number>, fallback = 0,
+): [minimum: number, maximum: number] => {
+  let minimum = Number.POSITIVE_INFINITY;
+  let maximum = Number.NEGATIVE_INFINITY;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    if (value < minimum) minimum = value;
+    if (value > maximum) maximum = value;
+  }
+  return minimum === Number.POSITIVE_INFINITY
+    ? [fallback, fallback]
+    : [minimum, maximum];
+};
+
 export function Sparkline({ values, minimum, maximum, color = "var(--cyan)", label }: {
   values: number[];
   minimum?: number;
@@ -20,8 +35,9 @@ export function Sparkline({ values, minimum, maximum, color = "var(--cyan)", lab
 }) {
   const finite = values.filter(Number.isFinite);
   if (!finite.length) return <span className="sparkline-empty">no series</span>;
-  const low = minimum ?? Math.min(...finite);
-  const high = maximum ?? Math.max(...finite);
+  const [observedLow, observedHigh] = numericExtent(finite);
+  const low = minimum ?? observedLow;
+  const high = maximum ?? observedHigh;
   const span = Math.max(1e-9, high - low);
   const width = 180;
   const height = 42;
@@ -60,7 +76,10 @@ export function TurnHeatmap({ rows, turns, onTurn, label }: {
   onTurn: (turn: number) => void;
   label: string;
 }) {
-  const maximum = Math.max(1, ...rows.flatMap((row) => [...row.counts.values()]));
+  let maximum = 1;
+  for (const row of rows) {
+    for (const count of row.counts.values()) maximum = Math.max(maximum, count);
+  }
   return <div className="turn-heatmap" role="grid" aria-label={label}
     style={{ "--turn-count": Math.max(1, turns.length) } as CSSProperties}>
     <div className="heatmap-corner">track / turn</div>

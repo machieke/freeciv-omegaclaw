@@ -1,0 +1,146 @@
+schema_version: "1.0"
+ruleset: civ2civ3
+turn_limit: 1000
+engine_max_turns: 1000
+live:
+  civserver_port: 6001
+  topology: dedicated-serial-process-recycle
+  ws_url_env: FREECIV_PROXY_WS
+  api_token_env: FREECIV_API_TOKEN
+  ruleset_root_env: FREECIV_RULESET_ROOT
+  server_container_env: FREECIV_SERVER_CONTAINER
+opponent:
+  id: builtin-ai-experimental
+  difficulty: experimental
+machine_profile: codex-dev-linux
+engine:
+  freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:56f9ae36e3e985bc36c04600df294436498854321c2390d7e281b7a3071cd6ca
+rulebase:
+  compiler_version: freeciv-ruleset-compiler/1.3
+  source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
+  ir_sha256: 2f25a21c969e60b94c2da4d40c336fcc14a41e6741d8edf86d0eb8be4e696f06
+  atomese_sha256: 86b3108f12c30690af34f72f40150ca0250caf7479ce07f11d40236e8e00220e
+model:
+  provider: Ollama-local
+  name: qwen3-coder-next:latest
+  think: false
+  temperature: 0.0
+  turn_timeout_seconds: 30
+  readiness_timeout_seconds: 90
+  readiness_policy: chat-once-expiry-aware-resident-v2
+  readiness_residency_floor_seconds: 300
+  keep_alive: 30m
+  corrective_attempts: 2
+  max_tokens: 400
+  selection_call_policy: canonical-singleton-bypass-v1
+impact_policy:
+  max_actions_per_turn: 8
+  expansion_city_target: 5
+  settle_min_distance: 3
+  horizon_turn: 1000
+  preferred_government: ""
+  government_minimum_remaining_turns: 12
+  government_minimum_city_count: 5
+  government_economic_gate_enabled: false
+  government_transition_cost_turns: 6
+  government_maximum_payback_turns: 60
+  government_expected_operating_gold_gain: 0
+  founder_attrition_rebuild_limit: 1
+  founder_attrition_memory_turns: 20
+  coinage_bridge_max_turns: 20
+  production_minimum_remaining_turns: 8
+  expansion_minimum_remaining_turns: 12
+  expansion_minimum_settlement_runway_turns: 15
+  expansion_settlement_deadline_recovery_enabled: true
+  expansion_packet_site_preference_enabled: true
+  expansion_escort_retention_enabled: false
+  expansion_escort_threat_gating_enabled: false
+  expansion_escort_route_threat_memory_enabled: false
+  expansion_final_settlement_escort_enabled: false
+  ruleset_driven_production_enabled: true
+  naval_response_enabled: true
+  modernization_enabled: true
+  industrialization_enabled: true
+  strategic_threat_memory_turns: 80
+  foodbox_percent: 100
+  unit_build_score_divisor: 10
+  food_surplus_reserve: 1
+  structural_economy_maximum_completion_turns: 20
+  disorder_luxury_recovery_enabled: false
+  disorder_luxury_trigger_turns: 3
+  disorder_luxury_minimum_city_size: 10
+  disorder_luxury_bridge_max_turns: 40
+  city_happiness_governor_enabled: false
+  treasury_reserve_turns: 2
+  treasury_minimum_gold: 5
+  normal_tax_rate: 40
+  normal_science_rate: 60
+  refresh_timeout_seconds: 0.3
+  terminal_refresh_timeout_seconds: 1.0
+  refresh_stability_interval_seconds: 0.05
+  no_effect_retry_limit: 1
+  max_no_effect_failovers_per_scope: 4
+  preserve_city_defenders: true
+  production_strategy: horizon_score
+  pressure_enabled: true
+  pressure_score_alignment_enabled: true
+  pressure_exploration_information_enabled: true
+  pressure_score_alignment_utility_tolerance: 0.05
+  pressure_damping: 0.85
+  pressure_exploration_floor: 0.05
+  pressure_temperature: 0.15
+  pressure_max_routes_per_conclusion: 32
+  pressure_survival_threat_radius: 3
+  pressure_learning_enabled: true
+  pressure_learning_rate: 0.10
+  pressure_no_progress_rate: 0.10
+  pressure_initial_conductance: 1.00
+seeds:
+  - 4543804
+  - 104743
+  - 104759
+  - 104761
+  - 104773
+  - 104779
+  - 104789
+  - 104801
+  - 104803
+  - 104827
+  - 104831
+  - 104849
+  - 104851
+  - 104869
+  - 104879
+  - 104891
+  - 104911
+  - 104917
+  - 104933
+  - 104947
+  - 104953
+  - 104959
+  - 104971
+  - 104987
+  - 104999
+  - 105019
+  - 105023
+  - 105031
+  - 105037
+  - 105071
+induction:
+  games: 20
+  opponent_id: builtin-ai-consistent-01
+statistics:
+  confidence: 0.95
+  bootstrap_samples: 2000
+  bootstrap_seed: 7717
+calibration:
+  bucket_width: 0.1
+  minimum_bucket_samples: 10
+  tolerance: 0.15
+conditions:
+  - a_stock_llm
+  - b_state_oracle
+  - c_dependency_scheduler
+  - d_uncertain_monitor
+  - e_full_loop

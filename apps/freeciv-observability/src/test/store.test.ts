@@ -81,6 +81,62 @@ describe("event sourced replay", () => {
       .toEqual([learned]);
   });
 
+  it("folds extended AtomSpace revisions, scopes, supports, and invalidations as of cursor", () => {
+    const payload = (details: Record<string, unknown>) => ({
+      revision_id: "fdas-revision-test", snapshot_id: "snapshot-test",
+      ruleset_digest: "ruleset-test", component_id: "fdas-event-emitter",
+      component_version: "1.0", structural_hash: "a".repeat(64), details,
+    });
+    const started = event(201, "atomspace_revision_started", payload({
+      cold_build: true, build_hash: "b".repeat(64), prior_revision_id: null,
+    }), 4, 0);
+    const scope = event(202, "scope_materialized", payload({
+      atom_count: 1, scope_id: "scope-city-4", scope_kind: "city-facts",
+      scope: { scope_id: "scope-city-4", scope_kind: "city-facts", namespaces: ["derived"] },
+    }), 4, 1);
+    const derived = event(203, "atom_rederived", payload({
+      atom_id: "fdas-atom-4", predicate: "city-provision-deficit", reason: "newly-projected",
+      record: {
+        atom_id: "fdas-atom-4", authority: "deterministic_derived", dependency_count: 2,
+        key: { namespace: "derived", predicate: "city-provision-deficit",
+          scope_id: "scope-city-4", arguments: [
+            { term_type: "entity", kind: "city", entity_id: "4" },
+          ] },
+        lifecycle: "active", provenance_ids: ["snapshot-test"],
+        support_ids: ["support-4"], tags: [], truth: { crisp: true }, validity: {},
+      },
+    }), 4, 2);
+    const support = event(204, "atom_support_added", payload({
+      support_id: "support-4", derivation_id: "city-provision-deficit",
+      output_atom_ids: ["fdas-atom-4"], support: {
+        support_id: "support-4", derivation_id: "city-provision-deficit",
+      },
+    }), 4, 3);
+    const goal = event(206, "goal_instantiated", payload({
+      deficit_atom_id: "fdas-atom-4", deficit_predicate: "city-provision-deficit",
+      goal_id: "goal-city-4", scope_id: "scope-city-4",
+    }), 4, 4);
+    const operation = event(207, "operation_projected", payload({
+      atom_ids: ["fdas-atom-4"], operation_id: "operation-city-4",
+    }), 4, 5);
+    const invalidated = event(205, "atom_invalidated", payload({
+      atom_id: "fdas-atom-4", reason: "absent-from-current-committed-revision",
+    }), 5, 1);
+    const rows = [started, scope, derived, support, goal, operation, invalidated];
+    const before = foldEvents(rows, { turn: 4, seq: 5 });
+    expect(before.fdasEvents).toHaveLength(6);
+    expect(before.fdasAtoms.get("fdas-atom-4")).toMatchObject({
+      namespace: "derived", scopeId: "scope-city-4", status: "active",
+      linkedGoalIds: ["goal-city-4"], linkedOperationIds: ["operation-city-4"],
+    });
+    expect(before.fdasScopes.get("scope-city-4")?.scopeKind).toBe("city-facts");
+    expect(before.fdasSupports.get("support-4")?.outputAtomIds).toEqual(["fdas-atom-4"]);
+    expect(before.unknown).toEqual([]);
+    const after = foldEvents(rows, { turn: 5, seq: 1 });
+    expect(after.fdasAtoms.get("fdas-atom-4")?.status).toBe("invalidated");
+    expect(after.fdasAtoms.get("fdas-atom-4")?.history).toHaveLength(2);
+  });
+
   it("indexes unified controller lineage strictly as of the replay cursor", () => {
     const teleology = event(11, "teleology_estimated", {}, 4, 1);
     const requirements = event(12, "requirement_set_materialized", {}, 4, 2);

@@ -434,11 +434,142 @@ const decisionOnlyAuditTrace = [
   }, 2, 3),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const fdasPayload = (details: Record<string, unknown>) => ({
+  revision_id: "fdas-revision-observable",
+  snapshot_id: "snapshot-observable",
+  ruleset_digest: "ruleset-observable",
+  component_id: "fdas-event-emitter",
+  component_version: "1.0",
+  structural_hash: "f".repeat(64),
+  details,
+});
+const fdasProjectionSummary = {
+  atom_counts_by_authority: { deterministic_derived: 1 },
+  atom_counts_by_lifecycle: { active: 1 },
+  atom_counts_by_namespace: { derived: 1 },
+  atom_counts_by_predicate: { "city-provision-deficit": 1 },
+  scope_counts_by_kind: { "city-facts": 1 },
+  support_counts_by_derivation: { "city-provision-deficit": 1 },
+};
+const fdasTrace = [
+  event(701, "atomspace_revision_started", fdasPayload({
+    build_hash: "1".repeat(64), cold_build: true, prior_revision_id: null,
+  }), 8, 0),
+  event(702, "projection_batch_applied", fdasPayload({
+    atom_count: 1, scope_count: 1, support_count: 1,
+    projection_summary: fdasProjectionSummary,
+  }), 8, 1),
+  event(703, "scope_materialized", fdasPayload({
+    atom_count: 1, scope_id: "scope:game:test:player:0:city:17:facts", scope_kind: "city-facts",
+    scope: {
+      scope_id: "scope:game:test:player:0:city:17:facts", scope_kind: "city-facts",
+      parent_scope_ids: ["scope:game:test:player:0:empire"], namespaces: ["authoritative", "derived"],
+      root_entities: [{ term_type: "entity", kind: "city", entity_id: "17" }],
+    },
+  }), 8, 2),
+  event(704, "atom_rederived", fdasPayload({
+    atom_id: "atom-city-17-deficit", predicate: "city-provision-deficit", reason: "newly-projected",
+    record: {
+      atom_id: "atom-city-17-deficit", authority: "deterministic_derived", dependency_count: 3,
+      key: {
+        namespace: "derived", predicate: "city-provision-deficit",
+        scope_id: "scope:game:test:player:0:city:17:facts",
+        arguments: [{ term_type: "entity", kind: "city", entity_id: "17" }],
+      },
+      lifecycle: "active", materialization_key: "materialized-city-17",
+      provenance_ids: ["snapshot-observable"], support_ids: ["support-city-17"],
+      tags: [["domain", "city-stability"]], truth: { crisp: true },
+      validity: { snapshot_id: "snapshot-observable", valid_from_turn: 8, valid_through_turn: 8 },
+    },
+  }), 8, 3),
+  event(705, "atom_support_added", fdasPayload({
+    derivation_id: "city-provision-deficit", support_id: "support-city-17",
+    output_atom_ids: ["atom-city-17-deficit"],
+    support: {
+      support_id: "support-city-17", derivation_id: "city-provision-deficit",
+      derivation_version: "1.0", dependencies: [
+        { key: { kind: "snapshot-field", owner_id: "city:17", path: "food_surplus" }, fingerprint: "food" },
+      ],
+    },
+  }), 8, 4),
+  event(706, "goal_instantiated", fdasPayload({
+    goal_id: "goal-city-17", deficit_atom_id: "atom-city-17-deficit",
+    deficit_predicate: "city-provision-deficit", scope_id: "scope:game:test:player:0:city:17:facts",
+  }), 8, 5),
+  event(707, "atomspace_revision_committed", fdasPayload({
+    atom_count: 1, scope_count: 1, support_count: 1, build_hash: "1".repeat(64),
+    detail_event_count: 4, omitted_detail_event_count: 0,
+    projection_summary: fdasProjectionSummary,
+  }), 8, 6),
+].map((row) => JSON.stringify(row)).join("\n");
+const historicalFdasTrace = [
+  event(721, "atomspace_revision_started", fdasPayload({
+    build_hash: "2".repeat(64), cold_build: true, prior_revision_id: null,
+  }), 9, 0),
+  event(722, "projection_batch_applied", fdasPayload({
+    atom_count: 2, scope_count: 1, support_count: 2,
+  }), 9, 1),
+  event(723, "scope_materialized", fdasPayload({
+    atom_count: 2, scope_id: "scope:historical:city:17:facts", scope_kind: "city-facts",
+  }), 9, 2),
+  event(724, "atom_rederived", fdasPayload({
+    atom_id: "historical-garrison", predicate: "city-garrison-deficit", reason: "newly-projected",
+  }), 9, 3),
+  event(725, "atom_rederived", fdasPayload({
+    atom_id: "historical-defender", predicate: "unit-persistent-defender", reason: "newly-projected",
+  }), 9, 4),
+  event(726, "goal_instantiated", fdasPayload({
+    deficit_atom_id: "historical-garrison", deficit_predicate: "city-garrison-deficit",
+    goal_id: "historical-goal-17", scope_id: "scope:historical:city:17:facts",
+  }), 9, 5),
+  event(727, "atomspace_revision_committed", fdasPayload({
+    atom_count: 2, scope_count: 1, support_count: 2, build_hash: "2".repeat(64),
+    detail_event_count: 4, omitted_detail_event_count: 0,
+  }), 9, 6),
+].map((row) => JSON.stringify(row)).join("\n");
+
 describe("Decision Observatory", () => {
   it("defaults Live mode to the dedicated event-tail port", () => {
     render(<App initialText={demoTrace} />);
     expect(screen.getByRole("textbox", { name: "Live endpoint" }))
       .toHaveValue("ws://127.0.0.1:18765");
+  });
+
+  it("renders the functional dependent AtomSpace as the primary AtomSpace surface", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={fdasTrace} />);
+    await user.click(screen.getByRole("button", { name: /^03 Atomspace/ }));
+    expect(screen.getByRole("heading", { name: "Extended AtomSpace" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "FDAS current revision" }))
+      .toHaveTextContent("fdas-revision-observable");
+    expect(screen.getByRole("region", { name: "FDAS namespace and authority distribution" }))
+      .toHaveTextContent("Deterministic Derived");
+    expect(screen.getByRole("region", { name: "FDAS scope topology" }))
+      .toHaveTextContent("city-facts");
+    const table = screen.getByRole("table", { name: "Extended AtomSpace records" });
+    expect(within(table).getByText("city-provision-deficit")).toBeInTheDocument();
+    expect(within(table).getByText("city:17")).toBeInTheDocument();
+    expect(within(table).getByText("1 / 3")).toBeInTheDocument();
+    await user.click(within(table).getAllByRole("row")[1]);
+    expect(screen.getByRole("heading", { name: "atom_rederived" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Legacy projection/ }));
+    expect(screen.getByRole("heading", { name: "Atomspace inspector" })).toBeInTheDocument();
+  });
+
+  it("renders historical identity-only FDAS traces without repetitive unavailable cells", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={historicalFdasTrace} />);
+    await user.click(screen.getByRole("button", { name: /^03 Atomspace/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("Historical identity telemetry");
+    expect(screen.getByRole("heading", { name: "Current predicates" })).toBeInTheDocument();
+    expect(screen.getByText("goal-linked atoms").parentElement).toHaveTextContent("1");
+    expect(screen.getByRole("region", { name: "FDAS scope topology" }))
+      .toHaveTextContent("materialized at T9.2");
+    const table = screen.getByRole("table", { name: "Historical FDAS atom lifecycle records" });
+    expect(within(table).getByText("city-garrison-deficit")).toBeInTheDocument();
+    expect(within(table).getByText("historical-goal-17")).toBeInTheDocument();
+    expect(table).not.toHaveTextContent("detail unavailable");
+    expect(screen.queryByRole("combobox", { name: "FDAS namespace" })).not.toBeInTheDocument();
   });
 
   it("shows authoritative resource flow, score gap, research upkeep, and buildings", async () => {
@@ -491,6 +622,10 @@ describe("Decision Observatory", () => {
     })).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Evidence pipeline" })).toBeInTheDocument();
     expect(screen.getByText("Observe what was emitted.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How the extended graph stays inspectable" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Extended AtomSpace pipeline" }))
+      .toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How PF-PLN is applied" })).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "PF-PLN application stages" }))
       .toBeInTheDocument();

@@ -66,5 +66,5 @@ agent-instructions
 /apps/freeciv-observability/dist/
 /apps/freeciv-observability/coverage/
 
-# Local recorded UI verification bundles
-/proofshot-artifacts/
+# Local recorded UI verification bundles (root or app-scoped sessions)
+**/proofshot-artifacts/
