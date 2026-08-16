@@ -88,6 +88,7 @@ from .capacities import (
     MultiCommodityResult,
 )
 from .advection import (
+    AggregateTransportRun,
     AdvectionStepResult,
     AttentionState,
     PacketReservationLedger,
@@ -136,6 +137,7 @@ __all__ = [
     "DecisionSafeCandidateSelector",
     "DecisionSafeCandidateUnion",
     "AdvectionStepResult",
+    "AggregateTransportRun",
     "AttentionState",
     "CapacityDual",
     "CapacityKind",

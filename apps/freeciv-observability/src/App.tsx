@@ -18,6 +18,7 @@ import {
 } from "./artifacts";
 import { LiveEventClient, type LiveStatus } from "./live";
 import { GroundedPlannerDashboard } from "./GroundedPlanner";
+import { ScalabilityDashboard } from "./ScalabilityDashboard";
 import { ancestry, densityByTurn, foldEvents } from "./store";
 import {
   parseJsonl, parseJsonlStream, type ParseResult, type QuarantinedLine,
@@ -48,7 +49,8 @@ const NAV: Array<{ view: ViewName; label: string; key: string }> = [
   { view: "technology", label: "Technology", key: "10" },
   { view: "economy", label: "Economy & production", key: "11" },
   { view: "forces", label: "Unit lifecycle", key: "12" },
-  { view: "about", label: "How it works", key: "13" },
+  { view: "scalability", label: "Scale lab", key: "13" },
+  { view: "about", label: "How it works", key: "14" },
 ];
 
 const STAGES: Array<{ name: string; types: Set<string> }> = [
@@ -4262,8 +4264,9 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
                       onSelect={setSelection} />
                       : view === "forces" ? <UnitLifecycleDashboard state={state}
                         onSelect={setSelection} onCursor={setCursor} />
-                        : view === "about" ? <HowItWorks onNavigate={setView} />
-                          : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
+                        : view === "scalability" ? <ScalabilityDashboard />
+                          : view === "about" ? <HowItWorks onNavigate={setView} />
+                            : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
                             detail="This surface never derives missing data from another event type." />;
 
   return <div className="app-shell">

@@ -180,8 +180,32 @@ class AtomSpaceTransaction(object):
         self._require_open()
         result = DependencyIndex.build(self._records.values()).invalidate(
             changed_keys)
-        for support_id in result.invalid_support_ids:
-            self.retract_support(support_id)
+        # Rewriting every affected record once avoids the previous
+        # O(invalid supports * all records) sequence of retract_support scans.
+        # The support-aware semantics are unchanged: an atom is removed only
+        # when all of its supports are invalid, while surviving supports are
+        # re-materialized under the same typed key and truth contract.
+        invalid_supports = frozenset(result.invalid_support_ids)
+        for atom_id in result.affected_atom_ids:
+            record = self._records.get(atom_id)
+            if record is None:
+                continue
+            supports = tuple(
+                value for value in record.supports
+                if value.support_id not in invalid_supports)
+            if not supports:
+                del self._records[atom_id]
+                continue
+            self._records[atom_id] = AtomRecord.create(
+                record.key,
+                record.authority,
+                record.truth,
+                record.validity,
+                supports,
+                record.provenance_ids,
+                record.lifecycle,
+                record.tags,
+            )
         return result
 
     def materialize(self, batches):

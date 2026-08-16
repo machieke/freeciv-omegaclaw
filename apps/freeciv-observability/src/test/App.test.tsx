@@ -616,7 +616,7 @@ describe("Decision Observatory", () => {
   it("explains the evidence pipeline, trust boundary, and routes users to an answer", async () => {
     const user = userEvent.setup();
     render(<App initialText={demoTrace} />);
-    await user.click(screen.getByRole("button", { name: /^13 How it works/ }));
+    await user.click(screen.getByRole("button", { name: /^14 How it works/ }));
     expect(screen.getByRole("heading", {
       name: "See the decision, not just the outcome.",
     })).toBeInTheDocument();

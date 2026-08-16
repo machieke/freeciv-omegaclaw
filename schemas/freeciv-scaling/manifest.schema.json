@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://takopi.local/schemas/freeciv-scaling/manifest.schema.json",
+  "title": "FreeCiv scalability preregistration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_type",
+    "baseline_commit",
+    "claim_boundary",
+    "environment_hash",
+    "generator_version",
+    "primary_tiers",
+    "preregistration_hash",
+    "schema_version",
+    "stop_rules",
+    "stretch_tiers"
+  ],
+  "properties": {
+    "artifact_type": {"const": "freeciv-scalability-preregistration"},
+    "baseline_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "claim_boundary": {"type": "string", "minLength": 1},
+    "environment_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generator_version": {"type": "string", "minLength": 1},
+    "primary_tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atomspace", "proof", "bridge", "fluid", "combined", "captured"],
+      "properties": {
+        "atomspace": {"type": "array", "items": {"type": "string"}},
+        "proof": {"type": "array", "items": {"type": "string"}},
+        "bridge": {"type": "array", "items": {"type": "string"}},
+        "fluid": {"type": "array", "items": {"type": "string"}},
+        "combined": {"type": "array", "items": {"type": "string"}},
+        "captured": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "preregistration_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "schema_version": {"const": "1.0"},
+    "stop_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edge_updates", "live_atoms", "peak_rss_bytes", "relevant_proof_nodes", "wall_seconds"],
+      "properties": {
+        "edge_updates": {"type": "integer", "minimum": 1},
+        "live_atoms": {"type": "integer", "minimum": 1},
+        "peak_rss_bytes": {"type": "integer", "minimum": 1},
+        "relevant_proof_nodes": {"type": "integer", "minimum": 1},
+        "wall_seconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "stretch_tiers": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,4 +1,4 @@
-import { createReadStream, readdirSync, realpathSync, statSync } from "node:fs";
+import { createReadStream, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -118,12 +118,43 @@ const json = (response: ServerResponse, status: number, body: unknown): void => 
   response.end(JSON.stringify(body));
 };
 
+export function loadScalabilityEvidence(repoRoot = defaultRepoRoot): unknown {
+  const root = resolve(repoRoot, "artifacts/freeciv/scalability-v1");
+  const read = (name: string, optional = false): unknown => {
+    try { return JSON.parse(readFileSync(resolve(root, name), "utf-8")); }
+    catch (error) { if (optional) return null; throw error; }
+  };
+  const trialRows = (phase: "discovery" | "heldout"): unknown[] => {
+    const material = read(`${phase}/trials.json`, true) as { results?: unknown[] } | null;
+    return material?.results ?? [];
+  };
+  return {
+    aggregate: read("aggregate.json"), audit: read("audit.json"),
+    claims: read("claim-manifest.json"), discovery: trialRows("discovery"),
+    environment: read("environment.json"),
+    frozen: read("frozen-preregistration.json", true), heldout: trialRows("heldout"),
+    preregistration: read("preregistration.json"),
+  };
+}
+
 export function artifactRequestHandler(
   request: IncomingMessage,
   response: ServerResponse,
   repoRoot = defaultRepoRoot,
 ): boolean {
   const url = new URL(request.url ?? "/", "http://127.0.0.1");
+  if (url.pathname === "/api/freeciv-scalability") {
+    if (request.method !== "GET") {
+      json(response, 405, { error: "Only GET is supported" });
+      return true;
+    }
+    try {
+      json(response, 200, loadScalabilityEvidence(repoRoot));
+    } catch {
+      json(response, 404, { error: "Scalability campaign artifacts are unavailable" });
+    }
+    return true;
+  }
   if (url.pathname === "/api/freeciv-artifacts/events") {
     if (request.method !== "GET") {
       json(response, 405, { error: "Only GET is supported" });

@@ -586,6 +586,26 @@ class DependentAtomSpaceStore(object):
         with self._lock:
             return self._revisions.get(str(revision_id))
 
+    @property
+    def retained_revision_count(self):
+        """Number of immutable revisions currently retained by the store."""
+        with self._lock:
+            return len(self._revisions)
+
+    @property
+    def retained_revision_ids(self):
+        """Stable identities for retention/leak diagnostics."""
+        with self._lock:
+            return tuple(sorted(self._revisions))
+
+    @property
+    def retained_scope_count(self):
+        """Scopes reachable from retained revisions, counted per revision."""
+        with self._lock:
+            return sum(
+                len(revision.scopes)
+                for revision in self._revisions.values())
+
     def query_current(self, game_id, player_id):
         from .query import RevisionQueryContext
         revision = self.current(game_id, player_id)

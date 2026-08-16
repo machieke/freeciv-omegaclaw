@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://takopi.local/schemas/freeciv-scaling/trial.schema.json",
+  "title": "FreeCiv scalability trial result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["actual_work", "correctness", "errors", "metrics", "result_hash", "schema_version", "status", "trial", "trial_id"],
+  "properties": {
+    "actual_work": {"type": "object"},
+    "correctness": {"type": "object"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "object"},
+    "result_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "schema_version": {"const": "1.0"},
+    "status": {"enum": ["completed", "failed", "stopped"]},
+    "trial_id": {"type": "string", "pattern": "^scale-trial-[0-9a-f]{24}$"},
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arm", "cell", "experiment_id", "phase", "source_identity", "telemetry_mode"],
+      "properties": {
+        "arm": {"type": "string", "minLength": 1},
+        "cell": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["budgets", "parameters", "seed", "surface", "tier"],
+          "properties": {
+            "budgets": {"type": "object"},
+            "parameters": {"type": "object"},
+            "seed": {"type": "integer"},
+            "surface": {"enum": ["atomspace", "proof", "bridge", "fluid", "combined", "captured"]},
+            "tier": {"type": "string", "minLength": 1}
+          }
+        },
+        "experiment_id": {"type": "string", "minLength": 1},
+        "phase": {"enum": ["discovery", "heldout", "audit"]},
+        "source_identity": {"type": "string", "minLength": 1},
+        "telemetry_mode": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

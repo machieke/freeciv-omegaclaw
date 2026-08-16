@@ -2,6 +2,7 @@
 
 import os
 import sys
+from dataclasses import replace
 
 import pytest
 
@@ -22,6 +23,7 @@ from freeciv_agent.flow_control import (  # noqa: E402
     PacketReservationLedger,
     ReservationMass,
     TwoDyeAdvectionKernel,
+    ProjectionResult,
 )
 
 
@@ -206,6 +208,44 @@ def test_transport_latency_scales_with_corridor_length():
     assert short_run.wall_ms >= 0.0
     assert long_run.wall_ms >= 0.0
     assert long_run.microseconds_per_edge_update >= 0.0
+
+
+def test_aggregate_transport_preserves_safety_without_step_retention():
+    view = _corridor(20)
+    forward, backward = _fields(view, velocity=0.25)
+    run = TwoDyeAdvectionKernel().run_aggregate(
+        view, _state(view), forward, backward, microsteps=16)
+
+    assert run.healthy
+    assert run.microsteps == 16
+    assert run.edge_updates == 16 * 2 * (20 - 1)
+    assert run.maximum_normalized_mass_error <= 1e-12
+    assert run.positivity_corrections == 0
+    assert run.final_state.accounted_total == pytest.approx(2.0)
+
+
+def test_projection_from_stale_topology_generation_fails_closed():
+    view = _corridor(4)
+    field = ProjectionResult(
+        edge_ids=tuple(row.stable_id for row in view.edges),
+        node_ids=tuple(row.stable_id for row in view.nodes),
+        feasible_current=tuple(0.25 for _ in view.edges),
+        congestion_dual=tuple(0.0 for _ in view.nodes),
+        mobility=tuple(1.0 for _ in view.edges),
+        balance_residual=0.0,
+        iterations=1,
+        gauge_policy="first_node_zero",
+        health="healthy",
+        solver="test",
+        component_count=1,
+        blocked_edge_ids=(),
+        requested_current_hash="requested",
+        topology_generation=view.topology_generation - 1,
+        topology_semantic_hash=view.probe_semantic_hash,
+    )
+    with pytest.raises(ValueError, match="stale topology"):
+        TwoDyeAdvectionKernel().step(
+            view, _state(view), field, field)
 
 
 def test_reservoir_and_reservation_mass_are_in_total_accounting():

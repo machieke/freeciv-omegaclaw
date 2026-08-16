@@ -267,6 +267,43 @@ class TransportRun:
         }
 
 
+@dataclass(frozen=True)
+class AggregateTransportRun:
+    """Bounded-memory transport summary for aggregate telemetry runs."""
+
+    final_state: AttentionState
+    microsteps: int
+    corridor_length: int
+    edge_updates: int
+    wall_ms: float
+    healthy: bool
+    maximum_normalized_mass_error: float
+    positivity_corrections: int
+    correction_mass: float
+
+    @property
+    def microseconds_per_edge_update(self):
+        if self.edge_updates <= 0:
+            return 0.0
+        return 1000.0 * self.wall_ms / self.edge_updates
+
+    def to_dict(self):
+        return {
+            "correction_mass": float(self.correction_mass),
+            "corridor_length": self.corridor_length,
+            "edge_updates": self.edge_updates,
+            "final_state": self.final_state.to_dict(),
+            "healthy": self.healthy,
+            "maximum_normalized_mass_error": float(
+                self.maximum_normalized_mass_error),
+            "microseconds_per_edge_update": float(
+                self.microseconds_per_edge_update),
+            "microsteps": self.microsteps,
+            "positivity_corrections": self.positivity_corrections,
+            "wall_ms": float(self.wall_ms),
+        }
+
+
 class TwoDyeAdvectionKernel:
     """Explicit conservative donor-cell transport with a graph CFL gate."""
 
@@ -303,6 +340,16 @@ class TwoDyeAdvectionKernel:
             if values.edge_ids != edge_ids:
                 raise ValueError(
                     "projected field is not aligned with view")
+            if (values.topology_generation is not None
+                    and values.topology_generation
+                    != view.topology_generation):
+                raise ValueError(
+                    "projected field belongs to a stale topology generation")
+            if (values.topology_semantic_hash is not None
+                    and values.topology_semantic_hash
+                    != view.probe_semantic_hash):
+                raise ValueError(
+                    "projected field belongs to a different topology")
             values = values.feasible_current
         elif isinstance(values, dict):
             unknown = set(values) - set(edge_ids)
@@ -424,7 +471,8 @@ class TwoDyeAdvectionKernel:
     def step(
             self, view, state,
             forward_field, backward_field,
-            delta_time=1.0, diffusion=0.0):
+            delta_time=1.0, diffusion=0.0,
+            _prepared=None):
         started = time.perf_counter()
         if not isinstance(view, FlowView):
             raise TypeError(
@@ -438,21 +486,30 @@ class TwoDyeAdvectionKernel:
                 "advection delta time must be positive")
         diffusion = _finite_nonnegative(
             diffusion, "advection diffusion")
-        node_index = self._node_order(view, state)
-        forward = self._legal_field(
-            view, self._field(view, forward_field),
-            FlowProcess.PROBE_FORWARD)
-        backward = self._legal_field(
-            view, self._field(view, backward_field),
-            FlowProcess.PROBE_BACKWARD)
-        forward_legality = tuple(
-            edge.legality.allows(
+        if _prepared is None:
+            node_index = self._node_order(view, state)
+            forward = self._legal_field(
+                view, self._field(view, forward_field),
                 FlowProcess.PROBE_FORWARD)
-            for edge in view.edges)
-        backward_legality = tuple(
-            edge.legality.allows(
+            backward = self._legal_field(
+                view, self._field(view, backward_field),
                 FlowProcess.PROBE_BACKWARD)
-            for edge in view.edges)
+            forward_legality = tuple(
+                edge.legality.allows(
+                    FlowProcess.PROBE_FORWARD)
+                for edge in view.edges)
+            backward_legality = tuple(
+                edge.legality.allows(
+                    FlowProcess.PROBE_BACKWARD)
+                for edge in view.edges)
+        else:
+            (
+                node_index, forward, backward,
+                forward_legality, backward_legality,
+            ) = _prepared
+            if tuple(node_index) != state.node_ids:
+                raise ValueError(
+                    "prepared advection state is not aligned with flow view")
         raw_cfl = max(
             self._local_cfl(
                 view, forward, forward_legality, diffusion,
@@ -542,12 +599,29 @@ class TwoDyeAdvectionKernel:
         started = time.perf_counter()
         steps = []
         current = state
+        node_index = self._node_order(view, state)
+        forward = self._legal_field(
+            view, self._field(view, forward_field),
+            FlowProcess.PROBE_FORWARD)
+        backward = self._legal_field(
+            view, self._field(view, backward_field),
+            FlowProcess.PROBE_BACKWARD)
+        forward_legality = tuple(
+            edge.legality.allows(FlowProcess.PROBE_FORWARD)
+            for edge in view.edges)
+        backward_legality = tuple(
+            edge.legality.allows(FlowProcess.PROBE_BACKWARD)
+            for edge in view.edges)
+        prepared = (
+            node_index, forward, backward,
+            forward_legality, backward_legality)
         for _ in range(microsteps):
             result = self.step(
                 view, current,
                 forward_field, backward_field,
                 delta_time=delta_time,
-                diffusion=diffusion)
+                diffusion=diffusion,
+                _prepared=prepared)
             steps.append(result)
             current = result.state
             if not result.healthy:
@@ -562,3 +636,68 @@ class TwoDyeAdvectionKernel:
             edge_updates=sum(
                 row.edge_updates for row in steps),
             wall_ms=wall_ms)
+
+    def run_aggregate(
+            self, view, state,
+            forward_field, backward_field,
+            microsteps, delta_time=1.0, diffusion=0.0):
+        """Run without retaining O(nodes * microsteps) diagnostic arrays."""
+        if (isinstance(microsteps, bool)
+                or not isinstance(microsteps, int)
+                or microsteps < 1):
+            raise ValueError(
+                "transport microsteps must be positive")
+        started = time.perf_counter()
+        current = state
+        node_index = self._node_order(view, state)
+        forward = self._legal_field(
+            view, self._field(view, forward_field),
+            FlowProcess.PROBE_FORWARD)
+        backward = self._legal_field(
+            view, self._field(view, backward_field),
+            FlowProcess.PROBE_BACKWARD)
+        forward_legality = tuple(
+            edge.legality.allows(FlowProcess.PROBE_FORWARD)
+            for edge in view.edges)
+        backward_legality = tuple(
+            edge.legality.allows(FlowProcess.PROBE_BACKWARD)
+            for edge in view.edges)
+        prepared = (
+            node_index, forward, backward,
+            forward_legality, backward_legality)
+        executed = 0
+        edge_updates = 0
+        maximum_error = 0.0
+        corrections = 0
+        correction_mass = 0.0
+        healthy = True
+        for _ in range(microsteps):
+            result = self.step(
+                view, current,
+                forward_field, backward_field,
+                delta_time=delta_time,
+                diffusion=diffusion,
+                _prepared=prepared)
+            executed += 1
+            edge_updates += result.edge_updates
+            maximum_error = max(
+                maximum_error,
+                abs(result.mass_error)
+                / max(1.0, result.total_mass_before))
+            corrections += result.positivity_corrections
+            correction_mass += result.correction_mass
+            current = result.state
+            if not result.healthy:
+                healthy = False
+                break
+        return AggregateTransportRun(
+            final_state=current,
+            microsteps=executed,
+            corridor_length=max(0, len(view.nodes) - 1),
+            edge_updates=edge_updates,
+            wall_ms=(time.perf_counter() - started) * 1000.0,
+            healthy=healthy,
+            maximum_normalized_mass_error=maximum_error,
+            positivity_corrections=corrections,
+            correction_mass=correction_mass,
+        )

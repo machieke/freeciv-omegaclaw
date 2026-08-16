@@ -1,0 +1,87 @@
+{
+  "artifact_type": "freeciv-scaling-frozen-baseline",
+  "baseline_commit": "c11620134c0b671c3bc7f1f5c8f7dd2bf70e2f17",
+  "claim_boundary": "Synthetic scalability and correctness only; no FreeCiv score or gameplay claim.",
+  "evidence": {
+    "bridge_g3": {
+      "candidate_count": 34,
+      "edge_count": 855,
+      "goal_count": 2,
+      "node_count": 354,
+      "p95_ms": 245.01605704426765
+    },
+    "fluid_g4_corridor_128": {
+      "edge_updates": 162560,
+      "microseconds_per_edge_update": 0.13124391536950683,
+      "microsteps": 5
+    },
+    "long_run_2000": {
+      "atom_count_median": 1068,
+      "atom_count_p95": 1246,
+      "atom_count_peak": 2325,
+      "derivations_or_support_adds": 31556,
+      "revision_count": 2019
+    },
+    "proof_standalone": {
+      "cache_misses": 435,
+      "longest_depth": 12,
+      "longest_nodes": 132,
+      "maximum_ms": 90.18,
+      "p50_ms": 8.93,
+      "p95_ms": 32.53
+    }
+  },
+  "evidence_sha256": {
+    "docs/freeciv/evidence/fdas-phase1-typed-core.md": "9461499e384c2bf54439734d39ffa4edf5601a52353b14647e95a683f3eabe1a",
+    "docs/freeciv/evidence/fdas-phase3-ruleset-proof-foundation.md": "afb70b6c08b45f116abfaaecbd74ee70c8e599aefe8957fdf9be55aacb16e5fc",
+    "docs/freeciv/evidence/pf-unified-g3-bridge-experiment.json": "32f60dc3acd928fb51c44e55f859d4dff9b42957279c46d659b818126fbbb210",
+    "docs/freeciv/evidence/pf-unified-g4-flow-sandbox.json": "879209c7fbc42644ee40a96d6aa66b9c19bf9fe2fd15739d2cd0c79957758853"
+  },
+  "production_defaults": {
+    "bridge_scalar": {
+      "maximum_regions_per_goal": 8,
+      "probe_max_steps": 32,
+      "probe_path_count": 128,
+      "protected_scalar_top_k": 3
+    },
+    "factor_graph_build": {
+      "max_candidates": 512,
+      "max_edges": 4096,
+      "max_frontier_stubs": 64,
+      "max_nodes": 1024
+    },
+    "flow_build": {
+      "max_candidates": 256,
+      "max_edges": 2048,
+      "max_frontier_stubs": 8,
+      "max_nodes": 512
+    },
+    "pressure": {
+      "max_hops": 64,
+      "max_routes_per_conclusion": 32
+    },
+    "probe": {
+      "max_steps": 16,
+      "path_count": 128
+    },
+    "profile": {
+      "maximum_atoms_global": 25000,
+      "maximum_expansion_depth": 6,
+      "maximum_groundings_per_scope": 1000,
+      "maximum_rule_fires_per_scope": 2000
+    },
+    "proof": {
+      "maximum_bindings": 4096,
+      "maximum_depth": 32,
+      "maximum_rule_fires": 4096
+    }
+  },
+  "schema_version": "1.0",
+  "source_sha256": {
+    "profile/dependent_atomspace_full_telemetry.yaml": "e916ab2e572310e653d8e070b93a217a7903d1ccbd3db75c3a99b975b9eab15d",
+    "src/freeciv_agent/beliefs/rule_engine.py": "ecb6fe38604051d115528bdab4582a42223fa528829e49f5fffcba28f8990911",
+    "src/freeciv_agent/flow_control/builder.py": "2b1b7bcd6aed53faf655a9c2059d9ba9bf5622b799515deaa0f90d54f4d5d01f",
+    "src/freeciv_agent/flow_control/probes.py": "f7253f150cd03eda25af34bc2240f78c5ad04bfd091f7f3b2e97e2bff333ccad",
+    "src/freeciv_agent/pressure/model.py": "f14a817f2eeea93d1c82517850d93dcd2c17934554b6bf1e5da41a7ccad04c0c"
+  }
+}

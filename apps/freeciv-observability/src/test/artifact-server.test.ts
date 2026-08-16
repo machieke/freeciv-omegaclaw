@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   buildArtifactCatalog,
+  loadScalabilityEvidence,
   resolveArtifactEventPath,
 } from "../../artifact-server";
 
@@ -51,5 +52,25 @@ describe("generated artifact catalog", () => {
     expect(resolveArtifactEventPath(
       "artifacts/freeciv/impact-terminal/attempt-history/run/events.jsonl", repoRoot,
     )).toBeUndefined();
+  });
+
+  it("loads the fixed scalability evidence bundle without scanning arbitrary paths", () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "freeciv-scalability-"));
+    roots.push(repoRoot);
+    const campaign = join(repoRoot, "artifacts/freeciv/scalability-v1");
+    mkdirSync(join(campaign, "discovery"), { recursive: true });
+    for (const [name, value] of Object.entries({
+      "aggregate.json": { artifact_type: "freeciv-scalability-report" },
+      "audit.json": { valid: true }, "claim-manifest.json": { g9_complete: false },
+      "environment.json": { git_commit: "abc" },
+      "preregistration.json": { artifact_type: "freeciv-scalability-preregistration" },
+    })) writeFileSync(join(campaign, name), JSON.stringify(value));
+    writeFileSync(join(campaign, "discovery/trials.json"), JSON.stringify({ results: [{ trial_id: "one" }] }));
+
+    const evidence = loadScalabilityEvidence(repoRoot) as Record<string, unknown>;
+
+    expect(evidence.frozen).toBeNull();
+    expect(evidence.heldout).toEqual([]);
+    expect(evidence.discovery).toEqual([{ trial_id: "one" }]);
   });
 });

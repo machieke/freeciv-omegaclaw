@@ -99,6 +99,28 @@ class ProofRecord:
 
 
 @dataclass(frozen=True)
+class InferenceCounters:
+    goal_attempts: int
+    rules_visited: int
+    bindings: int
+    memo_hits: int
+    cycle_rejections: int
+    grounded_evaluations: int
+    maximum_depth_attempted: int
+
+    def to_dict(self):
+        return {
+            "bindings": self.bindings,
+            "cycle_rejections": self.cycle_rejections,
+            "goal_attempts": self.goal_attempts,
+            "grounded_evaluations": self.grounded_evaluations,
+            "maximum_depth_attempted": self.maximum_depth_attempted,
+            "memo_hits": self.memo_hits,
+            "rules_visited": self.rules_visited,
+        }
+
+
+@dataclass(frozen=True)
 class InferenceOutcome:
     status: str
     predicate: str
@@ -108,6 +130,7 @@ class InferenceOutcome:
     prerequisite_names: tuple
     truncated: bool
     artifact_hash: str
+    counters: object = None
 
     @property
     def proved(self):
@@ -133,6 +156,9 @@ class InferenceOutcome:
                 for value in self.proof_records],
             "status": self.status,
             "truncated": self.truncated,
+            "work_counters": (
+                self.counters.to_dict()
+                if self.counters is not None else None),
         }
 
 
@@ -222,8 +248,17 @@ class DeterministicRuleEngine(object):
         memo = {}
         active = set()
         truncated = False
+        counters = {
+            "cycle_rejections": 0,
+            "grounded_evaluations": 0,
+            "maximum_depth_attempted": 0,
+            "memo_hits": 0,
+            "rules_visited": 0,
+        }
 
         def consume(depth):
+            counters["maximum_depth_attempted"] = max(
+                counters["maximum_depth_attempted"], depth)
             if depth > request.maximum_depth:
                 raise _BudgetExhausted("depth")
             fires[0] += 1
@@ -235,8 +270,10 @@ class DeterministicRuleEngine(object):
             target_name = str(goal_arguments[-1])
             memo_key = (goal_predicate, tuple(goal_arguments))
             if memo_key in memo:
+                counters["memo_hits"] += 1
                 return memo[memo_key]
             if memo_key in active:
+                counters["cycle_rejections"] += 1
                 blockers.add(("cycle", target_name))
                 return False, False, ()
             if (goal_predicate == "researchable"
@@ -252,6 +289,7 @@ class DeterministicRuleEngine(object):
             active.add(memo_key)
             alternatives = []
             for rule in rules:
+                counters["rules_visited"] += 1
                 bindings[0] += 1
                 if bindings[0] > request.maximum_bindings:
                     raise _BudgetExhausted("bindings")
@@ -272,6 +310,7 @@ class DeterministicRuleEngine(object):
                     premise_id = _atom_id(requirement.predicate, req_args)
                     premises.append(premise_id)
                     if requirement.semantic == "grounded":
+                        counters["grounded_evaluations"] += 1
                         result = state.evaluate(
                             requirement.predicate, req_args)
                         grounded.append(structural_hash(result.to_dict()))
@@ -347,6 +386,16 @@ class DeterministicRuleEngine(object):
             prerequisites,
             truncated,
             structural_hash(semantic),
+            InferenceCounters(
+                goal_attempts=fires[0],
+                rules_visited=counters["rules_visited"],
+                bindings=bindings[0],
+                memo_hits=counters["memo_hits"],
+                cycle_rejections=counters["cycle_rejections"],
+                grounded_evaluations=counters["grounded_evaluations"],
+                maximum_depth_attempted=(
+                    counters["maximum_depth_attempted"]),
+            ),
         )
 
 

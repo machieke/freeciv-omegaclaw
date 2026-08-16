@@ -2,7 +2,7 @@ import type { Cursor } from "./events";
 
 export type ViewName =
   | "timeline" | "proofs" | "atoms" | "plans" | "map" | "audit" | "metrics" | "pfpln"
-  | "grounded" | "technology" | "economy" | "forces" | "about";
+  | "grounded" | "technology" | "economy" | "forces" | "scalability" | "about";
 
 export interface UrlState {
   view: ViewName;
@@ -17,7 +17,7 @@ export interface UrlState {
 
 const views = new Set<ViewName>([
   "timeline", "proofs", "atoms", "plans", "map", "audit", "metrics", "pfpln",
-  "grounded", "technology", "economy", "forces", "about",
+  "grounded", "technology", "economy", "forces", "scalability", "about",
 ]);
 
 export const decodeUrlState = (search: string, fallback: Cursor): UrlState => {

@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "validate:fixtures": "node scripts/validate-fixtures.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run --exclude src/test/proof-performance.test.tsx && vitest run src/test/proof-performance.test.tsx",
     "test": "npm run typecheck && npm run validate:fixtures && npm run check:boundaries && npm run test:unit && npm run build",
     "audit": "npm audit --audit-level=low"
   },

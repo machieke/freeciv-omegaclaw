@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://takopi.local/schemas/freeciv-scaling/selection-plan.schema.json",
+  "title": "FreeCiv scalability dry-run selection plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_type", "design", "payload_count", "payload_ids",
+    "schema_version", "selection_hash", "semantic_seed_count",
+    "source_identity", "surface_counts", "timing_sample_count"
+  ],
+  "properties": {
+    "artifact_type": {"const": "freeciv-scalability-selection-plan"},
+    "design": {"enum": ["tier", "primary"]},
+    "payload_count": {"type": "integer", "minimum": 1},
+    "payload_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^scale-cell-[0-9a-f]{24}$"}
+    },
+    "schema_version": {"const": "1.0"},
+    "semantic_seed_count": {"type": "integer", "minimum": 1},
+    "selection_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_identity": {"type": "string", "minLength": 1},
+    "surface_counts": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 1}
+    },
+    "timing_sample_count": {"type": "integer", "minimum": 1}
+  }
+}

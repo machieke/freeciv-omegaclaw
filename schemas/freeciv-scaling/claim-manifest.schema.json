@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://takopi.local/schemas/freeciv-scaling/claim-manifest.schema.json",
+  "title": "FreeCiv scalability claim manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_type", "cell_accounting", "claim_boundary",
+    "claim_manifest_hash", "frozen", "frozen_source_identity",
+    "g9_complete", "heldout_result_count",
+    "negative_and_null_results_retained", "schema_version",
+    "special_gates", "surface_claims"
+  ],
+  "properties": {
+    "artifact_type": {"const": "freeciv-scalability-claim-manifest"},
+    "cell_accounting": {"type": "array"},
+    "claim_boundary": {"type": "string", "minLength": 1},
+    "claim_manifest_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "frozen": {"type": "boolean"},
+    "frozen_source_identity": {"type": ["string", "null"]},
+    "g9_complete": {"type": "boolean"},
+    "heldout_result_count": {"type": "integer", "minimum": 0},
+    "negative_and_null_results_retained": {"const": true},
+    "schema_version": {"const": "1.0"},
+    "special_gates": {"type": "object"},
+    "surface_claims": {"type": "object"}
+  }
+}

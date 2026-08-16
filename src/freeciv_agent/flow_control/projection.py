@@ -170,6 +170,8 @@ class ProjectionResult:
     blocked_edge_ids: tuple
     requested_current_hash: str
     candidate_authority: bool = False
+    topology_generation: object = None
+    topology_semantic_hash: object = None
 
     def __post_init__(self):
         if (len(self.edge_ids) != len(self.feasible_current)
@@ -194,6 +196,17 @@ class ProjectionResult:
         if self.candidate_authority:
             raise ValueError(
                 "projection current is never candidate authority")
+        if (self.topology_generation is not None
+                and (isinstance(self.topology_generation, bool)
+                     or not isinstance(self.topology_generation, int)
+                     or self.topology_generation < 0)):
+            raise ValueError(
+                "projection topology generation must be non-negative")
+        if (self.topology_semantic_hash is not None
+                and (not isinstance(self.topology_semantic_hash, str)
+                     or not self.topology_semantic_hash)):
+            raise ValueError(
+                "projection topology semantic hash must be nonempty")
 
     @property
     def healthy(self):
@@ -223,6 +236,8 @@ class ProjectionResult:
             "requested_current_hash": (
                 self.requested_current_hash),
             "solver": self.solver,
+            "topology_generation": self.topology_generation,
+            "topology_semantic_hash": self.topology_semantic_hash,
         }
 
 
@@ -379,7 +394,9 @@ class ProjectionSolver:
                 for edge, value in zip(
                     view.edges, mobility)
                 if value <= 0.0),
-            requested_current_hash=requested.current_hash)
+            requested_current_hash=requested.current_hash,
+            topology_generation=view.topology_generation,
+            topology_semantic_hash=view.probe_semantic_hash)
 
     def solve(
             self, view, requested, boundary=None,
@@ -537,4 +554,6 @@ class ProjectionSolver:
                 for edge, value in zip(
                     view.edges, mobility)
                 if value <= 0.0),
-            requested_current_hash=requested.current_hash)
+            requested_current_hash=requested.current_hash,
+            topology_generation=view.topology_generation,
+            topology_semantic_hash=view.probe_semantic_hash)

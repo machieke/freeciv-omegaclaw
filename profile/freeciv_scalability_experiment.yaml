@@ -1,0 +1,102 @@
+experiment:
+  identity: "freeciv-scalability-v1"
+  policy_authority: false
+  comparator: "scalar-pf-v2-plus-whole-operation-packets"
+  claim_boundary: "scalability-correctness-performance-only"
+  process_isolation: true
+  wall_limit_seconds: 120
+  peak_rss_limit_bytes: 17179869184
+  artifact_budget_bytes: 26843545600
+  fluid_edge_update_limit: 50000000
+  live_atom_limit: 250000
+  relevant_proof_node_limit: 250000
+  timing_workers: 1
+  aggregate_telemetry: true
+  sampled_full_detail_seeds_per_tier: 1
+
+  discovery_design:
+    seeds_per_cell: 10
+    atomspace:
+      primary_topology: "local"
+      primary_churn_fraction: 0.01
+      primary_support_multiplicity: 1
+      stress_topologies:
+        - "chain"
+        - "hub"
+        - "balanced_tree"
+        - "shared_dag"
+        - "distractor_shards"
+        - "mixed"
+      stress_churn_fractions: [0.001, 0.05, 0.20, 1.0]
+      stress_support_multiplicities: [2, 4]
+      retention_cycles: 100
+    proof:
+      primary_shape: "shared_dag"
+      primary_distractor_count: 0
+      families:
+        - "chain"
+        - "and_tree"
+        - "shared_dag"
+        - "diamond_50"
+        - "diamond_90"
+        - "or_one_success"
+        - "or_several_success"
+        - "or_unreachable"
+        - "cycle_alternate"
+        - "cycle_only"
+        - "grounded_blocker"
+        - "binding_heavy"
+      distractor_fractions: [0.0, 0.25, 0.50, 1.0]
+    bridge:
+      primary_arm: "protected_message"
+      primary_topology: "disconnected_distractors"
+      arms:
+        - "scalar_pf_v2"
+        - "protected_message"
+        - "corrected_probe"
+        - "path_persistence"
+        - "source_sink_flow"
+      topologies:
+        - "sparse_dag"
+        - "shared_dag"
+        - "cyclic"
+        - "disconnected_distractors"
+        - "asymmetric_legality"
+        - "bottleneck"
+        - "dynamic_failure"
+    fluid:
+      primary_topology: "corridor"
+      primary_failure_fraction: 0.0
+      sparse_dag_average_degrees: [2, 4, 8]
+      failure_fractions: [0.0, 0.01, 0.10]
+
+  heldout_design:
+    semantic_seeds_per_cell: 40
+    canonical_timing_samples_per_tier: 50
+    timing_blocks: 3
+    execution_order: "heldout-block-order-v1"
+    bootstrap_resamples: 10000
+    captured:
+      source: "artifacts/freeciv/fdas-full-atomrecord-500-seed104743-v2/games/main/e_full_loop/104743-00/events.jsonl"
+      source_sha256: "fbf665b6468c7af79915b684435acd52b77356a284f462d3788e562e2b4d8e4a"
+      turns:
+        - 1
+        - 25
+        - 50
+        - 75
+        - 100
+        - 125
+        - 150
+        - 175
+        - 200
+        - 225
+        - 250
+        - 275
+        - 300
+        - 325
+        - 350
+        - 375
+        - 400
+        - 425
+        - 450
+        - 500
