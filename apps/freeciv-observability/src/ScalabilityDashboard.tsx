@@ -30,6 +30,18 @@ const bytes = (value?: number): string => value === undefined
     : value >= 1024 ** 2 ? `${(value / 1024 ** 2).toFixed(1)} MiB`
       : `${compact(value)} B`;
 
+const ratio = (value?: number): string => value === undefined ? "—" : `${value.toFixed(2)}×`;
+
+const ENGINE_VOLUME_LABELS: Array<[string, string]> = [
+  ["atoms", "atoms"], ["supports", "supports"], ["scopes", "scopes"],
+  ["cities", "cities"], ["units", "units"], ["region_scopes", "regions"],
+  ["legal_actions", "legal actions"], ["concurrent_goals", "concurrent goals"],
+  ["grounded_candidates", "grounded candidates"], ["proof_chain_depth", "proof depth"],
+  ["proof_tree_size", "proof tree"], ["control_nodes", "control nodes"],
+  ["control_edges", "control edges"], ["bridge_nodes", "bridge nodes"],
+  ["flow_iterations", "flow iterations"], ["events", "events"],
+];
+
 const SURFACES = ["atomspace", "proof", "bridge", "fluid"] as const;
 
 function ScalingPlot({ points, maximum, label }: {
@@ -120,6 +132,13 @@ export function ScalabilityDashboard({ initialData }: { initialData?: ScalingEvi
   const combined = objectOf(phaseReport.combined);
   const captured = objectOf(phaseReport.captured);
   const engine = objectOf(aggregate.engine_shadow);
+  const enginePerformance = objectOf(engine.performance);
+  const engineVolume = objectOf(engine.maximum_volume);
+  const engineTotals = objectOf(engine.totals);
+  const engineTransfer = objectOf(engine.synthetic_transfer);
+  const engineScenario = objectOf(engine.engine_shadow_scenario);
+  const engineRelease = objectOf(engineScenario.release_game_config);
+  const engineExpansion = objectOf(engine.volume_expansion);
   const claims = objectOf(evidence.claims);
   const audit = objectOf(evidence.audit);
   const semanticFailures = rowsOf(audit.semantic_failures);
@@ -205,10 +224,65 @@ export function ScalabilityDashboard({ initialData }: { initialData?: ScalingEvi
         <p>Max timing ratio {numberOf(captured.maximum_timing_ratio)?.toFixed(3) ?? "—"} · RSS {numberOf(captured.maximum_rss_ratio)?.toFixed(3) ?? "—"}</p></article>
       <article><header><span>G8 / engine shadow</span><b className={statusOf(engine.gate)}>{displayStatus(statusOf(engine.gate))}</b></header>
         <strong>{numberOf(engine.pair_count) ?? 0} engine pairs</strong>
-        <p>Ordered action, result, completion, authority, and event-ledger checks are required.</p></article>
+        <p>{numberOf(engine.pair_count)
+          ? `${compact(numberOf(engineVolume.atoms))} naturally achieved atoms · ${milliseconds(numberOf(objectOf(enginePerformance.fdas_turn_contribution_ms).p95_ms))} FDAS p95`
+          : "Ordered action, result, completion, authority, and event-ledger checks are required."}</p></article>
       <article><header><span>G9 / claim manifest</span><b className={claims.g9_complete === true ? "pass" : "not-entered"}>{claims.g9_complete === true ? "complete" : "incomplete"}</b></header>
         <strong>{numberOf(claims.heldout_result_count) ?? 0} held-out results</strong>
         <p>{claims.frozen === true ? "Frozen source and cells recorded." : "No source freeze; all results remain discovery-only."}</p></article>
+    </section>
+    <section className="scale-engine-detail" aria-label="Engine-backed shadow confirmation">
+      <header><div><span className="eyebrow">G8 · grounded transfer</span>
+        <h3>Engine-backed shadow confirmation</h3></div>
+        <b className={statusOf(engine.gate)}>{displayStatus(statusOf(engine.gate))}</b></header>
+      <div className="scale-engine-context">
+        <div><span>scenario</span><strong>{String(engineScenario.scenario_id ?? "not entered")}</strong>
+          <small>fixed high-entity FreeCiv construction</small></div>
+        <div><span>paired seeds</span><strong>{compact(numberOf(engine.pair_count))} / {compact(numberOf(engineScenario.minimum_pairs))}</strong>
+          <small>control and FDAS-shadow action parity</small></div>
+        <div><span>horizon</span><strong>{compact(numberOf(engineScenario.horizon_turn))} turns</strong>
+          <small>fog {engineRelease.fogofwar === false ? "disabled" : "configured"} · {String(engineRelease.startunits ?? "—")}</small></div>
+        <div><span>source report</span><strong>{String(engine.source_report_hash ?? "unavailable").slice(0, 12)}</strong>
+          <small>{engine.valid === true ? "structural and ledger audit valid" : "awaiting accepted cohort"}</small></div>
+      </div>
+      {numberOf(engine.pair_count) ? <div className="scale-engine-body">
+        <article><header><h4>Naturally achieved volume</h4><small>observed maxima, never configured caps</small></header>
+          <dl className="scale-engine-volume">{ENGINE_VOLUME_LABELS.map(([name, label]) => <div key={name}>
+            <dt>{label}</dt><dd>{compact(numberOf(engineVolume[name]))}</dd></div>)}</dl></article>
+        <article><header><h4>Live-path cost</h4><small>distribution across all shadow turns</small></header>
+          <div className="scale-engine-metrics">
+            <div><span>controller p95</span><strong>{milliseconds(numberOf(objectOf(enginePerformance.controller_latency_ms).p95_ms))}</strong>
+              <small>max {milliseconds(numberOf(objectOf(enginePerformance.controller_latency_ms).maximum_ms))}</small></div>
+            <div><span>FDAS turn p95</span><strong>{milliseconds(numberOf(objectOf(enginePerformance.fdas_turn_contribution_ms).p95_ms))}</strong>
+              <small>projection + shadow readout</small></div>
+            <div><span>projection p95</span><strong>{milliseconds(numberOf(objectOf(enginePerformance.fdas_projection_latency_ms).p95_ms))}</strong>
+              <small>{compact(numberOf(objectOf(enginePerformance.fdas_projection_latency_ms).count))} samples</small></div>
+            <div><span>process RSS p95</span><strong>{bytes(numberOf(objectOf(enginePerformance.controller_process_peak_rss_bytes).p95_bytes))}</strong>
+              <small>max {bytes(numberOf(objectOf(enginePerformance.controller_process_peak_rss_bytes).maximum_bytes))}</small></div>
+          </div>
+          <div className="scale-engine-transfer"><span>nearest synthetic transfer</span>
+            <strong>{ratio(numberOf(engineTransfer.latency_ratio_engine_fdas_projection_p95_to_synthetic_incremental_p95))} latency · {ratio(numberOf(engineTransfer.memory_ratio_engine_controller_rss_p95_to_synthetic_process_rss_p95))} memory</strong>
+            <small>{engineTransfer.entered === true
+              ? `${String(engineTransfer.nearest_synthetic_tier ?? "tier unknown")} at ${compact(numberOf(engineTransfer.nearest_synthetic_work_atoms))} atoms; descriptive, no acceptance threshold`
+              : String(engineTransfer.reason ?? "awaiting synthetic transfer match")}</small></div>
+        </article>
+        <article><header><h4>Mechanism exercise</h4><small>aggregate trace accounting</small></header>
+          <dl className="scale-engine-volume compact">{[
+            ["decision_count", "shadow decisions"], ["revision_count", "FDAS revisions"],
+            ["bridge_event_count", "bridge estimates"], ["flow_event_count", "flow events"],
+            ["flow_projection_count", "flow projections"], ["controller_fallback_count", "fallbacks"],
+            ["explained_legacy_count", "explained legacy"], ["extra_fdas_count", "extra candidates"],
+            ["cold_verification_count", "cold verifications"], ["full_detail_pair_count", "full-detail pairs"],
+          ].map(([name, label]) => <div key={name}><dt>{label}</dt><dd>{compact(numberOf(engineTotals[name]))}</dd></div>)}</dl></article>
+        <article><header><h4>High-entity expansion</h4><small>strictly above the prior engine cohort</small></header>
+          <div className="scale-engine-expansion">{Object.entries(engineExpansion).map(([name, raw]) => {
+            const row = objectOf(raw); const passed = row.passed === true;
+            return <div key={name} className={passed ? "pass" : "fail"}><span>{name.replaceAll("_", " ")}</span>
+              <strong>{compact(numberOf(row.reference))} → {compact(numberOf(row.achieved))}</strong>
+              <b>{passed ? "expanded" : "not expanded"}</b></div>;
+          })}</div></article>
+      </div> : <div className="scale-engine-empty"><strong>No admissible engine pair has entered G8.</strong>
+        <p>The synthetic and captured scaling evidence remains visible above. Engine integration, natural volume, overhead, and transfer ratios stay unclaimed until all fixed control/shadow pairs complete from the frozen source.</p></div>}
     </section>
     <section className="scale-accounting">
       <header><div><span className="eyebrow">frozen manifest accounting</span><h3>Every planned cell keeps a disposition</h3></div>

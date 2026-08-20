@@ -67,4 +67,52 @@ describe("scalability dashboard", () => {
     expect(screen.getByText(/Frozen cells may enter a claim/)).toBeInTheDocument();
     expect(screen.getAllByText("not entered").length).toBeGreaterThan(0);
   });
+
+  it("publishes natural engine volume, overhead, mechanisms, and synthetic transfer", () => {
+    const entered = structuredClone(evidence);
+    entered.aggregate.engine_shadow = {
+      engine_shadow_scenario: {
+        horizon_turn: 30, minimum_pairs: 20,
+        release_game_config: { fogofwar: false, startunits: "ccccxxxxxxxxdddddddd" },
+        scenario_id: "scalability-v1-high-entity-he1",
+      },
+      gate: "pass", pair_count: 20, source_report_hash: "abcdef1234567890", valid: true,
+      maximum_volume: {
+        atoms: 12500, bridge_nodes: 144, cities: 4, concurrent_goals: 5,
+        control_edges: 240, control_nodes: 90, events: 32000, flow_iterations: 24,
+        grounded_candidates: 18, legal_actions: 402, proof_chain_depth: 7,
+        proof_tree_size: 31, region_scopes: 6, scopes: 44, supports: 17300, units: 24,
+      },
+      performance: {
+        controller_latency_ms: { maximum_ms: 81, p95_ms: 42 },
+        controller_process_peak_rss_bytes: { maximum_bytes: 256 * 1024 ** 2, p95_bytes: 240 * 1024 ** 2 },
+        fdas_projection_latency_ms: { count: 600, p95_ms: 8.5 },
+        fdas_turn_contribution_ms: { p95_ms: 12.2 },
+      },
+      synthetic_transfer: {
+        entered: true,
+        latency_ratio_engine_fdas_projection_p95_to_synthetic_incremental_p95: 1.24,
+        memory_ratio_engine_controller_rss_p95_to_synthetic_process_rss_p95: 0.82,
+        nearest_synthetic_tier: "A1", nearest_synthetic_work_atoms: 10000,
+      },
+      totals: {
+        bridge_event_count: 600, cold_verification_count: 20,
+        controller_fallback_count: 0, decision_count: 600, explained_legacy_count: 592,
+        extra_fdas_count: 12, flow_event_count: 600, flow_projection_count: 3000,
+        full_detail_pair_count: 1, revision_count: 600,
+      },
+      volume_expansion: {
+        atoms: { achieved: 12500, passed: true, reference: 1196 },
+        cities: { achieved: 4, passed: true, reference: 3 },
+      },
+    };
+    render(<ScalabilityDashboard initialData={entered} />);
+
+    expect(screen.getByRole("heading", { name: "Engine-backed shadow confirmation" })).toBeInTheDocument();
+    expect(screen.getByText("scalability-v1-high-entity-he1")).toBeInTheDocument();
+    expect(screen.getByText("12.5k")).toBeInTheDocument();
+    expect(screen.getByText("1.24× latency · 0.82× memory")).toBeInTheDocument();
+    expect(screen.getByText("8.5 ms")).toBeInTheDocument();
+    expect(screen.getAllByText("expanded")).toHaveLength(2);
+  });
 });
