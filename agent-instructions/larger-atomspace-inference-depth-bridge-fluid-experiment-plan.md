@@ -1,6 +1,6 @@
 # Larger AtomSpace, deeper inference, and scaled bridge/fluid experiment plan
 
-**Status:** In progress; G0/G1 passed, ten-seed G2-G6 and 20-snapshot G7 semantic screening complete, held-out G2-G7 and G8-G9 not entered
+**Status:** In progress; G0-G7 decided from frozen held-out evidence, G8 preregistered but not entered, G9 open
 **Target branch:** `experimental/larger-atomspace-inference-depth`
 **Claim type:** scalability, boundedness, correctness, and performance only
 **Policy authority:** disabled throughout this plan
@@ -77,6 +77,54 @@ The campaign is not complete. A clean source freeze, the
 captured timing cohort, a new 20-pair high-entity engine shadow cohort, and
 final G9 claim decisions remain open. No held-out claim is currently
 authorized.
+
+## Held-out checkpoint — 2026-08-20
+
+The frozen one-worker held-out cohort is complete and all 12,061 planned rows
+are accounted for: 11,179 completed and 882 stopped. Together with discovery,
+the audit reconstructs 16,119 results, retains two historical failures and
+1,259 stopped trials, reports one discovery semantic failure, and has no
+identity or reconstruction error.
+
+G2 is **fail/bounded** as a whole because 92 A4 stress rows reached the frozen
+resource stop and both absolute latency labels fail. Its canonical hypotheses
+do pass: incremental-time exponent 1.115 (95% clustered-bootstrap CI
+1.103–1.126, limit 1.35) and peak-RSS exponent 0.855 (CI 0.855–0.856, limit
+1.15), with no completed-row semantic error.
+
+G3 **passes**. All 2,320 held-out proof trials completed correctly. Relevant
+work exponent is 1.054 (CI 1.041–1.064, limit 1.50); indexed-distractor cost
+also passes its 1.10 bound. P2 passes its 2-second label at 1.627 seconds p95;
+P3 narrowly misses its 15-second label at 15.984 seconds p95.
+
+G4 is **fail/bounded** as a whole because B4 resource boundaries account for
+789 stops and B3 misses its 2-second label (9.114 seconds p95). H3 itself
+passes through B3: exponent 1.405 (CI 1.396–1.416, limit 1.50), completed
+semantics are exact, and B1 passes the 500 ms live-capable label at 430 ms
+p95.
+
+G5 **passes** its numerical and scaling gate through F3. All 1,320 held-out
+rows complete with exact semantics and exponent 1.064 (CI 1.058–1.073, limit
+1.25). F3 is nevertheless not research-usable under the absolute 5-second
+label: measured p95 is 45.714 seconds.
+
+G6 is **fail/incomplete**, not an interaction failure. All 679 completed rows
+preserve semantic invariants and all 639 eligible isolated-stage pairs pass
+the 2x interaction bound (maximum 1.532, p95 1.043). One C07 row stopped at
+the wall limit. The 40 repeated C16 center rows have no preregistered isolated
+`proof:center` comparator and therefore cannot enter H5; this frozen design
+omission is retained rather than retrofitted.
+
+G7 **passes**. All 40 claim-eligible captured snapshot/tier pairs preserve the
+source ledger, original subgraph, and clone quarantine. Maximum synthetic
+transfer ratios are 1.953 for timing and 1.066 for RSS, inside the 2x bound.
+
+G8 is now preregistered in
+`docs/freeciv/evidence/scalability-v1-engine-shadow-preregistration.md`: a new
+20-seed, 40-arm, 30-turn high-entity paired control/shadow cohort with bridge
+and source-sink flow advisory execution, one full-detail sample, per-process
+RSS, strict natural-volume expansion, and exact action/result parity. No G8
+engine arm had been entered at this checkpoint, so G9 remains incomplete.
 
 ## 1. Executive decision
 

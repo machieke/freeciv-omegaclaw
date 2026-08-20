@@ -11,6 +11,8 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
         sys.path.insert(0, path)
 
 from freeciv.harness.fdas_shadow_cohort import (  # noqa: E402
+    _mechanism_diagnostics,
+    _volume,
     audit_fdas_shadow_cohort,
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
@@ -179,3 +181,99 @@ def test_audit_rejects_action_divergence_and_dirty_source(tmp_path):
     assert not report["acceptance"]["accepted"]
     assert "ordered-action-trace-mismatch" in kinds
     assert "source-identity-mismatch-or-dirty" in kinds
+
+
+def test_high_entity_volume_and_bridge_flow_work_are_reconstructed():
+    events = [
+        {"type": "state_snapshot", "payload": {
+            "own_state": {"cities": [{}, {}], "units": [{}, {}, {}]},
+            "grounded_context": {"legal_actions": [{}, {}, {}, {}]},
+        }},
+        {"type": "scope_materialized", "payload": {
+            "snapshot_id": "s1", "details": {
+                "scope_id": "r1", "scope_kind": "region"}}},
+        {"type": "scope_materialized", "payload": {
+            "snapshot_id": "s1", "details": {
+                "scope_id": "r2", "scope_kind": "region"}}},
+        {"type": "pressure_graph_built", "payload": {"details": {
+            "candidate_atom_count": 7, "goal_count": 5}}},
+        {"type": "pressure_propagated", "payload": {"dependency": {
+            "goal-a": {"candidate-a": 0.5, "candidate-b": 0.5},
+            "goal-b": {"candidate-b": 1.0}}}},
+        {"type": "pln_result", "payload": {
+            "chain_depth": 11, "tree_size": 31}},
+        {"type": "atomspace_revision_committed", "payload": {"details": {
+            "atom_count": 100, "scope_count": 8, "support_count": 50,
+            "omitted_detail_event_count": 0}}},
+        {"type": "bridge_estimated", "payload": {"summary": {
+            "goal_summaries": [{"node_count": 123}]}}},
+        {"type": "flow_projected", "payload": {"summary": {
+            "projections": [{
+                "health": "healthy", "iterations": 17}]}}},
+    ]
+
+    volume = _volume(events)
+    mechanisms = _mechanism_diagnostics(events)
+    assert volume["cities"] == 2
+    assert volume["units"] == 3
+    assert volume["region_scopes"] == 2
+    assert volume["concurrent_goals"] == 5
+    assert volume["grounded_candidates"] == 7
+    assert volume["control_nodes"] == 4
+    assert volume["control_edges"] == 3
+    assert volume["proof_chain_depth"] == 11
+    assert volume["proof_tree_size"] == 31
+    assert mechanisms == {
+        "bridge_event_count": 1,
+        "controller_fallback_count": 0,
+        "flow_event_count": 1,
+        "flow_projection_count": 1,
+        "maximum_bridge_nodes": 123,
+        "maximum_flow_iterations": 17,
+        "unhealthy_flow_projection_count": 0,
+        "unexplained_controller_fallback_count": 0,
+    }
+
+
+def test_g8_scenario_fails_closed_without_scale_flow_or_detail(tmp_path):
+    control = tmp_path / "control"
+    shadow = tmp_path / "shadow"
+    _write_run(control, 11, False)
+    _write_run(shadow, 11, True)
+    scenario = {
+        "schema_version": "freeciv-scalability-engine-shadow/1.0",
+        "scenario_id": "test-he1", "minimum_pairs": 20,
+        "horizon_turn": 30, "require_clean_source": True,
+        "release_game_config": {
+            "fogofwar": False, "startunits": "ccccxxxxxxxxdddddddd"},
+        "required_shadow_mechanisms": [
+            "functional_dependent_atomspace", "protected_bridge",
+            "source_sink_flow"],
+        "reference_cohort": {"root": "test", "report_sha256": "0" * 64},
+        "reference_maximum_volume": {
+            "atoms": 10, "cities": 1, "concurrent_goals": 1,
+            "grounded_candidates": 1, "legal_actions": 1,
+            "region_scopes": 1, "scopes": 2, "supports": 4,
+            "units": 1,
+        },
+    }
+    for root in (control, shadow):
+        path = root / "games" / "main" / "e_full_loop" / "11-00" / "manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["engine_shadow_scenario"] = scenario
+        manifest["release_game_config"] = scenario["release_game_config"]
+        manifest["impact_policy"].update({
+            "pressure_bridge_enabled": True,
+            "pressure_controller_mode": "unified_flow_advisory",
+            "pressure_flow_enabled": True,
+            "pressure_flow_live_enabled": False,
+        })
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = audit_fdas_shadow_cohort(control, shadow, minimum_pairs=1)
+    kinds = {failure["kind"] for failure in report["failures"]}
+
+    assert not report["acceptance"]["accepted"]
+    assert "bridge-flow-shadow-not-exercised" in kinds
+    assert "full-detail-sample-missing" in kinds
+    assert "high-entity-volume-not-expanded" in kinds

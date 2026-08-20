@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import platform
+import resource
 import shutil
 import subprocess
 import threading
@@ -53,6 +54,11 @@ def _atomic_json(path, value):
 
 def _utc_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _process_peak_rss_bytes():
+    """Return this controller process' Linux high-water RSS in bytes."""
+    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024
 
 
 def _source_identity():
@@ -328,6 +334,11 @@ class HarnessRunner(object):
                     horizon_turn)),
             "worker": worker,
         }
+        scenario = self.config.get("engine_shadow_scenario")
+        if arm is None and scenario is not None:
+            material["engine_shadow_scenario"] = copy.deepcopy(scenario)
+            material["release_game_config"] = copy.deepcopy(
+                scenario["release_game_config"])
         if arm is not None:
             material["impact_pair"] = {
                 "arm": arm, "experimental_unit": "seed_pair",
@@ -440,6 +451,8 @@ class HarnessRunner(object):
             if not validation.valid:
                 raise RuntimeError("event validation failed: {}".format(validation.to_dict()))
             status = dict(result, status="completed", event_count=validation.event_count)
+            status["controller_process_peak_rss_bytes"] = (
+                _process_peak_rss_bytes())
         except Exception as exc:
             status = {"status": "infrastructure_failure", "completed": False,
                       "infrastructure_failure": True,
@@ -453,6 +466,18 @@ class HarnessRunner(object):
         return dict(manifest=manifest, status=status, resumed=False)
 
     def run(self, resume=True, include_induction=True, include_grading=True):
+        scenario = self.config.get("engine_shadow_scenario")
+        if scenario is not None and scenario["require_clean_source"]:
+            # Refresh at the execution boundary so construction before a later
+            # edit cannot retain a stale clean identity.
+            self.source_identity = _source_identity()
+            if self.source_identity.get("commit") in (None, "", "unavailable"):
+                raise RuntimeError(
+                    "engine shadow scenario requires a committed source identity")
+            if self.source_identity.get("dirty"):
+                raise RuntimeError(
+                    "engine shadow scenario requires a clean source tree; "
+                    "commit all changes first")
         os.makedirs(self.out, exist_ok=True)
         jobs = list(enumerate(self._jobs(include_induction, include_grading)))
         if self.workers == 1:
@@ -483,6 +508,13 @@ class HarnessRunner(object):
             "jobs": len(results), "machine": platform.platform(),
             "resumed": sum(row["resumed"] for row in results),
         }
+        if scenario is not None and scenario["require_clean_source"]:
+            ending_source = _source_identity()
+            summary["source_stable"] = ending_source == self.source_identity
+            summary["engine_shadow_scenario_id"] = scenario["scenario_id"]
+            if summary["source_stable"] is False:
+                raise RuntimeError(
+                    "engine shadow scenario source changed during execution")
         _atomic_json(os.path.join(self.out, "run-summary.json"), summary)
         return summary
 

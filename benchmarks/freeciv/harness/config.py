@@ -26,7 +26,13 @@ from .statistics import paired_win_design_power
 
 
 DEFAULT_PATH = repo_path("profile", "freeciv_harness.yaml")
-SEED_OVERLAY_IDENTITY = "freeciv-harness-seed-overlay/1.1"
+SEED_OVERLAY_IDENTITY = "freeciv-harness-seed-overlay/1.2"
+
+
+_ENGINE_SHADOW_VOLUME_KEYS = frozenset((
+    "atoms", "cities", "concurrent_goals", "grounded_candidates",
+    "legal_actions", "region_scopes", "scopes", "supports", "units",
+))
 
 
 def _load_harness_yaml(path):
@@ -42,13 +48,14 @@ def _load_harness_yaml(path):
     required_overlay_keys = {
         "schema_version", "seed_overlay_base", "seeds"}
     allowed_overlay_keys = required_overlay_keys | {
-        "dependent_atomspace", "diagnostic_seed_cohort"}
+        "dependent_atomspace", "diagnostic_seed_cohort",
+        "engine_shadow_scenario"}
     if (not required_overlay_keys.issubset(value)
             or not set(value).issubset(allowed_overlay_keys)):
         raise ValueError(
             "seed overlay may declare only schema_version, "
-            "seed_overlay_base, seeds, dependent_atomspace, and the exact "
-            "diagnostic_seed_cohort contract")
+            "seed_overlay_base, seeds, dependent_atomspace, the exact "
+            "diagnostic_seed_cohort contract, and engine_shadow_scenario")
     if (not isinstance(base_source, str) or not base_source.strip()
             or os.path.isabs(base_source)):
         raise ValueError(
@@ -73,9 +80,91 @@ def _load_harness_yaml(path):
     if "diagnostic_seed_cohort" in value:
         merged["diagnostic_seed_cohort"] = copy.deepcopy(
             value["diagnostic_seed_cohort"])
+    if "engine_shadow_scenario" in value:
+        scenario = copy.deepcopy(value["engine_shadow_scenario"])
+        merged["engine_shadow_scenario"] = scenario
+        # The overlay remains a narrow scenario declaration: it may shorten
+        # the inherited long-horizon profile, but cannot alter controller
+        # policy, rules, model, engine identity, or authority configuration.
+        horizon = scenario.get("horizon_turn")
+        merged["turn_limit"] = horizon
+        merged["engine_max_turns"] = horizon
+        merged["impact_policy"]["horizon_turn"] = horizon
     merged["seed_overlay_base"] = base_source
     merged["seed_overlay_identity"] = SEED_OVERLAY_IDENTITY
     return merged
+
+
+def _validate_engine_shadow_scenario(value, seeds):
+    """Validate the narrow high-entity, no-authority G8 overlay contract."""
+    scenario = value.get("engine_shadow_scenario")
+    if scenario is None:
+        return None
+    expected = {
+        "horizon_turn", "minimum_pairs", "reference_cohort",
+        "reference_maximum_volume", "release_game_config",
+        "require_clean_source", "required_shadow_mechanisms",
+        "scenario_id", "schema_version",
+    }
+    if not isinstance(scenario, dict) or set(scenario) != expected:
+        raise ValueError(
+            "engine_shadow_scenario must declare the exact G8 contract")
+    if scenario["schema_version"] != "freeciv-scalability-engine-shadow/1.0":
+        raise ValueError("engine_shadow_scenario schema version differs")
+    if (not isinstance(scenario["scenario_id"], str)
+            or not scenario["scenario_id"].strip()):
+        raise ValueError("engine_shadow_scenario scenario_id is required")
+    if scenario["require_clean_source"] is not True:
+        raise ValueError("engine_shadow_scenario must require clean source")
+    minimum_pairs = scenario["minimum_pairs"]
+    if (isinstance(minimum_pairs, bool)
+            or not isinstance(minimum_pairs, int)
+            or minimum_pairs < 20
+            or len(seeds) != minimum_pairs):
+        raise ValueError(
+            "engine_shadow_scenario needs exactly at least 20 paired seeds")
+    horizon = scenario["horizon_turn"]
+    if (isinstance(horizon, bool) or not isinstance(horizon, int)
+            or not 1 <= horizon <= 500
+            or value.get("turn_limit") != horizon
+            or value.get("engine_max_turns") != horizon
+            or value.get("impact_policy", {}).get("horizon_turn") != horizon):
+        raise ValueError(
+            "engine_shadow_scenario horizon must bind every runtime limit")
+    release = scenario["release_game_config"]
+    if (not isinstance(release, dict)
+            or set(release) != {"fogofwar", "startunits"}
+            or release["fogofwar"] is not False
+            or not isinstance(release["startunits"], str)
+            or len(release["startunits"]) != 20
+            or any(token not in "cwxksfd" for token in release["startunits"])):
+        raise ValueError(
+            "engine_shadow_scenario requires a fixed 20-unit visible scenario")
+    mechanisms = scenario["required_shadow_mechanisms"]
+    if mechanisms != [
+            "functional_dependent_atomspace", "protected_bridge",
+            "source_sink_flow"]:
+        raise ValueError(
+            "engine_shadow_scenario shadow mechanisms differ")
+    reference = scenario["reference_maximum_volume"]
+    if (not isinstance(reference, dict)
+            or set(reference) != _ENGINE_SHADOW_VOLUME_KEYS
+            or any(isinstance(item, bool) or not isinstance(item, int)
+                   or item < 0 for item in reference.values())):
+        raise ValueError(
+            "engine_shadow_scenario reference volume differs")
+    source = scenario["reference_cohort"]
+    if (not isinstance(source, dict)
+            or set(source) != {"report_sha256", "root"}
+            or not isinstance(source["root"], str)
+            or not source["root"].strip()
+            or not isinstance(source["report_sha256"], str)
+            or len(source["report_sha256"]) != 64
+            or any(character not in "0123456789abcdef"
+                   for character in source["report_sha256"])):
+        raise ValueError(
+            "engine_shadow_scenario reference cohort differs")
+    return scenario
 
 
 def _validate_impact_policy(impact, prefix="impact_policy"):
@@ -1390,7 +1479,8 @@ def load(path=None):
         raise ValueError("harness condition order must match capability matrix")
     seeds = value.get("seeds")
     diagnostic_seed_cohort = value.get("diagnostic_seed_cohort")
-    minimum_seeds = 30
+    engine_shadow_scenario = value.get("engine_shadow_scenario")
+    minimum_seeds = 20 if engine_shadow_scenario is not None else 30
     if diagnostic_seed_cohort is not None:
         expected_diagnostic_seed_cohorts = ({
             "claim_eligible": False,
@@ -1425,6 +1515,7 @@ def load(path=None):
         raise ValueError(
             "diagnostic seed cohort must contain exactly {} seeds".format(
                 minimum_seeds))
+    _validate_engine_shadow_scenario(value, seeds)
     if value.get("induction", {}).get("games", 0) < 20:
         raise ValueError("induction track needs at least 20 games")
     if value.get("model", {}).get("name") != "qwen3-coder-next:latest":

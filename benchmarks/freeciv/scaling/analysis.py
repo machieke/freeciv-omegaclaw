@@ -206,20 +206,87 @@ def robust_log_slope(points):
 
 
 def cluster_bootstrap_interval(cluster_points, resamples=10000, seed=104743):
-    """Bootstrap graph/seed clusters, never repeated samples as independent."""
+    """Bootstrap clusters with an exact weighted Theil-Sen reconstruction.
+
+    Resampling a cluster duplicates all of its points. A slope between points
+    from clusters ``a`` and ``b`` therefore occurs exactly
+    ``count[a] * count[b]`` times (also ``count[a] ** 2`` within one repeated
+    cluster). Precomputing the sorted slopes and applying those integer
+    multiplicities preserves the exact estimator while avoiding repeated log
+    and sort work.
+    """
     clusters = sorted(cluster_points)
     if len(clusters) < 2:
         return None
+    points = []
+    for cluster_index, cluster in enumerate(clusters):
+        points.extend(
+            (float(x), float(y), cluster_index)
+            for x, y in cluster_points[cluster]
+            if float(x) > 0.0 and float(y) > 0.0)
+    weighted_slopes = []
+    for left_index, (left_x, left_y, left_cluster) in enumerate(points):
+        for right_x, right_y, right_cluster in points[left_index + 1:]:
+            if right_x == left_x:
+                continue
+            weighted_slopes.append((
+                (math.log(right_y) - math.log(left_y))
+                / (math.log(right_x) - math.log(left_x)),
+                left_cluster, right_cluster))
+    weighted_slopes.sort(key=lambda row: row[0])
+    if not weighted_slopes:
+        return None
+    try:
+        import numpy as np
+    except ImportError:  # pragma: no cover - exercised on minimal deployments
+        np = None
+    if np is not None:
+        slope_values = np.asarray(
+            [row[0] for row in weighted_slopes], dtype=float)
+        left_clusters = np.asarray(
+            [row[1] for row in weighted_slopes], dtype=np.int64)
+        right_clusters = np.asarray(
+            [row[2] for row in weighted_slopes], dtype=np.int64)
     rng = random.Random(seed)
     slopes = []
     for _ in range(resamples):
-        sampled = [clusters[rng.randrange(len(clusters))]
-                   for _ in range(len(clusters))]
-        points = [point for cluster in sampled
-                  for point in cluster_points[cluster]]
-        slope = robust_log_slope(points)
-        if slope is not None and math.isfinite(slope):
-            slopes.append(slope)
+        counts = [0] * len(clusters)
+        for _sample in clusters:
+            counts[rng.randrange(len(clusters))] += 1
+        if np is not None:
+            count_values = np.asarray(counts, dtype=np.int64)
+            weights = count_values[left_clusters] * count_values[
+                right_clusters]
+            total = int(weights.sum())
+        else:
+            total = sum(
+                counts[left] * counts[right]
+                for _slope, left, right in weighted_slopes)
+        if total < 1:
+            continue
+        lower_rank = (total - 1) // 2
+        upper_rank = total // 2
+        if np is not None:
+            cumulative = np.cumsum(weights)
+            lower_value = float(slope_values[
+                int(np.searchsorted(cumulative, lower_rank, side="right"))])
+            upper_value = float(slope_values[
+                int(np.searchsorted(cumulative, upper_rank, side="right"))])
+        else:
+            cumulative = 0
+            lower_value = None
+            upper_value = None
+            for slope, left, right in weighted_slopes:
+                cumulative += counts[left] * counts[right]
+                if lower_value is None and cumulative > lower_rank:
+                    lower_value = slope
+                if cumulative > upper_rank:
+                    upper_value = slope
+                    break
+        if lower_value is not None and upper_value is not None:
+            slope = (lower_value + upper_value) / 2.0
+            if math.isfinite(slope):
+                slopes.append(slope)
     if not slopes:
         return None
     return (percentile(slopes, 0.025), percentile(slopes, 0.975))

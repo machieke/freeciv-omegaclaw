@@ -1,6 +1,9 @@
 """Robust-fit and audit reconstruction gates for scaling evidence."""
 
+import math
 import os
+import random
+import statistics
 import sys
 
 import pytest
@@ -37,6 +40,39 @@ def test_robust_log_fit_recovers_known_power_law():
     interval = cluster_bootstrap_interval(clusters, resamples=500, seed=1)
     assert interval == pytest.approx((1.25, 1.25))
     assert percentile([1, 2, 3, 4], 0.5) == 2.5
+
+
+def _reference_cluster_bootstrap(clusters, resamples, seed):
+    names = sorted(clusters)
+    rng = random.Random(seed)
+    medians = []
+    for _ in range(resamples):
+        sampled = [names[rng.randrange(len(names))] for _name in names]
+        points = sorted(
+            point for name in sampled for point in clusters[name])
+        slopes = []
+        for index, (left_x, left_y) in enumerate(points):
+            for right_x, right_y in points[index + 1:]:
+                if right_x != left_x:
+                    slopes.append(
+                        (math.log(right_y) - math.log(left_y))
+                        / (math.log(right_x) - math.log(left_x)))
+        if slopes:
+            medians.append(statistics.median(slopes))
+    return percentile(medians, 0.025), percentile(medians, 0.975)
+
+
+def test_cluster_bootstrap_weighting_is_exactly_reference_equivalent():
+    clusters = {
+        "seed-a": [(10, 3.1), (20, 6.4), (40, 12.2)],
+        "seed-b": [(10, 2.8), (20, 5.7), (40, 12.0)],
+        "seed-c": [(10, 3.3), (20, 6.1), (40, 13.1)],
+    }
+
+    expected = _reference_cluster_bootstrap(clusters, 250, 919)
+    actual = cluster_bootstrap_interval(clusters, resamples=250, seed=919)
+
+    assert actual == expected
 
 
 def test_audit_reconstructs_trial_and_result_hashes():
@@ -592,6 +628,54 @@ def test_engine_shadow_gate_reconstructs_hash_and_requires_twenty_pairs():
     assert result["pair_count"] == 20
     report["pairs"][0]["action_trace_match"] = False
     assert not audit_engine_shadow_report(report)["valid"]
+
+
+def test_engine_shadow_transfer_uses_nearest_canonical_heldout_atom_tier():
+    pairs = [{
+        "action_trace_match": True,
+        "behavioral_completion_match": True,
+        "failures": [],
+        "result_trace_match": True,
+        "shadow": {"event_validation_valid": True, "shadow": {}},
+    } for _ in range(20)]
+    report = {
+        "acceptance": {"accepted": True},
+        "aggregate": {
+            "controller_process_peak_rss_bytes": {"p95_bytes": 3000},
+            "fdas_projection_latency_ms": {"p95_ms": 30.0},
+            "maximum_volume": {"atoms": 3000},
+        },
+        "pairs": pairs,
+        "schema_version": "fdas-engine-shadow-cohort/1.0",
+        "structural_hash": None,
+    }
+    report["structural_hash"] = structural_hash(report)
+    synthetic = []
+    for work, latency, rss, tier in (
+            (2500, 10.0, 1000, "A0"),
+            (10000, 40.0, 4000, "A1")):
+        synthetic.append({
+            "actual_work": {"live_revision_atoms": work},
+            "metrics": {
+                "incremental_ms": latency, "peak_rss_bytes": rss},
+            "status": "completed",
+            "trial": {
+                "cell": {"parameters": {
+                    "churn_fraction": 0.01,
+                    "support_multiplicity": 1,
+                    "topology": "local",
+                }, "surface": "atomspace", "tier": tier},
+                "phase": "heldout", "telemetry_mode": "aggregate",
+            },
+        })
+
+    transfer = audit_engine_shadow_report(
+        report, synthetic_results=synthetic)["synthetic_transfer"]
+
+    assert transfer["entered"]
+    assert transfer["nearest_synthetic_tier"] == "A0"
+    assert transfer["latency_ratio_engine_fdas_projection_p95_to_synthetic_incremental_p95"] == 3.0
+    assert transfer["memory_ratio_engine_controller_rss_p95_to_synthetic_process_rss_p95"] == 3.0
 
 
 def test_claim_manifest_never_promotes_discovery_rows():

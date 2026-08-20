@@ -134,6 +134,16 @@ def build_claim_manifest(results, audit, frozen=None):
     }
     all_accounted = bool(accounting) and all(
         row["status"] != "not-entered" for row in accounting)
+    required_gate_decisions = tuple(
+        heldout_report.get("gates", {}).get(
+            surface, "not-entered")
+        for surface in ("atomspace", "proof", "bridge", "fluid")) + (
+        special_gates["G6-combined"],
+        special_gates["G7-captured"],
+        special_gates["G8-engine"],
+    )
+    all_gates_decided = all(
+        value in ("pass", "fail") for value in required_gate_decisions)
     material = {
         "artifact_type": "freeciv-scalability-claim-manifest",
         "cell_accounting": accounting,
@@ -143,7 +153,9 @@ def build_claim_manifest(results, audit, frozen=None):
         "frozen": frozen is not None,
         "frozen_source_identity": (
             None if frozen is None else frozen.get("source_identity")),
-        "g9_complete": bool(audit.get("valid") and all_accounted),
+        "g9_complete": bool(
+            audit.get("valid") and all_accounted and all_gates_decided),
+        "required_gate_decisions": list(required_gate_decisions),
         "heldout_result_count": len(heldout),
         "negative_and_null_results_retained": True,
         "schema_version": "1.0",

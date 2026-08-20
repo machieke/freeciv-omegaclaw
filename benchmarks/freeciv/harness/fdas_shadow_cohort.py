@@ -41,6 +41,22 @@ def _latency_summary(values):
     }
 
 
+def _byte_summary(values):
+    values = tuple(int(value) for value in values if int(value) > 0)
+    if not values:
+        return {
+            "count": 0, "maximum_bytes": None, "mean_bytes": None,
+            "p50_bytes": None, "p95_bytes": None,
+        }
+    return {
+        "count": len(values),
+        "maximum_bytes": max(values),
+        "mean_bytes": statistics.mean(values),
+        "p50_bytes": int(_percentile(values, 0.50)),
+        "p95_bytes": int(_percentile(values, 0.95)),
+    }
+
+
 def _read_json(path):
     with open(path, encoding="utf-8") as stream:
         return json.load(stream)
@@ -97,6 +113,7 @@ def _behavioral_manifest(manifest):
         "machine_profile", "model", "model_config", "opponent",
         "pf_pln_controller", "pf_pln_runtime", "release_game_config",
         "rulebase", "ruleset", "seed", "sequence", "track", "turn_limit",
+        "engine_shadow_scenario",
     )
     return dict((key, copy.deepcopy(manifest.get(key))) for key in keys)
 
@@ -193,11 +210,102 @@ def _shadow_diagnostics(events):
     }
 
 
+def _mechanism_diagnostics(events):
+    bridge = tuple(event for event in events
+                   if event["type"] == "bridge_estimated")
+    flow = tuple(event for event in events
+                 if event["type"] == "flow_projected")
+    bridge_nodes = []
+    flow_iterations = []
+    unhealthy = 0
+    fallbacks = tuple(event for event in events
+                      if event["type"] == "controller_fallback")
+    unexplained_fallbacks = 0
+    for event in bridge:
+        for row in event["payload"].get(
+                "summary", {}).get("goal_summaries", ()):
+            bridge_nodes.append(int(row.get("node_count", 0)))
+    for event in flow:
+        for row in event["payload"].get(
+                "summary", {}).get("projections", ()):
+            flow_iterations.append(int(row.get("iterations", 0)))
+            unhealthy += row.get("health") != "healthy"
+    for event in fallbacks:
+        summary = event["payload"].get("summary", {})
+        reasons = summary.get("gate_reasons", ())
+        if not summary.get("reason") and not reasons:
+            unexplained_fallbacks += 1
+    return {
+        "bridge_event_count": len(bridge),
+        "controller_fallback_count": len(fallbacks),
+        "flow_event_count": len(flow),
+        "flow_projection_count": len(flow_iterations),
+        "maximum_bridge_nodes": max(bridge_nodes, default=0),
+        "maximum_flow_iterations": max(flow_iterations, default=0),
+        "unhealthy_flow_projection_count": unhealthy,
+        "unexplained_controller_fallback_count": unexplained_fallbacks,
+    }
+
+
 def _volume(events):
     committed = tuple(
         event["payload"]["details"] for event in events
         if event["type"] == "atomspace_revision_committed")
-    return {
+    maximum = {
+        "cities": 0, "concurrent_goals": 0, "control_edges": 0,
+        "control_nodes": 0, "grounded_candidates": 0,
+        "legal_actions": 0, "proof_chain_depth": 0, "proof_tree_size": 0,
+        "region_scopes": 0, "units": 0,
+    }
+    scopes_by_snapshot = defaultdict(lambda: defaultdict(set))
+    for event in events:
+        payload = event["payload"]
+        if event["type"] == "state_snapshot":
+            own = payload.get("own_state", {})
+            grounded = payload.get("grounded_context", {})
+            maximum["cities"] = max(
+                maximum["cities"], len(own.get("cities", ())))
+            maximum["units"] = max(
+                maximum["units"], len(own.get("units", ())))
+            maximum["legal_actions"] = max(
+                maximum["legal_actions"],
+                len(grounded.get("legal_actions", ())))
+        elif event["type"] == "scope_materialized":
+            details = payload.get("details", {})
+            scopes_by_snapshot[payload.get("snapshot_id")][
+                details.get("scope_kind")].add(details.get("scope_id"))
+        elif event["type"] == "pressure_graph_built":
+            details = payload.get("details", {})
+            maximum["concurrent_goals"] = max(
+                maximum["concurrent_goals"],
+                int(details.get("goal_count", 0)))
+            maximum["grounded_candidates"] = max(
+                maximum["grounded_candidates"],
+                int(details.get("candidate_atom_count", 0)))
+        elif event["type"] == "pressure_propagated":
+            dependency = payload.get("dependency", {})
+            nodes = set(dependency)
+            edge_count = 0
+            for children in dependency.values():
+                if not isinstance(children, dict):
+                    continue
+                nodes.update(children)
+                edge_count += len(children)
+            maximum["control_nodes"] = max(
+                maximum["control_nodes"], len(nodes))
+            maximum["control_edges"] = max(
+                maximum["control_edges"], edge_count)
+        elif event["type"] == "pln_result":
+            maximum["proof_chain_depth"] = max(
+                maximum["proof_chain_depth"],
+                int(payload.get("chain_depth", 0)))
+            maximum["proof_tree_size"] = max(
+                maximum["proof_tree_size"],
+                int(payload.get("tree_size", 0)))
+    maximum["region_scopes"] = max((
+        len(kinds.get("region", ()))
+        for kinds in scopes_by_snapshot.values()), default=0)
+    maximum.update({
         "event_count": len(events),
         "maximum_atom_count": max(
             (int(value["atom_count"]) for value in committed), default=0),
@@ -205,8 +313,12 @@ def _volume(events):
             (int(value["scope_count"]) for value in committed), default=0),
         "maximum_support_count": max(
             (int(value["support_count"]) for value in committed), default=0),
+        "omitted_detail_event_count": sum(
+            int(value.get("omitted_detail_event_count", 0))
+            for value in committed),
         "revision_count": len(committed),
-    }
+    })
+    return maximum
 
 
 def _run_evidence(run, events=None):
@@ -226,6 +338,8 @@ def _run_evidence(run, events=None):
         "completion": _completion(events),
         "controller_latency_ms": _latency_summary(
             _metric_values(events, "turn_full_loop_latency_ms")),
+        "controller_process_peak_rss_bytes": int(
+            run["status"].get("controller_process_peak_rss_bytes", 0)),
         "event_validation_error_count": len(validation.errors),
         "event_validation_valid": bool(validation.valid),
         "fdas_turn_contribution_ms": _latency_summary(
@@ -233,10 +347,14 @@ def _run_evidence(run, events=None):
         "projection_latency_ms": _latency_summary(
             _metric_values(events, "fdas_projection_latency_ms")),
         "results": _result_trace(events),
+        "mechanisms": _mechanism_diagnostics(events),
         "shadow": _shadow_diagnostics(events),
         "shadow_latency_ms": _latency_summary(
             _metric_values(events, "fdas_shadow_evaluation_latency_ms")),
         "volume": _volume(events),
+        "support_level": run["manifest"].get(
+            "dependent_atomspace", {}).get(
+                "config", {}).get("events", {}).get("support_level"),
     }
 
 
@@ -263,8 +381,21 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
     shadow_readout = []
     shadow_turn = []
     controller = []
-    maxima = {"atoms": 0, "events": 0, "scopes": 0, "supports": 0}
+    controller_rss = []
+    maxima = {
+        "atoms": 0, "bridge_nodes": 0, "cities": 0,
+        "concurrent_goals": 0, "control_edges": 0, "control_nodes": 0,
+        "events": 0, "flow_iterations": 0, "grounded_candidates": 0,
+        "legal_actions": 0, "proof_chain_depth": 0,
+        "proof_tree_size": 0, "region_scopes": 0, "scopes": 0,
+        "supports": 0, "units": 0,
+    }
     totals = defaultdict(int)
+    declared_scenarios = tuple(
+        shadows[seed]["manifest"].get("engine_shadow_scenario")
+        for seed in seeds
+        if shadows[seed]["manifest"].get("engine_shadow_scenario") is not None)
+    scenario = declared_scenarios[0] if declared_scenarios else None
     for seed in seeds:
         control = controls[seed]
         shadow = shadows[seed]
@@ -277,6 +408,11 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
         control_evidence = _run_evidence(control, control_events)
         shadow_evidence = _run_evidence(shadow, shadow_events)
         pair_failures = []
+        pair_scenario = shadow_manifest.get("engine_shadow_scenario")
+        if scenario is not None and (
+                pair_scenario != scenario
+                or control_manifest.get("engine_shadow_scenario") != scenario):
+            pair_failures.append("engine-shadow-scenario-drift")
 
         if control["status"].get("status") != "completed" \
                 or shadow["status"].get("status") != "completed":
@@ -308,6 +444,21 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
         if structural_hash(_behavioral_manifest(control_manifest)) \
                 != structural_hash(_behavioral_manifest(shadow_manifest)):
             pair_failures.append("non-fdas-manifest-mismatch")
+        if pair_scenario is not None:
+            policy = shadow_manifest.get("impact_policy", {})
+            expected_release = pair_scenario["release_game_config"]
+            if (control_manifest.get("engine_shadow_scenario") != pair_scenario
+                    or control_manifest.get("release_game_config")
+                    != expected_release
+                    or shadow_manifest.get("release_game_config")
+                    != expected_release):
+                pair_failures.append("engine-shadow-scenario-contract-invalid")
+            if (policy.get("pressure_controller_mode")
+                    != "unified_flow_advisory"
+                    or policy.get("pressure_bridge_enabled") is not True
+                    or policy.get("pressure_flow_enabled") is not True
+                    or policy.get("pressure_flow_live_enabled", False) is not False):
+                pair_failures.append("bridge-flow-shadow-contract-invalid")
         action_match = control_evidence["actions"] == shadow_evidence["actions"]
         result_match = control_evidence["results"] == shadow_evidence["results"]
         completion_match = (
@@ -329,6 +480,22 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
             pair_failures.append("no-shadow-decisions")
         if fault_count:
             pair_failures.append("fdas-correctness-fault")
+        if (shadow_evidence["volume"]["omitted_detail_event_count"]
+                or control_evidence["volume"]["omitted_detail_event_count"]):
+            pair_failures.append("atom-detail-omission")
+        if pair_scenario is not None:
+            for evidence in (control_evidence, shadow_evidence):
+                mechanisms = evidence["mechanisms"]
+                if (mechanisms["bridge_event_count"] < 1
+                        or mechanisms["flow_event_count"] < 1):
+                    pair_failures.append("bridge-flow-shadow-not-exercised")
+                    break
+                if mechanisms["unhealthy_flow_projection_count"]:
+                    pair_failures.append("unhealthy-flow-projection")
+                    break
+                if mechanisms["unexplained_controller_fallback_count"]:
+                    pair_failures.append("unexplained-controller-fallback")
+                    break
         budget = shadow_manifest["dependent_atomspace"]["config"][
             "materialization"]["maximum_atoms_global"]
         if shadow_evidence["volume"]["maximum_atom_count"] > int(budget):
@@ -358,12 +525,26 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
         shadow_turn.extend(_turn_contribution(shadow_events))
         controller.extend(_metric_values(
             shadow_events, "turn_full_loop_latency_ms"))
+        controller_rss.append(
+            shadow_evidence["controller_process_peak_rss_bytes"])
         volume = shadow_evidence["volume"]
         maxima["atoms"] = max(maxima["atoms"], volume["maximum_atom_count"])
         maxima["events"] = max(maxima["events"], volume["event_count"])
         maxima["scopes"] = max(maxima["scopes"], volume["maximum_scope_count"])
         maxima["supports"] = max(
             maxima["supports"], volume["maximum_support_count"])
+        for name in (
+                "cities", "concurrent_goals", "control_edges",
+                "control_nodes", "grounded_candidates", "legal_actions",
+                "proof_chain_depth", "proof_tree_size", "region_scopes",
+                "units"):
+            maxima[name] = max(maxima[name], volume[name])
+        mechanisms = shadow_evidence["mechanisms"]
+        maxima["bridge_nodes"] = max(
+            maxima["bridge_nodes"], mechanisms["maximum_bridge_nodes"])
+        maxima["flow_iterations"] = max(
+            maxima["flow_iterations"],
+            mechanisms["maximum_flow_iterations"])
         totals["cold_verification_count"] += shadow_evidence[
             "cold_verification_count"]
         totals["decision_count"] += diagnostics["decision_count"]
@@ -371,6 +552,40 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
             "explained_legacy_count"]
         totals["extra_fdas_count"] += diagnostics["extra_fdas_count"]
         totals["revision_count"] += volume["revision_count"]
+        totals["bridge_event_count"] += mechanisms["bridge_event_count"]
+        totals["controller_fallback_count"] += mechanisms[
+            "controller_fallback_count"]
+        totals["flow_event_count"] += mechanisms["flow_event_count"]
+        totals["flow_projection_count"] += mechanisms[
+            "flow_projection_count"]
+        totals["full_detail_pair_count"] += (
+            shadow_evidence["support_level"] == "all")
+
+    volume_expansion = {}
+    if scenario is not None:
+        for name, reference in sorted(
+                scenario["reference_maximum_volume"].items()):
+            achieved = maxima[name]
+            volume_expansion[name] = {
+                "achieved": achieved,
+                "passed": achieved > int(reference),
+                "reference": int(reference),
+            }
+            if achieved <= int(reference):
+                failures.append({
+                    "achieved": achieved,
+                    "kind": "high-entity-volume-not-expanded",
+                    "metric": name,
+                    "reference": int(reference),
+                })
+        if totals["full_detail_pair_count"] < 1:
+            failures.append({"kind": "full-detail-sample-missing"})
+        if sum(value > 0 for value in controller_rss) < len(seeds):
+            failures.append({
+                "kind": "controller-process-rss-evidence-incomplete",
+                "observed": sum(value > 0 for value in controller_rss),
+                "required": len(seeds),
+            })
 
     fdas_turn_summary = _latency_summary(shadow_turn)
     controller_summary = _latency_summary(controller)
@@ -382,9 +597,12 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
             fdas_turn_summary["p95_ms"] is not None
             and fdas_turn_summary["p95_ms"] <= FDAS_TURN_P95_TARGET_MS),
     }
-    for name, passed in latency_targets.items():
-        if not passed:
-            failures.append({"kind": "latency-target-failed", "target": name})
+    latency_gate_mode = "report-only" if scenario is not None else "acceptance"
+    if latency_gate_mode == "acceptance":
+        for name, passed in latency_targets.items():
+            if not passed:
+                failures.append({
+                    "kind": "latency-target-failed", "target": name})
     report = {
         "acceptance": {
             "accepted": not failures,
@@ -394,11 +612,14 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
         },
         "aggregate": {
             "controller_latency_ms": controller_summary,
+            "controller_process_peak_rss_bytes": _byte_summary(
+                controller_rss),
             "fdas_projection_latency_ms": _latency_summary(shadow_projection),
             "fdas_shadow_latency_ms": _latency_summary(shadow_readout),
             "fdas_turn_contribution_ms": fdas_turn_summary,
             "maximum_volume": maxima,
             "totals": dict(sorted(totals.items())),
+            "volume_expansion": volume_expansion,
         },
         "failures": failures,
         "inputs": {
@@ -406,11 +627,13 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
             "shadow_root": os.path.abspath(shadow_root),
         },
         "pairs": pairs,
+        "engine_shadow_scenario": scenario,
         "schema_version": "fdas-engine-shadow-cohort/1.0",
         "structural_hash": None,
         "thresholds": {
             "controller_p95_ms": CONTROLLER_P95_TARGET_MS,
             "fdas_turn_p95_ms": FDAS_TURN_P95_TARGET_MS,
+            "latency_gate_mode": latency_gate_mode,
         },
     }
     report["structural_hash"] = structural_hash(

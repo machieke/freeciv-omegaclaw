@@ -204,6 +204,51 @@ def test_config_seed_overlay_can_bind_exact_fdas_profiles():
         "randomized_pilot.json")
 
 
+@pytest.mark.parametrize("profile,enabled,support_level", (
+    ("freeciv_scalability_engine_shadow_control.yaml", False, "selected"),
+    ("freeciv_scalability_engine_shadow_shadow.yaml", True, "none"),
+    ("freeciv_scalability_engine_shadow_detail.yaml", True, "all"),
+))
+def test_scalability_engine_shadow_profiles_bind_exact_high_entity_contract(
+        profile, enabled, support_level):
+    config = load(os.path.join(REPO, "profile", profile))
+
+    scenario = config["engine_shadow_scenario"]
+    assert len(config["seeds"]) == scenario["minimum_pairs"] == 20
+    assert config["turn_limit"] == config["engine_max_turns"] == 30
+    assert config["impact_policy"]["horizon_turn"] == 30
+    assert scenario["release_game_config"] == {
+        "fogofwar": False, "startunits": "ccccxxxxxxxxdddddddd"}
+    assert scenario["required_shadow_mechanisms"] == [
+        "functional_dependent_atomspace", "protected_bridge",
+        "source_sink_flow"]
+    assert config["dependent_atomspace"]["config"]["enabled"] is enabled
+    assert config["dependent_atomspace"]["config"]["events"][
+        "support_level"] == support_level
+
+    runner = HarnessRunner(
+        "unused", config_path=os.path.join(REPO, "profile", profile),
+        seed_limit=1, conditions=("e_full_loop",))
+    manifest = runner._manifest(
+        runner._jobs(include_induction=False, include_grading=False)[0], 0)
+    assert manifest["engine_shadow_scenario"] == scenario
+    assert manifest["release_game_config"] == scenario[
+        "release_game_config"]
+
+
+def test_scalability_engine_shadow_overlay_rejects_incomplete_volume_contract(
+        tmp_path):
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_scalability_engine_shadow_control.yaml"),
+        encoding="utf-8").read()
+    source = source.replace("    units: 5\n", "", 1)
+    path = tmp_path / "invalid-engine-shadow.yaml"
+    path.write_text(source, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="reference volume differs"):
+        load(str(path))
+
+
 @pytest.mark.parametrize("arm", ("control", "treatment"))
 def test_config_accepts_exact_pr84_diagnostic_seed_cohort(arm):
     config = load(os.path.join(
@@ -4424,6 +4469,11 @@ def test_partial_smoke_aggregate_report_marks_unrun_conditions_na():
         summary = runner.run(
             resume=False, include_induction=False, include_grading=False)
         assert summary["jobs"] == summary["completed"] == 1
+        seed = runner.config["seeds"][0]
+        status = json.load(open(os.path.join(
+            directory, "games", "main", "e_full_loop",
+            "{}-00".format(seed), "status.json"), encoding="utf-8"))
+        assert status["controller_process_peak_rss_bytes"] > 0
         aggregate = aggregate_runs(directory)
         write_report(directory, aggregate)
         report = open(os.path.join(directory, "report.md"), encoding="utf-8").read()

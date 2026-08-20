@@ -1,0 +1,52 @@
+schema_version: "1.0"
+seed_overlay_base: profile/freeciv_harness_960_turn_unified.yaml
+dependent_atomspace:
+  config_path: profile/dependent_atomspace_shadow_sampled.yaml
+  manifest_path: profile/fdas_manifest.json
+seeds:
+  - 8850005
+  - 8801478
+  - 8852936
+  - 8857184
+  - 8844422
+  - 8803438
+  - 8810578
+  - 8826840
+  - 8807954
+  - 8807688
+  - 8849668
+  - 8881509
+  - 8888493
+  - 8818470
+  - 8893336
+  - 8895576
+  - 8869887
+  - 8883283
+  - 8810456
+  - 8852047
+engine_shadow_scenario:
+  schema_version: freeciv-scalability-engine-shadow/1.0
+  scenario_id: scalability-v1-high-entity-he1
+  minimum_pairs: 20
+  horizon_turn: 30
+  require_clean_source: true
+  release_game_config:
+    fogofwar: false
+    startunits: ccccxxxxxxxxdddddddd
+  required_shadow_mechanisms:
+    - functional_dependent_atomspace
+    - protected_bridge
+    - source_sink_flow
+  reference_cohort:
+    root: artifacts/freeciv/fdas-engine-shadow-cohort-20260802-v8
+    report_sha256: 7fe0b0dfdcd89a55efd556f9a6ef2abd26f8bf3206affcb70bd8c1a98c287e94
+  reference_maximum_volume:
+    atoms: 1196
+    cities: 3
+    concurrent_goals: 2
+    grounded_candidates: 9
+    legal_actions: 297
+    region_scopes: 2
+    scopes: 12
+    supports: 659
+    units: 5
