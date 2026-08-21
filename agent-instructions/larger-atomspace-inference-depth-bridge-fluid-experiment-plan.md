@@ -1,6 +1,6 @@
 # Larger AtomSpace, deeper inference, and scaled bridge/fluid experiment plan
 
-**Status:** In progress; G0-G7 decided from frozen held-out evidence, G8 preregistered but not entered, G9 open
+**Status:** Complete; G0-G9 decided from frozen evidence (G0 pass, G1 pass, G2 fail/bounded, G3 pass, G4 fail/bounded, G5 pass, G6 fail/incomplete, G7 pass, G8 fail, G9 pass)
 **Target branch:** `experimental/larger-atomspace-inference-depth`
 **Claim type:** scalability, boundedness, correctness, and performance only
 **Policy authority:** disabled throughout this plan
@@ -125,6 +125,74 @@ G8 is now preregistered in
 and source-sink flow advisory execution, one full-detail sample, per-process
 RSS, strict natural-volume expansion, and exact action/result parity. No G8
 engine arm had been entered at this checkpoint, so G9 remains incomplete.
+
+## Completion checkpoint — 2026-08-21
+
+The plan is complete. The final frozen audit reconstructs 16,119 discovery and
+held-out synthetic/captured results: 14,858 completed, 1,259 stopped, and two
+historical failed rows. All 12,061 held-out rows are accounted for, the
+original discovery semantic failure remains visible, and the audit reports no
+identity, reconstruction, or artifact-integrity error. The machine-readable
+claim manifest is frozen, retains negative and null results, and records G9 as
+complete.
+
+G8 executed all 20 preregistered control/shadow pairs (40 arms) to turn 30 on
+the clean source commit. Every arm completed with a valid event ledger. The
+shadow arms emitted functional-dependent AtomSpace, protected-bridge, and
+source-sink-flow evidence without an authority-eligible decision, stale or
+illegal binding, detail omission, safety downgrade, unhealthy flow, or
+unexplained fallback. One shadow arm emitted full-detail telemetry.
+
+G8 nevertheless **fails** its frozen acceptance contract. Six pairs diverged
+in ordered unit-movement actions between turns 2 and 11; four of those also
+diverged in action-result/completion traces. The first divergence always came
+from engine-facing movement readout, not a PF-v2 authority decision. In
+addition, natural scale exceeded eight of nine frozen reference-volume
+dimensions but materialized zero explicit region scopes against a required
+reference of two. Both findings are retained as failures: timing-sensitive
+shadow integration is not exact control-equivalent in these cases, and the
+high-entity scenario omitted the required region-scope construction.
+
+The largest naturally observed engine-backed shadow state contained 2,107
+atoms, 1,456 supports, 45 scopes, five cities, 21 units, nine concurrent
+goals, 27 grounded candidates, 654 legal actions, 129 control nodes, 120
+control edges, 434 bridge nodes, and 44 flow iterations. Proof depth remained
+one with a four-node tree. Across 527 controller samples, latency was 1.688 s
+p50 and 9.657 s p95; FDAS turn contribution was 0.311 s p50 and 0.789 s p95;
+controller-process peak RSS was 216 MiB p95. The synthetic-to-engine ratios
+are descriptive only because the 2,107-atom engine point lies below the
+synthetic campaign's measured work range.
+
+The final bounded decisions are therefore:
+
+- G0 **pass** — baseline identities and production defaults are frozen.
+- G1 **pass** — deterministic generators, independent oracles, schemas, and
+  fail-closed budget cases are implemented and tested.
+- G2 **fail/bounded** — local AtomSpace time/RSS exponents pass through the
+  measured range, but A4 has resource stops and both absolute labels fail.
+- G3 **pass** — exact proof semantics and scaling pass through P3; P2 earns
+  the 10k research-usable label, while P3 narrowly misses its 15 s label.
+- G4 **fail/bounded** — semantics and H3 pass through B3 and B1 is
+  live-capable, but B4 stops and B3 misses its 2 s label.
+- G5 **pass** — numerical invariants and scaling pass through F3, although F3
+  misses its 5 s research-usable label.
+- G6 **fail/incomplete** — every eligible interaction is below 2x and
+  semantics hold, but one row stops and the frozen C16-center design lacks its
+  isolated comparator.
+- G7 **pass** — all 40 captured transfer pairs preserve the source subgraph
+  and remain within the frozen 2x timing/RSS transfer bound.
+- G8 **fail** — all engine arms complete safely, but exact paired action parity
+  and explicit region-volume expansion fail.
+- G9 **pass** — the raw-artifact audit, frozen claim manifest, final report,
+  negative-result retention, and Scale Lab presentation are complete.
+
+The authoritative report is
+`docs/freeciv/evidence/scalability-v1-final-report.md`; the reconstructable
+machine-readable audit is `docs/freeciv/evidence/scalability-v1.json`. These
+results authorize only the tier-specific scalability, boundedness,
+correctness, and performance statements in the frozen claim manifest. They do
+not authorize a FreeCiv score, win-rate, gameplay-improvement, distributed
+AtomSpace, or unrestricted theorem-search claim.
 
 ## 1. Executive decision
 

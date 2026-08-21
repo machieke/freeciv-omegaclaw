@@ -9796,22 +9796,199 @@
       }
     },
     "engine_shadow": {
-      "errors": [],
-      "gate": "not-entered",
-      "integrity_errors": [],
-      "pair_count": 0,
-      "synthetic_transfer": {
-        "entered": false,
-        "reason": "engine shadow report is unavailable"
+      "engine_shadow_scenario": {
+        "horizon_turn": 30,
+        "minimum_pairs": 20,
+        "reference_cohort": {
+          "report_sha256": "7fe0b0dfdcd89a55efd556f9a6ef2abd26f8bf3206affcb70bd8c1a98c287e94",
+          "root": "artifacts/freeciv/fdas-engine-shadow-cohort-20260802-v8"
+        },
+        "reference_maximum_volume": {
+          "atoms": 1196,
+          "cities": 3,
+          "concurrent_goals": 2,
+          "grounded_candidates": 9,
+          "legal_actions": 297,
+          "region_scopes": 2,
+          "scopes": 12,
+          "supports": 659,
+          "units": 5
+        },
+        "release_game_config": {
+          "fogofwar": false,
+          "startunits": "ccccxxxxxxxxdddddddd"
+        },
+        "require_clean_source": true,
+        "required_shadow_mechanisms": [
+          "functional_dependent_atomspace",
+          "protected_bridge",
+          "source_sink_flow"
+        ],
+        "scenario_id": "scalability-v1-high-entity-he1",
+        "schema_version": "freeciv-scalability-engine-shadow/1.0"
       },
-      "valid": null
+      "errors": [
+        "engine pair 1 failed action_trace_match",
+        "engine pair 1 failed result_trace_match",
+        "engine pair 1 failed behavioral_completion_match",
+        "engine pair 1 contains failures",
+        "engine pair 2 failed action_trace_match",
+        "engine pair 2 contains failures",
+        "engine pair 7 failed action_trace_match",
+        "engine pair 7 failed result_trace_match",
+        "engine pair 7 failed behavioral_completion_match",
+        "engine pair 7 contains failures",
+        "engine pair 11 failed action_trace_match",
+        "engine pair 11 failed result_trace_match",
+        "engine pair 11 failed behavioral_completion_match",
+        "engine pair 11 contains failures",
+        "engine pair 12 failed action_trace_match",
+        "engine pair 12 failed result_trace_match",
+        "engine pair 12 failed behavioral_completion_match",
+        "engine pair 12 contains failures",
+        "engine pair 16 failed action_trace_match",
+        "engine pair 16 contains failures",
+        "engine shadow source report was not accepted"
+      ],
+      "gate": "fail",
+      "integrity_errors": [],
+      "maximum_volume": {
+        "atoms": 2107,
+        "bridge_nodes": 434,
+        "cities": 5,
+        "concurrent_goals": 9,
+        "control_edges": 120,
+        "control_nodes": 129,
+        "events": 34484,
+        "flow_iterations": 44,
+        "grounded_candidates": 27,
+        "legal_actions": 654,
+        "proof_chain_depth": 1,
+        "proof_tree_size": 4,
+        "region_scopes": 0,
+        "scopes": 45,
+        "supports": 1456,
+        "units": 21
+      },
+      "pair_count": 20,
+      "performance": {
+        "controller_latency_ms": {
+          "count": 527,
+          "maximum_ms": 17014.04087152332,
+          "mean_ms": 2929.812050760287,
+          "p50_ms": 1687.6299548894167,
+          "p95_ms": 9656.968181021512
+        },
+        "controller_process_peak_rss_bytes": {
+          "count": 20,
+          "maximum_bytes": 228323328,
+          "mean_bytes": 171668275.2,
+          "p50_bytes": 179871744,
+          "p95_bytes": 226512896
+        },
+        "fdas_projection_latency_ms": {
+          "count": 594,
+          "maximum_ms": 1139.5132346078753,
+          "mean_ms": 314.85961577369005,
+          "p50_ms": 299.98584650456905,
+          "p95_ms": 547.6142950356007
+        },
+        "fdas_shadow_latency_ms": {
+          "count": 527,
+          "maximum_ms": 60.30319631099701,
+          "mean_ms": 10.255685813046384,
+          "p50_ms": 8.698378689587116,
+          "p95_ms": 26.64407342672348
+        },
+        "fdas_turn_contribution_ms": {
+          "count": 530,
+          "maximum_ms": 1638.2269011810422,
+          "mean_ms": 363.07803432650445,
+          "p50_ms": 310.7601497322321,
+          "p95_ms": 788.5626945644617
+        }
+      },
+      "source_report_hash": "2a10edd012d33acdd1b73190f180ec9315654c29ec3b87363a6e6df6b107c66a",
+      "synthetic_transfer": {
+        "engine_achieved_atoms": 2107,
+        "engine_point_inside_synthetic_work_range": false,
+        "entered": true,
+        "interpretation": "descriptive integration/shape ratios; workloads are not exact equivalents and no acceptance threshold is applied",
+        "latency_ratio_engine_fdas_projection_p95_to_synthetic_incremental_p95": 2.5062547505635306,
+        "memory_ratio_engine_controller_rss_p95_to_synthetic_process_rss_p95": 3.2265141150146883,
+        "nearest_synthetic_tier": "A0",
+        "nearest_synthetic_work_atoms": 2500,
+        "synthetic_latency_p95_ms": 218.499055178836,
+        "synthetic_rss_p95_bytes": 70203596.8,
+        "synthetic_sample_count": 50
+      },
+      "totals": {
+        "bridge_event_count": 1349,
+        "cold_verification_count": 22,
+        "controller_fallback_count": 931,
+        "decision_count": 527,
+        "explained_legacy_count": 8179,
+        "extra_fdas_count": 2179,
+        "flow_event_count": 1349,
+        "flow_projection_count": 4412,
+        "full_detail_pair_count": 1,
+        "revision_count": 654
+      },
+      "valid": false,
+      "volume_expansion": {
+        "atoms": {
+          "achieved": 2107,
+          "passed": true,
+          "reference": 1196
+        },
+        "cities": {
+          "achieved": 5,
+          "passed": true,
+          "reference": 3
+        },
+        "concurrent_goals": {
+          "achieved": 9,
+          "passed": true,
+          "reference": 2
+        },
+        "grounded_candidates": {
+          "achieved": 27,
+          "passed": true,
+          "reference": 9
+        },
+        "legal_actions": {
+          "achieved": 654,
+          "passed": true,
+          "reference": 297
+        },
+        "region_scopes": {
+          "achieved": 0,
+          "passed": false,
+          "reference": 2
+        },
+        "scopes": {
+          "achieved": 45,
+          "passed": true,
+          "reference": 12
+        },
+        "supports": {
+          "achieved": 1456,
+          "passed": true,
+          "reference": 659
+        },
+        "units": {
+          "achieved": 21,
+          "passed": true,
+          "reference": 5
+        }
+      }
     },
     "gates": {
       "atomspace": "fail",
       "bridge": "fail",
       "captured": "pass",
       "combined": "fail",
-      "engine": "not-entered",
+      "engine": "fail",
       "fluid": "pass",
       "proof": "pass"
     },
